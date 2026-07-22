@@ -1266,7 +1266,6 @@ function TabCohorts({
 // reemplaza lo decidido en v17 sección 41: el CSV ya no es evaluation-wide).
 const I2_SOURCE_NUM_TO_TIPO: Record<number, string> = {
   1: "syllabus",
-  2: "acta_retroalimentacion",
   3: "acta_ajuste_curricular",
   4: "evidencia_difusion",
   5: "encuesta_csv",
