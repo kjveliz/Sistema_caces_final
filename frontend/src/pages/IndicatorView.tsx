@@ -1716,10 +1716,9 @@ const evidencia = propia ?? compartida;
       <div className="w-80 flex-shrink-0 flex flex-col overflow-hidden gap-2">
         {mostrarAsignatura && (
           <div
-            className="rounded-xl px-3 py-2 flex items-center gap-2 flex-shrink-0"
+            className="bg-white rounded-xl px-3 py-2 flex items-center gap-2 flex-shrink-0"
             style={{
-              background: "#EEF2F7",
-              border: "1px solid rgba(27,58,107,0.12)",
+              border: "1px solid rgba(27,58,107,0.08)",
             }}
           >
             <BookOpen size={13} style={{ color: "#1B3A6B", flexShrink: 0 }} />
