@@ -165,7 +165,11 @@ function calcularResultadoAsignatura(mysqli $conexion, int $idAsignatura, string
     $efPuntaje = round($ef1Val * 0.33 + $ef2Val * 0.27 + $ef3Val * 0.20 + $ef4Val * 0.13 + $ef5Val * 0.07, 4);
     $valoracionGeneral = round($efPuntaje * 100, 1);
 
-    $todosCompletos = $efDisponible && $tieneEf2 && $tieneEf3 && $tieneEf5;
+    // Pendiente #4 (MEMORIA v41/§22.5, cerrado en v47 -- opción B elegida por el usuario): antes solo
+    // exigía Encuesta+EF2+EF3+EF5, sin validar Syllabus/Malla/Reportes SIU pese a que los 5 son
+    // componentes de EF1 con el mismo peso (ver fórmula de $ef1 más arriba, Pendiente #5 v45/§24).
+    $todosCompletos = $efDisponible && $tieneSyllabus && $tieneMalla && $tieneReporteControlSiu
+        && $tieneReporteAvancesSiu && $tieneEf2 && $tieneEf3 && $tieneEf5;
     $estadoGeneral = $todosCompletos ? 'completo' : 'parcial';
 
     [$escala, $colorEscala] = calcularEscala($valoracionGeneral);
