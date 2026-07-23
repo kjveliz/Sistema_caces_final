@@ -82,6 +82,7 @@ export default function IndicatorView({ indicator, onBack, career, cohort, pao, 
   const defaultTab: TabId = (isI2 || isI3) ? "results" : isTitDes ? "cohorts" : "evidences";
   const [tab, setTab] = useState<TabId>(defaultTab);
   const [idAsignaturaSeleccionada, setIdAsignaturaSeleccionada] = useState<number | null>(null);
+  const [nombreAsignaturaSeleccionada, setNombreAsignaturaSeleccionada] = useState<string | null>(null);
   const pct = calcRate(indicator.cohorts);
   const s = getStatus(pct);
 
@@ -123,8 +124,8 @@ export default function IndicatorView({ indicator, onBack, career, cohort, pao, 
 
 
       <div className="flex-1 overflow-hidden min-h-0">
-                {tab === "results"   && isI2  && <TabResults    ind={indicator} career={career} cohort={cohort} pao={pao} onAsignaturaChange={(id) => setIdAsignaturaSeleccionada(id)}/>}
-        {tab === "results"   && isI3  && <TabResultsI3  ind={indicator} career={career} cohort={cohort} pao={pao} onAsignaturaChange={(id) => setIdAsignaturaSeleccionada(id)}/>}
+                {tab === "results"   && isI2  && <TabResults    ind={indicator} career={career} cohort={cohort} pao={pao} onAsignaturaChange={(id, nombre) => { setIdAsignaturaSeleccionada(id); setNombreAsignaturaSeleccionada(nombre ?? null); }}/>}
+        {tab === "results"   && isI3  && <TabResultsI3  ind={indicator} career={career} cohort={cohort} pao={pao} onAsignaturaChange={(id, nombre) => { setIdAsignaturaSeleccionada(id); setNombreAsignaturaSeleccionada(nombre ?? null); }}/>}
         {tab === "cohorts" && (
           <TabCohorts
             ind={indicator}
@@ -138,6 +139,7 @@ export default function IndicatorView({ indicator, onBack, career, cohort, pao, 
             career={career}
             cohort={cohort}
             idAsignatura={idAsignaturaSeleccionada}
+            nombreAsignatura={nombreAsignaturaSeleccionada}
             onUpload={onUpload}
             puedeCargar={puedeCargar}
           />
@@ -161,7 +163,7 @@ const EF_META = [
 // ── Tab Resultados (I2 – Seguimiento de Syllabus) ──────────────────────────
 // Solo lectura: la carga/reemplazo de evidencia se hace en la pestaña
 // "Evidencias" (mecanismo genérico de slots), no aquí.
-function TabResults({ ind, career, cohort, pao, onAsignaturaChange }: { ind: IndicatorDef;career: Career | null; cohort: string; pao: number; onAsignaturaChange?: (idAsignatura: number | null) => void }) {
+function TabResults({ ind, career, cohort, pao, onAsignaturaChange }: { ind: IndicatorDef;career: Career | null; cohort: string; pao: number; onAsignaturaChange?: (idAsignatura: number | null, nombreAsignatura?: string | null) => void }) {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [resultadoCohorte, setResultadoCohorte] = useState<ResultadoCohorte | null>(null);
@@ -174,7 +176,7 @@ function TabResults({ ind, career, cohort, pao, onAsignaturaChange }: { ind: Ind
   // Notificar al padre cuando cambie la asignatura seleccionada
   useEffect(() => {
     const id = asig?.id_asignatura ?? null;
-    onAsignaturaChange?.(id);
+    onAsignaturaChange?.(id, asig?.nombre_asignatura ?? null);
   }, [selectedAsig, resultadoCohorte]);
 
   // Resuelve evaluación (id_evaluacion, id_cohorte), el PAO real, y trae
@@ -426,7 +428,7 @@ const I3_EF_ORDEN: EfTutorias[] = ["EF1", "EF2", "EF3", "EF4"];
 // Igual patrón que TabResults (I2): solo lectura, trae de la API real el
 // resultado ya calculado por api/tutorias_academicas/_calculo.php (pesos,
 // % por EF, escala) -- no se recalcula nada en el frontend.
-function TabResultsI3({ ind, career, cohort, pao, onAsignaturaChange }: { ind: IndicatorDef; career: Career | null; cohort: string; pao: number; onAsignaturaChange?: (idAsignatura: number | null) => void }) {
+function TabResultsI3({ ind, career, cohort, pao, onAsignaturaChange }: { ind: IndicatorDef; career: Career | null; cohort: string; pao: number; onAsignaturaChange?: (idAsignatura: number | null, nombreAsignatura?: string | null) => void }) {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [resultadoCohorte, setResultadoCohorte] = useState<ResultadoCohorteTutorias | null>(null);
@@ -440,7 +442,7 @@ function TabResultsI3({ ind, career, cohort, pao, onAsignaturaChange }: { ind: I
   // pueda mostrar/subir evidencia de la materia correcta en esa pestaña.
   useEffect(() => {
     const id = materia?.id_asignatura ?? null;
-    onAsignaturaChange?.(id);
+    onAsignaturaChange?.(id, materia?.nombre_asignatura ?? null);
   }, [selectedIdx, resultadoCohorte]);
 
   useEffect(() => {
@@ -1264,7 +1266,6 @@ function TabCohorts({
 // reemplaza lo decidido en v17 sección 41: el CSV ya no es evaluation-wide).
 const I2_SOURCE_NUM_TO_TIPO: Record<number, string> = {
   1: "syllabus",
-  2: "acta_retroalimentacion",
   3: "acta_ajuste_curricular",
   4: "evidencia_difusion",
   5: "encuesta_csv",
@@ -1285,6 +1286,7 @@ function TabEvidences({
   career,
   cohort,
   idAsignatura,
+  nombreAsignatura,
   onUpload,
   puedeCargar,
 }: {
@@ -1292,9 +1294,15 @@ function TabEvidences({
   career: Career | null;
   cohort: string;
   idAsignatura: number | null;
+  nombreAsignatura?: string | null;
   onUpload?: () => void;
   puedeCargar: boolean;
 }) {
+  // I2 y I3 trabajan por asignatura: se muestra un chip con el nombre de la
+  // materia que se está viendo, para no perder el contexto dentro de la
+  // pestaña Evidencias. I1/I4/I5 trabajan a nivel carrera+cohorte, sin
+  // asignatura, así que este chip no aplica para ellos.
+  const mostrarAsignatura = (ind.id === "I2" || ind.id === "I3") && !!nombreAsignatura;
   const [slots, setSlots] = useState<IndicatorDef["slots"]>(
     () => ind.slots.map((slot) => ({ ...slot })),
   );
@@ -1705,6 +1713,32 @@ const evidencia = propia ?? compartida;
   return (
     <div className="h-full flex px-6 py-4 max-w-5xl mx-auto gap-4 overflow-hidden">
       <div className="w-80 flex-shrink-0 flex flex-col overflow-hidden gap-2">
+        {mostrarAsignatura && (
+          <div
+            className="bg-white rounded-xl px-3 py-2 flex items-center gap-2 flex-shrink-0"
+            style={{
+              border: "1px solid rgba(27,58,107,0.08)",
+            }}
+          >
+            <BookOpen size={13} style={{ color: "#1B3A6B", flexShrink: 0 }} />
+            <div className="min-w-0">
+              <p
+                className="text-[10px] font-bold uppercase tracking-wide"
+                style={{ color: "#5A7295" }}
+              >
+                Asignatura
+              </p>
+              <p
+                className="text-xs font-semibold truncate"
+                style={{ color: "#0F1E3C" }}
+                title={nombreAsignatura ?? undefined}
+              >
+                {nombreAsignatura}
+              </p>
+            </div>
+          </div>
+        )}
+
         <div
           className="bg-white rounded-2xl overflow-hidden flex-1 flex flex-col"
           style={{

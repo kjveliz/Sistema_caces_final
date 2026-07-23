@@ -7,14 +7,13 @@ const TIPOS_POR_CARRERA = ['malla_curricular', 'reglamento_normativa'];
 // heteroevaluación ahora se sube por-asignatura, igual que los otros 4
 // documentos de I2, en vez de ser un único archivo evaluation-wide con
 // filtrado de filas por nombre de materia (ver MEMORIA v18).
-const TIPOS_POR_ASIGNATURA = ['syllabus', 'acta_retroalimentacion', 'acta_ajuste_curricular', 'evidencia_difusion', 'encuesta_csv'];
+const TIPOS_POR_ASIGNATURA = ['syllabus', 'acta_ajuste_curricular', 'evidencia_difusion', 'encuesta_csv'];
 
 function etiquetasEvidencia(): array
 {
     return [
         'malla_curricular'       => 'Malla Curricular',
         'syllabus'                => 'Syllabus',
-        'acta_retroalimentacion'  => 'Acta de Retroalimentación',
         'acta_ajuste_curricular'  => 'Acta de Ajuste Curricular (EF2)',
         'evidencia_difusion'      => 'Evidencia de Difusión (EF3)',
         'reglamento_normativa'    => 'Reglamento / Normativa Institucional (EF5)',

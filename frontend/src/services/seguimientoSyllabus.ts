@@ -83,7 +83,6 @@ export function obtenerResultadoCohorte(idCohorte: number, idEvaluacion: number,
 // ser un único archivo evaluation-wide (ver MEMORIA v18).
 export type TipoEvidenciaAsignatura =
   | "syllabus"
-  | "acta_retroalimentacion"
   | "acta_ajuste_curricular"
   | "evidencia_difusion"
   | "encuesta_csv";

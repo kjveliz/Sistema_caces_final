@@ -102,10 +102,6 @@ function makeIndicators(
           label: "Syllabus",
         },
         {
-          sourceNum: 2,
-          label: "Actas de revisión",
-        },
-        {
           sourceNum: 3,
           label: "Acta de Ajuste Curricular (EF2)",
         },
