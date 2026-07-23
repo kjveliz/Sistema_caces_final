@@ -232,6 +232,12 @@ function TabResults({ ind, career, cohort, pao, onAsignaturaChange }: { ind: Ind
   }));
   const totalGeneral = resultadoCohorte?.valoracion_general ?? null;
   const totalAsignatura = asig?.valoracion_general ?? null;
+  // Nuevo (Pendiente #4, MEMORIA v41/§22.5, cerrado en v47): estado_general ya
+  // se calculaba bien en el backend (una vez corregido el Pendiente #4) pero
+  // no se mostraba en ningún lado de esta pantalla -- se agrega la etiqueta
+  // "Completo"/"Incompleto" junto al % de la materia, igual que ya existe en
+  // TabResultsI3 (Tutorías) más abajo en este mismo archivo.
+  const materiaCompleta = asig?.estado_general === "completo";
   const radarData = efScores.map((ef) => ({ subject: ef.id, score: ef.pct ?? 0, fullMark: 100 }));
 
   async function handleExportarPDF() {
@@ -350,12 +356,20 @@ function TabResults({ ind, career, cohort, pao, onAsignaturaChange }: { ind: Ind
           <div>
             <h3 className="font-bold" style={{ fontFamily: "'Libre Baskerville',serif", color: "#0F1E3C", fontSize: 13 }}>{asig?.nombre_asignatura ?? "—"}</h3>
           </div>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {asig && (
+              <span className="px-2 py-1 rounded-lg font-bold text-xs"
+                style={materiaCompleta ? { background: "#DCFCE7", color: "#16A34A" } : { background: "#FEF9C3", color: "#CA8A04" }}>
+                {materiaCompleta ? "Completo" : "Incompleto"}
+              </span>
+            )}
                     {(() => { const st = getStatus(totalAsignatura ?? 0); return (
             <span className="px-2.5 py-1 rounded-lg font-bold flex-shrink-0"
               style={{ background: totalAsignatura === null ? "#F1F5F9" : st.bg, color: totalAsignatura === null ? "#94A3B8" : st.color, fontFamily: "'DM Mono',monospace", fontSize: 13 }}>
               {totalAsignatura === null ? "Sin datos" : `${totalAsignatura}%`}
             </span>
           ); })()}
+          </div>
         </div>
 
         {/* Radar — flex-shrink-0 with fixed height */}
