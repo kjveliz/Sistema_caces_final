@@ -114,6 +114,25 @@ function makeIndicators(
           label: "Resultados de Encuesta (CSV)",
           acceptedType: "csv",
         },
+        {
+          // Reporte de Control de Seguimiento (DOC.SEG.06, catálogo propio
+          // de I2, orden=8) -- evaluation-wide, a nivel carrera+cohorte,
+          // igual que Malla/Normativa. Pendiente #5 (MEMORIA v44, §23):
+          // evidencia real del SIU para EF1, solo verificación de
+          // existencia (sin lector/parser de PDF). orden=8 en el catálogo
+          // porque debe coincidir exactamente con este sourceNum (así
+          // matchea el bloque genérico de EvidenceUploadView.tsx e
+          // IndicatorView.tsx) -- 6 y 7 ya están tomados por
+          // Normativa/Malla.
+          sourceNum: 8,
+          label: "Reporte de Control de Seguimiento (SIU)",
+        },
+        {
+          // Reporte de Avances del Syllabus (DOC.SEG.07, orden=9). Mismo
+          // patrón que el slot anterior.
+          sourceNum: 9,
+          label: "Reporte de Avances del Syllabus (SIU)",
+        },
       ],
     },
     {

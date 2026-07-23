@@ -1,7 +1,13 @@
 <?php
 require_once __DIR__ . '/_encuesta.php';
 
-const TIPOS_POR_CARRERA = ['malla_curricular', 'reglamento_normativa'];
+// 'reporte_control_siu' y 'reporte_avances_siu' (slots 8 y 9 de I2, catálogo
+// DOC.SEG.06/DOC.SEG.07) se agregan a partir del Pendiente #5 (ver MEMORIA
+// v44, §23): dos reportes reales del SIU (control de seguimiento de
+// contenidos + avances del syllabus) que evidencian EF1, a nivel
+// carrera+cohorte igual que malla_curricular/reglamento_normativa. Solo
+// verificación de existencia -- sin lector/parser de PDF (decisión v44).
+const TIPOS_POR_CARRERA = ['malla_curricular', 'reglamento_normativa', 'reporte_control_siu', 'reporte_avances_siu'];
 // 'encuesta_csv' (slot 5 de I2) se agrega aquí a partir de la migración
 // sql/migracion_i2_encuesta_csv_por_asignatura.sql: el CSV de la encuesta de
 // heteroevaluación ahora se sube por-asignatura, igual que los otros 4
@@ -18,6 +24,8 @@ function etiquetasEvidencia(): array
         'evidencia_difusion'      => 'Evidencia de Difusión (EF3)',
         'reglamento_normativa'    => 'Reglamento / Normativa Institucional (EF5)',
         'encuesta_csv'            => 'Resultados de Encuesta (CSV)',
+        'reporte_control_siu'     => 'Reporte de Control de Seguimiento (SIU)',
+        'reporte_avances_siu'     => 'Reporte de Avances del Syllabus (SIU)',
     ];
 }
 
@@ -58,13 +66,18 @@ function tiposCarreraVigentes(mysqli $conexion, int $idEvaluacion): array
             FROM Evidencias e
             JOIN Catalogo_Evidencias c ON c.id_catalogo = e.id_catalogo
             WHERE e.id_evaluacion = ?
-              AND c.codigo_evidencia IN ('DOC.SYL.01', 'DOC.SEG.01')";
+              AND c.codigo_evidencia IN ('DOC.SYL.01', 'DOC.SEG.01', 'DOC.SEG.06', 'DOC.SEG.07')";
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param('i', $idEvaluacion);
     $stmt->execute();
     $filas = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-    $mapa = ['DOC.SYL.01' => 'malla_curricular', 'DOC.SEG.01' => 'reglamento_normativa'];
+    $mapa = [
+        'DOC.SYL.01' => 'malla_curricular',
+        'DOC.SEG.01' => 'reglamento_normativa',
+        'DOC.SEG.06' => 'reporte_control_siu',
+        'DOC.SEG.07' => 'reporte_avances_siu',
+    ];
     $codigos = array_column($filas, 'codigo_evidencia');
     return array_values(array_intersect_key($mapa, array_flip($codigos)));
 }
@@ -106,6 +119,11 @@ function calcularResultadoAsignatura(mysqli $conexion, int $idAsignatura, string
     $tieneEf5 = $evidenciasInfo['reglamento_normativa']['subida'];
     $tieneSyllabus = $evidenciasInfo['syllabus']['subida'];
     $tieneMalla = $evidenciasInfo['malla_curricular']['subida'];
+    // Pendiente #5 (MEMORIA v44, §23): los 2 reportes SIU pesan igual que
+    // Encuesta/Syllabus/Malla dentro de EF1 (decisión del usuario, no 1/3 +
+    // 2 extra con menor peso).
+    $tieneReporteControlSiu = $evidenciasInfo['reporte_control_siu']['subida'];
+    $tieneReporteAvancesSiu = $evidenciasInfo['reporte_avances_siu']['subida'];
 
     $totalEvidencias = ($tieneEf2 ? 1 : 0) + ($tieneEf3 ? 1 : 0) + ($tieneEf5 ? 1 : 0);
     $pctEvidencias = $totalEvidencias > 0 ? round($totalEvidencias / 3 * 100, 1) : 0;
@@ -120,8 +138,10 @@ function calcularResultadoAsignatura(mysqli $conexion, int $idAsignatura, string
     $ef1Encuesta = $efDisponible ? $datosEf['ef1'] : 0.0;
     $ef1Syllabus = $tieneSyllabus ? 1.0 : 0.0;
     $ef1Malla = $tieneMalla ? 1.0 : 0.0;
-    $ef1 = ($efDisponible || $tieneSyllabus || $tieneMalla)
-        ? round(($ef1Encuesta + $ef1Syllabus + $ef1Malla) / 3, 4)
+    $ef1ReporteControlSiu = $tieneReporteControlSiu ? 1.0 : 0.0;
+    $ef1ReporteAvancesSiu = $tieneReporteAvancesSiu ? 1.0 : 0.0;
+    $ef1 = ($efDisponible || $tieneSyllabus || $tieneMalla || $tieneReporteControlSiu || $tieneReporteAvancesSiu)
+        ? round(($ef1Encuesta + $ef1Syllabus + $ef1Malla + $ef1ReporteControlSiu + $ef1ReporteAvancesSiu) / 5, 4)
         : null;
 
     $ef4 = $efDisponible ? $datosEf['ef4'] : null;
