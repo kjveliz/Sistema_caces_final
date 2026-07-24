@@ -28,6 +28,10 @@ test('subir evidencia de I2 (Normativa Institucional)', async ({ page }) => {
     .locator('div')
     .filter({ has: page.getByText('I2', { exact: true }) })
     .filter({ has: page.getByText('Seguimiento de Syllabus', { exact: true }) })
+    // Sin este filtro, .last() puede matchear el div de encabezado de la card
+    // (hermano del div de botones, no su padre) y quedarse esperando un botón
+    // que ese contenedor nunca va a tener.
+    .filter({ has: page.getByRole('button') })
     .last();
 
   await cardI2.getByRole('button').first().click();
