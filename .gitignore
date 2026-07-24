@@ -9,3 +9,8 @@ vendor/
 frontend/.env
 
 .phpunit.cache/
+
+frontend/playwright-report/
+frontend/test-results/
+frontend/blob-report/
+frontend/e2e/.env.e2e
