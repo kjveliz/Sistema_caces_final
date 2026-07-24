@@ -1,6 +1,7 @@
 {
     "scripts": {
-        "test": "phpunit"
+        "test": "phpunit",
+        "test:integration": "phpunit --testsuite=integration"
     },
     "require": {
         "smalot/pdfparser": "^2.12",
