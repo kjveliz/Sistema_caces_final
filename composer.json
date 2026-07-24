@@ -1,4 +1,7 @@
 {
+    "scripts": {
+        "test": "phpunit"
+    },
     "require": {
         "smalot/pdfparser": "^2.12",
         "google/apiclient": "^2.19",

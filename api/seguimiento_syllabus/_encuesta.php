@@ -187,9 +187,12 @@ function textoPregunta(string $header, int $numero): string
 }
 
 /**
- * Calcula EF1/EF4 desde el CSV propio de la asignatura. Ya no recibe
- * $materia ni filtra filas por nombre -- el CSV completo pertenece a esta
- * asignatura.
+ * Calcula EF1/EF4 a partir de filas YA parseadas del CSV propio de la
+ * asignatura (fila 0 = headers, resto = respuestas). Lógica pura, sin
+ * mysqli ni Drive -- extraída de calcularEfDesdeCsv() (Fase 5, testing)
+ * para poder testearla con PHPUnit sin depender de infraestructura externa.
+ * $degradado se pasa tal cual desde el caller (ver descargarCsvEncuesta) y
+ * viaja sin tocar hasta el resultado.
  *
  * FORMATO REAL CONFIRMADO (20 jul 2026, contra el formulario oficial de la
  * universidad, ver MEMORIA): el CSV NO trae columnas de materia/profesor --
@@ -197,16 +200,12 @@ function textoPregunta(string $header, int $numero): string
  * con respuesta. La única columna fija es la #0 (timestamp); de ahí en
  * adelante van directo las 23 preguntas [P1]..[P23]. (Antes se asumía,
  * incorrectamente, que había 3 columnas fijas -- timestamp/materia/profesor
- * -- heredado de un CSV de prueba que no correspondía al formulario real.)
+ * -- heredado de un CSV de prueba que no correspondía al formulario real.
+ * Este es exactamente el escenario que cubre EncuestaCalculoTest -- ver
+ * tests/Unit/SeguimientoSyllabus/EncuestaCalculoTest.php.)
  */
-function calcularEfDesdeCsv(mysqli $conexion, int $idAsignatura): ?array
+function calcularEfDesdeFilas(array $filas, bool $degradado = false): ?array
 {
-    $csv = descargarCsvEncuesta($conexion, $idAsignatura);
-    if ($csv === null) {
-        return null;
-    }
-
-    $filas = $csv['filas'];
     if (empty($filas)) {
         return null;
     }
@@ -272,8 +271,24 @@ function calcularEfDesdeCsv(mysqli $conexion, int $idAsignatura): ?array
         'ef4' => $promedioEfDecimal($ef4Pregs),
         'respuestas' => $totalFilas,
         'promedio_general' => !empty($promedios) ? round(array_sum($promedios) / count($promedios), 1) : 0,
-        'degradado' => $csv['degradado'],
+        'degradado' => $degradado,
     ];
+}
+
+/**
+ * Calcula EF1/EF4 desde el CSV propio de la asignatura. Ya no recibe
+ * $materia ni filtra filas por nombre -- el CSV completo pertenece a esta
+ * asignatura. Envoltorio delgado: descarga el CSV (mysqli + Drive) y delega
+ * el cálculo puro a calcularEfDesdeFilas().
+ */
+function calcularEfDesdeCsv(mysqli $conexion, int $idAsignatura): ?array
+{
+    $csv = descargarCsvEncuesta($conexion, $idAsignatura);
+    if ($csv === null) {
+        return null;
+    }
+
+    return calcularEfDesdeFilas($csv['filas'], $csv['degradado']);
 }
 
 /**

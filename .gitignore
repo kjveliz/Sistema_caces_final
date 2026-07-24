@@ -7,3 +7,5 @@ vendor/
 
 .env
 frontend/.env
+
+.phpunit.cache/
