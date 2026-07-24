@@ -39,6 +39,7 @@ abstract class IntegrationTestCase extends TestCase
 {
     protected static string $baseUrl;
     private static $serverProcess = null;
+    private static array $serverPipes = [];
     protected static string $cookieJar;
     private static string $repoRoot;
     private static array $serverEnv;
@@ -62,8 +63,16 @@ abstract class IntegrationTestCase extends TestCase
         self::$cookieJar = tempnam(sys_get_temp_dir(), 'caces_cookies_');
 
         $descriptores = [1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
+        // 'exec' antes del binario es un truco de sh/bash (evita un proceso
+        // intermedio, para que proc_terminate() mate al PHP real). En
+        // Windows, proc_open() corre el comando vía cmd.exe, que no tiene
+        // 'exec' como comando interno -- con el prefijo, cmd.exe falla al
+        // instante y el servidor nunca llega a levantarse (visto en vivo:
+        // timeout de esperarServidor() en los 3 casos, siempre a los 5s).
+        $prefijo = PHP_OS_FAMILY === 'Windows' ? '' : 'exec ';
         $comando = sprintf(
-            'exec php -d variables_order=EGPCS -S 127.0.0.1:%d -t %s',
+            '%sphp -d variables_order=EGPCS -S 127.0.0.1:%d -t %s',
+            $prefijo,
             $port,
             escapeshellarg(self::$repoRoot)
         );
@@ -73,6 +82,10 @@ abstract class IntegrationTestCase extends TestCase
         if (!is_resource(self::$serverProcess)) {
             throw new RuntimeException('No se pudo levantar el servidor PHP embebido para los tests de integración.');
         }
+
+        self::$serverPipes = $pipes;
+        stream_set_blocking(self::$serverPipes[1], false);
+        stream_set_blocking(self::$serverPipes[2], false);
 
         self::esperarServidor($port);
     }
@@ -84,6 +97,13 @@ abstract class IntegrationTestCase extends TestCase
             proc_close(self::$serverProcess);
             self::$serverProcess = null;
         }
+
+        foreach (self::$serverPipes as $pipe) {
+            if (is_resource($pipe)) {
+                fclose($pipe);
+            }
+        }
+        self::$serverPipes = [];
 
         if (isset(self::$cookieJar) && is_file(self::$cookieJar)) {
             unlink(self::$cookieJar);
@@ -164,7 +184,16 @@ abstract class IntegrationTestCase extends TestCase
             }
             usleep(50000);
         }
-        throw new RuntimeException("El servidor PHP embebido no respondió en el puerto {$port} tras {$timeoutSegundos}s.");
+
+        $estado = is_resource(self::$serverProcess) ? proc_get_status(self::$serverProcess) : null;
+        $salida = isset(self::$serverPipes[1]) ? (string) stream_get_contents(self::$serverPipes[1]) : '';
+        $error = isset(self::$serverPipes[2]) ? (string) stream_get_contents(self::$serverPipes[2]) : '';
+
+        throw new RuntimeException(
+            "El servidor PHP embebido no respondió en el puerto {$port} tras {$timeoutSegundos}s.\n" .
+            'Proceso en ejecución: ' . ($estado['running'] ?? false ? 'sí' : 'no (terminó, código ' . ($estado['exitcode'] ?? '?') . ')') . "\n" .
+            "--- stdout ---\n{$salida}\n--- stderr ---\n{$error}"
+        );
     }
 
     /** Conexión mysqli directa a la BD de prueba, para preparar fixtures o verificar efectos secundarios. */
