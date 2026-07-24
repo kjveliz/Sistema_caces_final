@@ -30,6 +30,21 @@ function subirArchivoDrive(
     string $asignatura,
     string $mimeType = 'application/pdf'
 ): array {
+    // Seam de testing (Fase 5, tests de integración): en el entorno de
+    // integración (APP_ENV=testing, fijado por IntegrationTestCase al
+    // levantar el servidor embebido de PHP) se evita el llamado real a
+    // Google Drive -- no hay credenciales de prueba disponibles, y no tiene
+    // sentido escribir en un Drive real desde un test automatizado. Fuera
+    // de testing, el comportamiento es exactamente el mismo de siempre (esta
+    // rama nunca se activa en local/producción).
+    if ((getenv('APP_ENV') ?: '') === 'testing') {
+        return [
+            'id_archivo' => 'fake-drive-id-' . bin2hex(random_bytes(4)),
+            'nombre_archivo' => $nombreArchivo,
+            'url_archivo' => 'https://drive.google.com/fake-test-double/' . rawurlencode($nombreArchivo),
+        ];
+    }
+
     $cliente = require __DIR__ . '/../google_drive/cliente_autorizado.php';
     $drive = new Google\Service\Drive($cliente);
 
