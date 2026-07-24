@@ -12,8 +12,8 @@ test.describe('Login', () => {
   test('muestra un error con credenciales inválidas y no navega', async ({ page }) => {
     await page.goto('/');
 
-    await page.getByLabel('Correo institucional').fill(E2E_EMAIL);
-    await page.getByLabel('Contraseña').fill('contraseña-incorrecta-e2e');
+    await page.locator('input[type="email"]').fill(E2E_EMAIL);
+    await page.locator('input[type="password"]').fill('contraseña-incorrecta-e2e');
     await page.getByRole('button', { name: 'Ingresar al sistema' }).click();
 
     // El formulario de login (LoginView.tsx) muestra el mensaje de error

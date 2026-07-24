@@ -23,8 +23,11 @@ export async function login(
 ) {
   await page.goto('/');
 
-  await page.getByLabel('Correo institucional').fill(email);
-  await page.getByLabel('Contraseña').fill(password);
+  // LoginView.tsx no asocia el <label> con el <input> (ni `htmlFor`/`id`, ni
+  // anidamiento) -- getByLabel no puede resolverlos. Cada campo es el único
+  // de su `type` en la pantalla, así que se targetean directo por ahí.
+  await page.locator('input[type="email"]').fill(email);
+  await page.locator('input[type="password"]').fill(password);
   await page.getByRole('button', { name: 'Ingresar al sistema' }).click();
 
   // Tras un login exitoso, App.tsx pasa a la vista "careers": se ve el botón
