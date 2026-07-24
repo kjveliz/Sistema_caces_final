@@ -31,6 +31,20 @@ return [
             'port' => $_ENV['DB_PORT'] ?? 3306,
             'charset' => 'utf8mb4',
         ],
+        // Entorno aislado para la primera corrida de "phinx migrate"/"seed:run".
+        // Usa un nombre de base fijo (nunca "evaluacion_caces") para que la
+        // prueba inicial de la Fase 2 no pueda tocar la base real por
+        // accidente, sin depender de editar el .env a mano. Se corre con
+        // "vendor/bin/phinx migrate -e testing" (ver INSTRUCCIONES_fase2.md).
+        'testing' => [
+            'adapter' => 'mysql',
+            'host' => $_ENV['DB_HOST'] ?? 'localhost',
+            'name' => 'evaluacion_caces_test',
+            'user' => $_ENV['DB_USER'] ?? 'root',
+            'pass' => $_ENV['DB_PASS'] ?? '',
+            'port' => $_ENV['DB_PORT'] ?? 3306,
+            'charset' => 'utf8mb4',
+        ],
     ],
 
     'version_order' => 'creation',
