@@ -1,0 +1,374 @@
+diff --git a/.env.example b/.env.example
+new file mode 100644
+index 00000000..49468707
+--- /dev/null
++++ b/.env.example
+@@ -0,0 +1,11 @@
++# Backend (PHP). Copiar este archivo a ".env" en la raíz del repo y completar
++# según el entorno local. ".env" NO se sube a git (ver .gitignore).
++
++DB_HOST=localhost
++DB_USER=root
++DB_PASS=
++DB_NAME=evaluacion_caces
++
++CORS_ALLOWED_ORIGIN=http://localhost:5173
++
++GOOGLE_DRIVE_CREDENTIALS_PATH=api/google_drive/credenciales.json
+diff --git a/.gitignore b/.gitignore
+index d6dcd0e3..515f1eb6 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -3,4 +3,7 @@ dist/
+ 
+ api/google_drive/credenciales.json
+ api/google_drive/token.json
+-vendor/
+\ No newline at end of file
++vendor/
++
++.env
++frontend/.env
+\ No newline at end of file
+diff --git a/api/conexion.php b/api/conexion.php
+index 0a9c20d0..fe69c662 100644
+--- a/api/conexion.php
++++ b/api/conexion.php
+@@ -2,10 +2,18 @@
+ 
+ header("Content-Type: application/json; charset=utf-8");
+ 
+-$host = "localhost";
+-$usuario = "root";
+-$contrasena = "";
+-$base_datos = "evaluacion_caces";
++require_once __DIR__ . "/../vendor/autoload.php";
++
++// Carga .env desde la raíz del repo si existe. safeLoad() no falla si el
++// archivo no está presente, así que un checkout sin .env sigue funcionando
++// con los valores por defecto de abajo (mismo comportamiento que antes).
++$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . "/..");
++$dotenv->safeLoad();
++
++$host = $_ENV['DB_HOST'] ?? "localhost";
++$usuario = $_ENV['DB_USER'] ?? "root";
++$contrasena = $_ENV['DB_PASS'] ?? "";
++$base_datos = $_ENV['DB_NAME'] ?? "evaluacion_caces";
+ 
+ $conexion = new mysqli(
+     $host,
+diff --git a/frontend/.env.example b/frontend/.env.example
+new file mode 100644
+index 00000000..6c1ff69e
+--- /dev/null
++++ b/frontend/.env.example
+@@ -0,0 +1,10 @@
++# Frontend (Vite). Copiar este archivo a ".env" dentro de frontend/ y
++# completar según el entorno local. ".env" NO se sube a git.
++#
++# Nota: hoy la URL de la API sigue hardcodeada como
++# "http://localhost/sistemacaces/api/..." en cada archivo de
++# frontend/src/services/*.ts — esta variable queda lista para cuando se
++# centralice esa URL (tarea de la Fase 4 del plan de mejora), todavía no
++# está siendo leída por el código.
++
++VITE_API_URL=http://localhost/sistemacaces/api
+diff --git a/frontend/ATTRIBUTIONS.md b/frontend/ATTRIBUTIONS.md
+deleted file mode 100644
+index 5df5c40c..00000000
+--- a/frontend/ATTRIBUTIONS.md
++++ /dev/null
+@@ -1,3 +0,0 @@
+-This Figma Make file includes components from [shadcn/ui](https://ui.shadcn.com/) used under [MIT license](https://github.com/shadcn-ui/ui/blob/main/LICENSE.md).
+-
+-This Figma Make file includes photos from [Unsplash](https://unsplash.com) used under [license](https://unsplash.com/license).
+diff --git a/frontend/default_shadcn_theme.css b/frontend/default_shadcn_theme.css
+deleted file mode 100644
+index 39e1b443..00000000
+--- a/frontend/default_shadcn_theme.css
++++ /dev/null
+@@ -1,120 +0,0 @@
+-/* KEEP_IN_SYNC(fullscreen/resources/figmake/shadcn/globals.css) */
+-
+-:root {
+-  --font-size: 16px;
+-  --background: #ffffff;
+-  --foreground: oklch(0.145 0 0);
+-  --card: #ffffff;
+-  --card-foreground: oklch(0.145 0 0);
+-  --popover: oklch(1 0 0);
+-  --popover-foreground: oklch(0.145 0 0);
+-  --primary: #030213;
+-  --primary-foreground: oklch(1 0 0);
+-  --secondary: oklch(0.95 0.0058 264.53);
+-  --secondary-foreground: #030213;
+-  --muted: #ececf0;
+-  --muted-foreground: #717182;
+-  --accent: #e9ebef;
+-  --accent-foreground: #030213;
+-  --destructive: #d4183d;
+-  --destructive-foreground: #ffffff;
+-  --border: rgba(0, 0, 0, 0.1);
+-  --input: transparent;
+-  --input-background: #f3f3f5;
+-  --switch-background: #cbced4;
+-  --font-weight-medium: 500;
+-  --font-weight-normal: 400;
+-  --ring: oklch(0.708 0 0);
+-  --chart-1: oklch(0.646 0.222 41.116);
+-  --chart-2: oklch(0.6 0.118 184.704);
+-  --chart-3: oklch(0.398 0.07 227.392);
+-  --chart-4: oklch(0.828 0.189 84.429);
+-  --chart-5: oklch(0.769 0.188 70.08);
+-  --radius: 0.625rem;
+-  --sidebar: oklch(0.985 0 0);
+-  --sidebar-foreground: oklch(0.145 0 0);
+-  --sidebar-primary: #030213;
+-  --sidebar-primary-foreground: oklch(0.985 0 0);
+-  --sidebar-accent: oklch(0.97 0 0);
+-  --sidebar-accent-foreground: oklch(0.205 0 0);
+-  --sidebar-border: oklch(0.922 0 0);
+-  --sidebar-ring: oklch(0.708 0 0);
+-}
+-
+-.dark {
+-  --background: oklch(0.145 0 0);
+-  --foreground: oklch(0.985 0 0);
+-  --card: oklch(0.145 0 0);
+-  --card-foreground: oklch(0.985 0 0);
+-  --popover: oklch(0.145 0 0);
+-  --popover-foreground: oklch(0.985 0 0);
+-  --primary: oklch(0.985 0 0);
+-  --primary-foreground: oklch(0.205 0 0);
+-  --secondary: oklch(0.269 0 0);
+-  --secondary-foreground: oklch(0.985 0 0);
+-  --muted: oklch(0.269 0 0);
+-  --muted-foreground: oklch(0.708 0 0);
+-  --accent: oklch(0.269 0 0);
+-  --accent-foreground: oklch(0.985 0 0);
+-  --destructive: oklch(0.396 0.141 25.723);
+-  --destructive-foreground: oklch(0.637 0.237 25.331);
+-  --border: oklch(0.269 0 0);
+-  --input: oklch(0.269 0 0);
+-  --ring: oklch(0.439 0 0);
+-  --font-weight-medium: 500;
+-  --font-weight-normal: 400;
+-  --chart-1: oklch(0.488 0.243 264.376);
+-  --chart-2: oklch(0.696 0.17 162.48);
+-  --chart-3: oklch(0.769 0.188 70.08);
+-  --chart-4: oklch(0.627 0.265 303.9);
+-  --chart-5: oklch(0.645 0.246 16.439);
+-  --sidebar: oklch(0.205 0 0);
+-  --sidebar-foreground: oklch(0.985 0 0);
+-  --sidebar-primary: oklch(0.488 0.243 264.376);
+-  --sidebar-primary-foreground: oklch(0.985 0 0);
+-  --sidebar-accent: oklch(0.269 0 0);
+-  --sidebar-accent-foreground: oklch(0.985 0 0);
+-  --sidebar-border: oklch(0.269 0 0);
+-  --sidebar-ring: oklch(0.439 0 0);
+-}
+-
+-@theme inline {
+-  --color-background: var(--background);
+-  --color-foreground: var(--foreground);
+-  --color-card: var(--card);
+-  --color-card-foreground: var(--card-foreground);
+-  --color-popover: var(--popover);
+-  --color-popover-foreground: var(--popover-foreground);
+-  --color-primary: var(--primary);
+-  --color-primary-foreground: var(--primary-foreground);
+-  --color-secondary: var(--secondary);
+-  --color-secondary-foreground: var(--secondary-foreground);
+-  --color-muted: var(--muted);
+-  --color-muted-foreground: var(--muted-foreground);
+-  --color-accent: var(--accent);
+-  --color-accent-foreground: var(--accent-foreground);
+-  --color-destructive: var(--destructive);
+-  --color-destructive-foreground: var(--destructive-foreground);
+-  --color-border: var(--border);
+-  --color-input: var(--input);
+-  --color-input-background: var(--input-background);
+-  --color-switch-background: var(--switch-background);
+-  --color-ring: var(--ring);
+-  --color-chart-1: var(--chart-1);
+-  --color-chart-2: var(--chart-2);
+-  --color-chart-3: var(--chart-3);
+-  --color-chart-4: var(--chart-4);
+-  --color-chart-5: var(--chart-5);
+-  --radius-sm: calc(var(--radius) - 4px);
+-  --radius-md: calc(var(--radius) - 2px);
+-  --radius-lg: var(--radius);
+-  --radius-xl: calc(var(--radius) + 4px);
+-  --color-sidebar: var(--sidebar);
+-  --color-sidebar-foreground: var(--sidebar-foreground);
+-  --color-sidebar-primary: var(--sidebar-primary);
+-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+-  --color-sidebar-accent: var(--sidebar-accent);
+-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+-  --color-sidebar-border: var(--sidebar-border);
+-  --color-sidebar-ring: var(--sidebar-ring);
+-}
+diff --git a/frontend/guidelines/Guidelines.md b/frontend/guidelines/Guidelines.md
+deleted file mode 100644
+index 110f1178..00000000
+--- a/frontend/guidelines/Guidelines.md
++++ /dev/null
+@@ -1,61 +0,0 @@
+-**Add your own guidelines here**
+-<!--
+-
+-System Guidelines
+-
+-Use this file to provide the AI with rules and guidelines you want it to follow.
+-This template outlines a few examples of things you can add. You can add your own sections and format it to suit your needs
+-
+-TIP: More context isn't always better. It can confuse the LLM. Try and add the most important rules you need
+-
+-# General guidelines
+-
+-Any general rules you want the AI to follow.
+-For example:
+-
+-* Only use absolute positioning when necessary. Opt for responsive and well structured layouts that use flexbox and grid by default
+-* Refactor code as you go to keep code clean
+-* Keep file sizes small and put helper functions and components in their own files.
+-
+---------------
+-
+-# Design system guidelines
+-Rules for how the AI should make generations look like your company's design system
+-
+-Additionally, if you select a design system to use in the prompt box, you can reference
+-your design system's components, tokens, variables and components.
+-For example:
+-
+-* Use a base font-size of 14px
+-* Date formats should always be in the format “Jun 10”
+-* The bottom toolbar should only ever have a maximum of 4 items
+-* Never use the floating action button with the bottom toolbar
+-* Chips should always come in sets of 3 or more
+-* Don't use a dropdown if there are 2 or fewer options
+-
+-You can also create sub sections and add more specific details
+-For example:
+-
+-
+-## Button
+-The Button component is a fundamental interactive element in our design system, designed to trigger actions or navigate
+-users through the application. It provides visual feedback and clear affordances to enhance user experience.
+-
+-### Usage
+-Buttons should be used for important actions that users need to take, such as form submissions, confirming choices,
+-or initiating processes. They communicate interactivity and should have clear, action-oriented labels.
+-
+-### Variants
+-* Primary Button
+-  * Purpose : Used for the main action in a section or page
+-  * Visual Style : Bold, filled with the primary brand color
+-  * Usage : One primary button per section to guide users toward the most important action
+-* Secondary Button
+-  * Purpose : Used for alternative or supporting actions
+-  * Visual Style : Outlined with the primary color, transparent background
+-  * Usage : Can appear alongside a primary button for less important actions
+-* Tertiary Button
+-  * Purpose : Used for the least important actions
+-  * Visual Style : Text-only with no border, using primary color
+-  * Usage : For actions that should be available but not emphasized
+--->
+diff --git a/frontend/package.json b/frontend/package.json
+index c9c81e00..935f77ca 100644
+--- a/frontend/package.json
++++ b/frontend/package.json
+@@ -50,9 +50,11 @@
+     "lucide-react": "0.487.0",
+     "motion": "12.23.24",
+     "next-themes": "0.4.6",
++    "react": "18.3.1",
+     "react-day-picker": "8.10.1",
+     "react-dnd": "16.0.1",
+     "react-dnd-html5-backend": "16.0.1",
++    "react-dom": "18.3.1",
+     "react-hook-form": "7.55.0",
+     "react-popper": "2.3.0",
+     "react-resizable-panels": "2.1.7",
+@@ -70,22 +72,5 @@
+     "@vitejs/plugin-react": "4.7.0",
+     "tailwindcss": "4.1.12",
+     "vite": "6.3.5"
+-  },
+-  "peerDependencies": {
+-    "react": "18.3.1",
+-    "react-dom": "18.3.1"
+-  },
+-  "peerDependenciesMeta": {
+-    "react": {
+-      "optional": true
+-    },
+-    "react-dom": {
+-      "optional": true
+-    }
+-  },
+-  "pnpm": {
+-    "overrides": {
+-      "vite": "6.3.5"
+-    }
+   }
+ }
+\ No newline at end of file
+diff --git a/frontend/pnpm-workspace.yaml b/frontend/pnpm-workspace.yaml
+deleted file mode 100644
+index 63ef526f..00000000
+--- a/frontend/pnpm-workspace.yaml
++++ /dev/null
+@@ -1,10 +0,0 @@
+-packages:
+-  - '.'
+-supportedArchitectures:
+-  os:
+-    - linux
+-  cpu:
+-    - x64
+-    - arm64
+-  libc:
+-    - glibc
+\ No newline at end of file
+diff --git a/frontend/vite.config.ts b/frontend/vite.config.ts
+index 13dfa3a8..e1e2b0d0 100644
+--- a/frontend/vite.config.ts
++++ b/frontend/vite.config.ts
+@@ -4,23 +4,8 @@ import tailwindcss from '@tailwindcss/vite'
+ import react from '@vitejs/plugin-react'
+ 
+ 
+-function figmaAssetResolver() {
+-  return {
+-    name: 'figma-asset-resolver',
+-    resolveId(id) {
+-      if (id.startsWith('figma:asset/')) {
+-        const filename = id.replace('figma:asset/', '')
+-        return path.resolve(__dirname, 'src/assets', filename)
+-      }
+-    },
+-  }
+-}
+-
+ export default defineConfig({
+   plugins: [
+-    figmaAssetResolver(),
+-    // The React and Tailwind plugins are both required for Make, even if
+-    // Tailwind is not being actively used – do not remove them
+     react(),
+     tailwindcss(),
+   ],
+diff --git a/package-lock.json b/package-lock.json
+deleted file mode 100644
+index 172ae4e5..00000000
+--- a/package-lock.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "name": "sistemacaces",
+-  "lockfileVersion": 3,
+-  "requires": true,
+-  "packages": {}
+-}

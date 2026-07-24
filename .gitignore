@@ -4,3 +4,6 @@ dist/
 api/google_drive/credenciales.json
 api/google_drive/token.json
 vendor/
+
+.env
+frontend/.env
