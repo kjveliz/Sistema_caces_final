@@ -75,8 +75,22 @@ test('subir evidencia de I2 (Normativa Institucional)', async ({ page }) => {
   await zonaNormativa.locator('input[type="file"]').setInputFiles(PDF_FIXTURE);
 
   // Sube a Google Drive + guarda en MySQL (procesarPdf, camino genérico para
-  // slots evaluation-wide) — puede tardar unos segundos.
-  await expect(page.getByText('PDF guardado correctamente')).toBeVisible({ timeout: 30_000 });
+  // slots evaluation-wide: valida el PDF, sube a Drive y guarda en MySQL en
+  // 3 llamadas de red reales y secuenciales -- puede tardar más que un
+  // timeout corto). Se espera éxito O error explícitamente en vez de un
+  // timeout ciego: si Drive/MySQL fallan de verdad, el test lo dice en vez
+  // de reportar solo "no encontré el texto de éxito" sin más contexto.
+  const mensajeExito = page.getByText('PDF guardado correctamente');
+  const mensajeError = page.getByText('No se pudo guardar el archivo');
+
+  await expect(mensajeExito.or(mensajeError)).toBeVisible({ timeout: 60_000 });
+
+  if (await mensajeError.isVisible()) {
+    throw new Error(
+      'La subida de la evidencia falló: apareció el toast "No se pudo guardar el archivo" ' +
+        '(revisar el trace/video de este test para ver la descripción exacta del error).',
+    );
+  }
 
   await page.getByRole('button', { name: 'Guardar y volver →' }).click();
   await expect(page.getByText('Cambios guardados correctamente')).toBeVisible({
