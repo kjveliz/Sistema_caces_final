@@ -15,6 +15,17 @@ import { expect } from '@playwright/test';
 export const E2E_EMAIL = process.env.E2E_EMAIL ?? 'administrador@demo.local';
 export const E2E_PASSWORD = process.env.E2E_PASSWORD ?? 'CacesDemo2026!';
 
+/*
+ * "Primera carrera clickeable" no alcanza: CareersView marca clickable=true
+ * para TODAS las carreras activas (ver CareersView.tsx), pero no todas tienen
+ * una fila en `evaluaciones` -- si se elige a ciegas, el Dashboard puede caer
+ * en una carrera sin evaluación creada para la cohorte por defecto y los
+ * tests de resultado/PDF/evidencia nunca van a tener nada que mostrar.
+ * Se apunta a una carrera con evaluación real confirmada (Desarrollo de
+ * Software, dump `evaluacion_caces`), overridable si tu BD cambia.
+ */
+export const E2E_CAREER = process.env.E2E_CAREER ?? 'Desarrollo de Software';
+
 /** Completa el formulario de login y espera a que la sesión quede activa (vista "careers"). */
 export async function login(
   page: Page,
@@ -39,17 +50,16 @@ export async function login(
 
 /**
  * Navega desde la vista "careers" (post-login) hasta el Dashboard de una
- * carrera: elige la primera carrera habilitada y entra a "Docencia" (el
- * único criterio clickeable — ver CriteriaView.tsx). No asume un nombre de
- * carrera fijo porque corre contra datos reales de desarrollo.
+ * carrera: entra a la carrera con evaluación real confirmada (E2E_CAREER,
+ * ver nota arriba) y a "Docencia" (el único criterio clickeable — ver
+ * CriteriaView.tsx).
  */
-export async function goToFirstCareerDashboard(page: Page) {
-  // CareersView marca las carreras seleccionables con una flecha "→" al lado
-  // del nombre; las no clickeables no la tienen. Se toma la primera fila que
-  // sí la tiene.
-  const primeraCarrera = page.locator('span:has-text("→")').first().locator('..');
-  await expect(primeraCarrera).toBeVisible({ timeout: 15_000 });
-  await primeraCarrera.click();
+export async function goToFirstCareerDashboard(page: Page, career: string = E2E_CAREER) {
+  // Cada fila de carrera en CareersView es un <div onClick> con un <span>
+  // de texto exacto adentro; el click en el texto burbujea al div.
+  const filaCarrera = page.getByText(career, { exact: true });
+  await expect(filaCarrera).toBeVisible({ timeout: 15_000 });
+  await filaCarrera.click();
 
   await page.getByText('Docencia', { exact: true }).click();
 
