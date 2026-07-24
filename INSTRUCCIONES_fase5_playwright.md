@@ -17,10 +17,13 @@ pediste en esta sesión.
    usuario demo de `db/seeds/UsuariosSeeder.php` — "mismos datos de ejemplo
    que ya usa el equipo en local"). Si tu BD no tiene ese usuario, o le
    cambiaste la contraseña, copiá `frontend/e2e/.env.e2e.example` a
-   `frontend/e2e/.env.e2e`, completá `E2E_EMAIL`/`E2E_PASSWORD`, y exportá
-   esas variables antes de correr los tests (Playwright no carga `.env`
-   archivos automáticamente; hay que exportarlas vos, por ejemplo con
-   `dotenv-cli` o a mano).
+   `frontend/e2e/.env.e2e` (queda fuera de git — `.gitignore` ya lo cubre) y
+   completá ahí `E2E_EMAIL`/`E2E_PASSWORD` (y `E2E_CAREER`/`E2E_BASE_URL` si
+   hace falta). **`npm run test:e2e` ya carga ese archivo solo** (vía
+   `dotenv-cli`, agregado como devDependency) — no hace falta exportar nada a
+   mano ni repetirlo en cada terminal nueva. Si el archivo no existe todavía,
+   el comando no falla: simplemente corre con los defaults hardcodeados
+   (usuario demo), igual que antes.
 3. **Al menos una carrera con `clickable: true` y datos cargados** para que
    "ver resultado" y "exportar PDF" tengan algo real que mostrar (si no,
    estos dos tests igual pasan navegando correctamente hasta la vista, pero
