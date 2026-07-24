@@ -25,6 +25,8 @@ import {
 
 import { COHORT_OPTIONS, MATERIAS_BY_PAO_MODULE } from '../data/academic';
 
+import { resolverAsignaturaPorNombre } from '../utils/asignaturas';
+
 import {
   subirEvidenciaAsignatura,
   obtenerEvidenciaAsignatura,
@@ -130,10 +132,11 @@ export default function EvidenceUploadView({
         // Antes de este fix, la comparación exacta (===) fallaba en silencio
         // para esos casos y dejaba asignaturaId en null, bloqueando la subida
         // con "No se pudo determinar la asignatura" aunque la materia sí
-        // existiera en la BD (ver captura del usuario, 19 jul 2026).
-        const materiaNorm = materia.trim().toLowerCase();
-        const match = asignaturas.find((a) => a.nombre.trim().toLowerCase() === materiaNorm);
-        if (!cancelado) setAsignaturaId(match?.id_asignatura ?? null);
+        // existiera en la BD (ver captura del usuario, 19 jul 2026). Lógica
+        // extraída a resolverAsignaturaPorNombre() (Fase 5, testing) para
+        // poder cubrirla con Vitest -- ver utils/asignaturas.test.ts.
+        const asignaturaIdResuelto = resolverAsignaturaPorNombre(asignaturas, materia);
+        if (!cancelado) setAsignaturaId(asignaturaIdResuelto);
       } catch {
         if (!cancelado) setAsignaturaId(null);
       }
