@@ -125,9 +125,9 @@ function calcularResultadoAsignatura(mysqli $conexion, int $idAsignatura, string
     $tieneReporteControlSiu = $evidenciasInfo['reporte_control_siu']['subida'];
     $tieneReporteAvancesSiu = $evidenciasInfo['reporte_avances_siu']['subida'];
 
-    $totalEvidencias = ($tieneEf2 ? 1 : 0) + ($tieneEf3 ? 1 : 0) + ($tieneEf5 ? 1 : 0);
-    $pctEvidencias = $totalEvidencias > 0 ? round($totalEvidencias / 3 * 100, 1) : 0;
-
+    // Pendiente #3 (MEMORIA v41/§22.4): totalEvidencias/pctEvidencias se movió más abajo, después de
+    // calcular $ef1 y $ef4, para poder basarse en los 5 EF reales (ver el nuevo cálculo unas líneas
+    // después de $ef4).
     // El CSV de la encuesta ya es propio de esta asignatura (slot
     // 'encuesta_csv' en evidencia_asignatura) -- ya no se descarga un CSV
     // evaluation-wide ni se filtran filas por nombre de materia (ver
@@ -147,6 +147,14 @@ function calcularResultadoAsignatura(mysqli $conexion, int $idAsignatura, string
     $ef4 = $efDisponible ? $datosEf['ef4'] : null;
     $respuestas = $efDisponible ? $datosEf['respuestas'] : 0;
     $promedioGeneral = $efDisponible ? $datosEf['promedio_general'] : 0;
+
+    // Pendiente #3 (MEMORIA v41/§22.4, cerrado en v48): antes la base era 3 (solo EF2+EF3+EF5), ignorando
+    // por completo EF1 y EF4. Ahora cuenta los 5 EF: EF1 y EF4 se consideran "con evidencia" si su valor
+    // no quedó en null (es decir, si hay al menos un componente subido para EF1, o encuesta disponible
+    // para EF4), igual criterio que ya usa el resto del cálculo para esos dos EF.
+    $totalEvidencias = ($ef1 !== null ? 1 : 0) + ($tieneEf2 ? 1 : 0) + ($tieneEf3 ? 1 : 0)
+        + ($ef4 !== null ? 1 : 0) + ($tieneEf5 ? 1 : 0);
+    $pctEvidencias = $totalEvidencias > 0 ? round($totalEvidencias / 5 * 100, 1) : 0;
 
     // Docente: ya no se detecta desde el CSV (ver nota en _obtenerDocenteActual)
     // -- se refleja tal cual lo que haya guardado en `asignatura.docente`.
