@@ -1,0 +1,180 @@
+digraph EsquemaCACES {
+  rankdir=LR;
+  graph [fontname="Helvetica", fontsize=11, bgcolor="white", splines=spline, nodesep=0.4, ranksep=1.1, concentrate=false];
+  node [shape=plaintext, fontname="Helvetica"];
+  edge [fontname="Helvetica", fontsize=8, color="#64748b", arrowhead=vee, arrowsize=0.7];
+
+  node [fontname="Helvetica"];
+
+  carreras [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="4" bgcolor="#eff6ff">
+      <tr><td bgcolor="#1d4ed8"><font color="white"><b>carreras</b></font></td></tr>
+      <tr><td align="left">PK id_carrera</td></tr>
+      <tr><td align="left">codigo (unique)</td></tr>
+      <tr><td align="left">nombre</td></tr>
+    </table>>];
+
+  indicadores [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="4" bgcolor="#eff6ff">
+      <tr><td bgcolor="#1d4ed8"><font color="white"><b>indicadores</b></font></td></tr>
+      <tr><td align="left">PK id_indicador</td></tr>
+      <tr><td align="left">nombre, tipo, criterio</td></tr>
+    </table>>];
+
+  usuarios [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="4" bgcolor="#eff6ff">
+      <tr><td bgcolor="#1d4ed8"><font color="white"><b>usuarios</b></font></td></tr>
+      <tr><td align="left">PK id_usuario</td></tr>
+      <tr><td align="left">correo (unique), rol</td></tr>
+    </table>>];
+
+  cohortes [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="4">
+      <tr><td bgcolor="#334155"><font color="white"><b>cohortes</b></font></td></tr>
+      <tr><td align="left">PK id_cohorte</td></tr>
+      <tr><td align="left">FK id_carrera</td></tr>
+    </table>>];
+
+  catalogo_evidencias [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="4">
+      <tr><td bgcolor="#334155"><font color="white"><b>catalogo_evidencias</b></font></td></tr>
+      <tr><td align="left">PK id_catalogo</td></tr>
+      <tr><td align="left">FK id_indicador</td></tr>
+      <tr><td align="left">codigo_evidencia (unique)</td></tr>
+    </table>>];
+
+  mallas_curriculares [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="4">
+      <tr><td bgcolor="#334155"><font color="white"><b>mallas_curriculares</b></font></td></tr>
+      <tr><td align="left">PK id_malla</td></tr>
+      <tr><td align="left">FK id_carrera (unique)</td></tr>
+    </table>>];
+
+  periodo_academico [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="4">
+      <tr><td bgcolor="#334155"><font color="white"><b>periodo_academico</b></font></td></tr>
+      <tr><td align="left">PK id_periodoacademico</td></tr>
+      <tr><td align="left">FK id_cohorte</td></tr>
+    </table>>];
+
+  asignatura [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="4" bgcolor="#fef9c3">
+      <tr><td bgcolor="#a16207"><font color="white"><b>asignatura</b></font></td></tr>
+      <tr><td align="left">PK id_asignatura</td></tr>
+      <tr><td align="left">FK id_periodoacademico</td></tr>
+    </table>>];
+
+  evaluaciones [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="4" bgcolor="#fef9c3">
+      <tr><td bgcolor="#a16207"><font color="white"><b>evaluaciones</b></font></td></tr>
+      <tr><td align="left">PK id_evaluacion</td></tr>
+      <tr><td align="left">FK id_cohorte, id_usuario, id_carrera</td></tr>
+    </table>>];
+
+  compartir_catalogo [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="4">
+      <tr><td bgcolor="#334155"><font color="white"><b>compartir_catalogo</b></font></td></tr>
+      <tr><td align="left">PK id_compartir</td></tr>
+      <tr><td align="left">FK id_catalogo_origen, id_indicador_destino</td></tr>
+    </table>>];
+
+  evidencias [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="4">
+      <tr><td bgcolor="#0f766e"><font color="white"><b>evidencias</b></font></td></tr>
+      <tr><td align="left">PK id_evidencia</td></tr>
+      <tr><td align="left">FK id_catalogo, id_evaluacion, id_usuario</td></tr>
+    </table>>];
+
+  evidencia_asignatura [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="4">
+      <tr><td bgcolor="#0f766e"><font color="white"><b>evidencia_asignatura</b></font></td></tr>
+      <tr><td align="left">PK id_evidencia_asig</td></tr>
+      <tr><td align="left">FK id_asignatura (ON DELETE CASCADE)</td></tr>
+      <tr><td align="left">tipo (enum)</td></tr>
+    </table>>];
+
+  evidencia_validacion_pdf [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="4">
+      <tr><td bgcolor="#0f766e"><font color="white"><b>evidencia_validacion_pdf</b></font></td></tr>
+      <tr><td align="left">PK id_validacion</td></tr>
+      <tr><td align="left">FK id_evidencia_asig (ON DELETE CASCADE)</td></tr>
+    </table>>];
+
+  indicador_evidencia [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="4">
+      <tr><td bgcolor="#0f766e"><font color="white"><b>indicador_evidencia</b></font></td></tr>
+      <tr><td align="left">PK id</td></tr>
+      <tr><td align="left">FK id_indicador, id_evidencia</td></tr>
+    </table>>];
+
+  datos_tasa_desercion [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="4">
+      <tr><td bgcolor="#7c2d12"><font color="white"><b>datos_tasa_desercion</b></font></td></tr>
+      <tr><td align="left">PK id_dato</td></tr>
+      <tr><td align="left">FK id_evaluacion (ON DELETE CASCADE)</td></tr>
+    </table>>];
+
+  datos_tasa_titulacion [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="4">
+      <tr><td bgcolor="#7c2d12"><font color="white"><b>datos_tasa_titulacion</b></font></td></tr>
+      <tr><td align="left">PK (id_evaluacion, cohorte)</td></tr>
+      <tr><td align="left">sin columna id propia</td></tr>
+    </table>>];
+
+  seguimiento_syllabus [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="4">
+      <tr><td bgcolor="#7c2d12"><font color="white"><b>seguimiento_syllabus</b></font></td></tr>
+      <tr><td align="left">PK id_seguimiento</td></tr>
+      <tr><td align="left">FK id_asignatura, id_evaluacion</td></tr>
+      <tr><td align="left">ef1..ef5, valoracion_general</td></tr>
+    </table>>];
+
+  syllabus [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="4">
+      <tr><td bgcolor="#7c2d12"><font color="white"><b>syllabus</b></font></td></tr>
+      <tr><td align="left">PK id_syllabus</td></tr>
+      <tr><td align="left">FK id_asignatura, id_evaluacion</td></tr>
+    </table>>];
+
+  tutorias [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="4">
+      <tr><td bgcolor="#7c2d12"><font color="white"><b>tutorias</b></font></td></tr>
+      <tr><td align="left">PK id_tutoria</td></tr>
+      <tr><td align="left">FK id_evaluacion</td></tr>
+    </table>>];
+
+  tutorias_academicas [label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="4">
+      <tr><td bgcolor="#7c2d12"><font color="white"><b>tutorias_academicas</b></font></td></tr>
+      <tr><td align="left">PK id_tutoria_resultado</td></tr>
+      <tr><td align="left">FK id_asignatura, id_evaluacion</td></tr>
+    </table>>];
+
+  /* Relaciones */
+  cohortes -> carreras [label="id_carrera"];
+  catalogo_evidencias -> indicadores [label="id_indicador"];
+  mallas_curriculares -> carreras [label="id_carrera"];
+  periodo_academico -> cohortes [label="id_cohorte"];
+  asignatura -> periodo_academico [label="id_periodoacademico"];
+  evaluaciones -> cohortes [label="id_cohorte"];
+  evaluaciones -> usuarios [label="id_usuario"];
+  evaluaciones -> carreras [label="id_carrera"];
+  compartir_catalogo -> catalogo_evidencias [label="id_catalogo_origen"];
+  compartir_catalogo -> indicadores [label="id_indicador_destino"];
+  evidencias -> catalogo_evidencias [label="id_catalogo"];
+  evidencias -> evaluaciones [label="id_evaluacion"];
+  evidencias -> usuarios [label="id_usuario"];
+  evidencia_asignatura -> asignatura [label="id_asignatura"];
+  evidencia_validacion_pdf -> evidencia_asignatura [label="id_evidencia_asig"];
+  indicador_evidencia -> indicadores [label="id_indicador"];
+  indicador_evidencia -> evidencias [label="id_evidencia"];
+  datos_tasa_desercion -> evaluaciones [label="id_evaluacion"];
+  datos_tasa_titulacion -> evaluaciones [label="id_evaluacion"];
+  seguimiento_syllabus -> asignatura [label="id_asignatura"];
+  seguimiento_syllabus -> evaluaciones [label="id_evaluacion"];
+  syllabus -> asignatura [label="id_asignatura"];
+  syllabus -> evaluaciones [label="id_evaluacion"];
+  tutorias -> evaluaciones [label="id_evaluacion"];
+  tutorias_academicas -> asignatura [label="id_asignatura"];
+  tutorias_academicas -> evaluaciones [label="id_evaluacion"];
+}
