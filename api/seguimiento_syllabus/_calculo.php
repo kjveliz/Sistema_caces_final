@@ -59,12 +59,12 @@ function _obtenerDocenteActual(mysqli $conexion, int $idAsignatura): ?string
     return $fila['docente'] ?? null;
 }
 
-/** Vigencia de evidencia de NIVEL CARRERA -- tabla Evidencias + Catalogo_Evidencias, ligada a id_evaluacion. */
+/** Vigencia de evidencia de NIVEL CARRERA -- tabla evidencias + catalogo_evidencias, ligada a id_evaluacion. */
 function tiposCarreraVigentes(mysqli $conexion, int $idEvaluacion): array
 {
     $sql = "SELECT c.codigo_evidencia
-            FROM Evidencias e
-            JOIN Catalogo_Evidencias c ON c.id_catalogo = e.id_catalogo
+            FROM evidencias e
+            JOIN catalogo_evidencias c ON c.id_catalogo = e.id_catalogo
             WHERE e.id_evaluacion = ?
               AND c.codigo_evidencia IN ('DOC.SYL.01', 'DOC.SEG.01', 'DOC.SEG.06', 'DOC.SEG.07')";
     $stmt = $conexion->prepare($sql);
