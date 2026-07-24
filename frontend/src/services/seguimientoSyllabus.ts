@@ -1,13 +1,13 @@
-const BASE = "http://localhost/sistemacaces/api/seguimiento_syllabus";
+const BASE = 'http://localhost/sistemacaces/api/seguimiento_syllabus';
 
 async function getJson<T>(url: string): Promise<T> {
   const respuesta = await fetch(url, {
-    credentials: "include",
-    headers: { Accept: "application/json" },
+    credentials: 'include',
+    headers: { Accept: 'application/json' },
   });
   const datos = await respuesta.json();
   if (!respuesta.ok || !datos.ok) {
-    throw new Error(datos.mensaje || "No se pudo completar la solicitud.");
+    throw new Error(datos.mensaje || 'No se pudo completar la solicitud.');
   }
   return datos.datos as T;
 }
@@ -46,33 +46,50 @@ export interface ResultadoAsignatura {
   id_asignatura: number;
   nombre_asignatura: string;
   valoracion_general: number | null;
-  estado_general: "completo" | "parcial" | "sin_datos";
+  estado_general: 'completo' | 'parcial' | 'sin_datos';
   escala: string | null;
   color_escala: string | null;
   evidencias_info: Record<string, EvidenciaInfo>;
-  ef1: number | null; ef1_estado: string;
-  ef2: number | null; ef2_estado: string;
-  ef3: number | null; ef3_estado: string;
-  ef4: number | null; ef4_estado: string;
-  ef5: number | null; ef5_estado: string;
+  ef1: number | null;
+  ef1_estado: string;
+  ef2: number | null;
+  ef2_estado: string;
+  ef3: number | null;
+  ef3_estado: string;
+  ef4: number | null;
+  ef4_estado: string;
+  ef5: number | null;
+  ef5_estado: string;
   respuestas: number;
   promedio_general: number;
 }
 
-export interface ResultadoCohorte extends Omit<ResultadoAsignatura, "id_asignatura" | "nombre_asignatura" | "evidencias_info"> {
+export interface ResultadoCohorte extends Omit<
+  ResultadoAsignatura,
+  'id_asignatura' | 'nombre_asignatura' | 'evidencias_info'
+> {
   detalle_asignaturas: ResultadoAsignatura[];
 }
 
-export function obtenerResultadoAsignatura(idAsignatura: number, idEvaluacion: number): Promise<ResultadoAsignatura> {
-  return getJson(`${BASE}/resultado_asignatura.php?id_asignatura=${idAsignatura}&id_evaluacion=${idEvaluacion}`);
+export function obtenerResultadoAsignatura(
+  idAsignatura: number,
+  idEvaluacion: number,
+): Promise<ResultadoAsignatura> {
+  return getJson(
+    `${BASE}/resultado_asignatura.php?id_asignatura=${idAsignatura}&id_evaluacion=${idEvaluacion}`,
+  );
 }
 
-export function obtenerResultadoCohorte(idCohorte: number, idEvaluacion: number, idPeriodo?: number): Promise<ResultadoCohorte> {
+export function obtenerResultadoCohorte(
+  idCohorte: number,
+  idEvaluacion: number,
+  idPeriodo?: number,
+): Promise<ResultadoCohorte> {
   const params = new URLSearchParams({
     id_cohorte: String(idCohorte),
     id_evaluacion: String(idEvaluacion),
   });
-  if (idPeriodo) params.set("id_periodo", String(idPeriodo));
+  if (idPeriodo) params.set('id_periodo', String(idPeriodo));
   return getJson(`${BASE}/resultado_cohorte.php?${params.toString()}`);
 }
 
@@ -82,10 +99,7 @@ export function obtenerResultadoCohorte(idCohorte: number, idEvaluacion: number,
 // ahora se sube por-asignatura igual que los otros 4 documentos, en vez de
 // ser un único archivo evaluation-wide (ver MEMORIA v18).
 export type TipoEvidenciaAsignatura =
-  | "syllabus"
-  | "acta_ajuste_curricular"
-  | "evidencia_difusion"
-  | "encuesta_csv";
+  'syllabus' | 'acta_ajuste_curricular' | 'evidencia_difusion' | 'encuesta_csv';
 
 export interface EvidenciaAsignaturaItem {
   tipo: TipoEvidenciaAsignatura;
@@ -100,7 +114,9 @@ export interface EvidenciaAsignaturaItem {
   } | null;
 }
 
-export function obtenerEvidenciaAsignatura(idAsignatura: number): Promise<EvidenciaAsignaturaItem[]> {
+export function obtenerEvidenciaAsignatura(
+  idAsignatura: number,
+): Promise<EvidenciaAsignaturaItem[]> {
   return getJson(`${BASE}/evidencia_asignatura_listar.php?id_asignatura=${idAsignatura}`);
 }
 
@@ -124,8 +140,13 @@ export interface EncuestaDetalle {
   preguntas: PreguntaEncuestaDetalle[];
 }
 
-export function obtenerEncuestaDetalle(idAsignatura: number, idEvaluacion: number): Promise<EncuestaDetalle> {
-  return getJson(`${BASE}/encuesta_detalle.php?id_asignatura=${idAsignatura}&id_evaluacion=${idEvaluacion}`);
+export function obtenerEncuestaDetalle(
+  idAsignatura: number,
+  idEvaluacion: number,
+): Promise<EncuestaDetalle> {
+  return getJson(
+    `${BASE}/encuesta_detalle.php?id_asignatura=${idAsignatura}&id_evaluacion=${idEvaluacion}`,
+  );
 }
 
 export async function subirEvidenciaAsignatura(params: {
@@ -134,19 +155,19 @@ export async function subirEvidenciaAsignatura(params: {
   archivo: File;
 }): Promise<{ id_evidencia_asig: number; url_archivo: string }> {
   const formulario = new FormData();
-  formulario.append("id_asignatura", String(params.idAsignatura));
-  formulario.append("tipo", params.tipo);
-  formulario.append("archivo", params.archivo);
+  formulario.append('id_asignatura', String(params.idAsignatura));
+  formulario.append('tipo', params.tipo);
+  formulario.append('archivo', params.archivo);
 
   const respuesta = await fetch(`${BASE}/evidencia_asignatura_subir.php`, {
-    method: "POST",
-    credentials: "include",
+    method: 'POST',
+    credentials: 'include',
     body: formulario,
   });
 
   const datos = await respuesta.json();
   if (!respuesta.ok || !datos.ok) {
-    throw new Error(datos.mensaje || "No se pudo subir la evidencia.");
+    throw new Error(datos.mensaje || 'No se pudo subir la evidencia.');
   }
   return datos.datos;
 }

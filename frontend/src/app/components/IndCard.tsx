@@ -1,19 +1,16 @@
-import Ring from "./Ring";
-import SemLight from "./SemLight";
+import Ring from './Ring';
+import SemLight from './SemLight';
 
-import { calcRate, getStatus } from "../../utils/evaluation";
+import { calcRate, getStatus } from '../../utils/evaluation';
 
-import type { IndicatorDef } from "../../types";
+import type { IndicatorDef } from '../../types';
 
 interface IndCardProps {
   ind: IndicatorDef;
   onClick: () => void;
 }
 
-export default function IndCard({
-  ind,
-  onClick,
-}: IndCardProps) {
+export default function IndCard({ ind, onClick }: IndCardProps) {
   const pct = calcRate(ind.cohorts);
   const status = getStatus(pct);
 
@@ -24,7 +21,7 @@ export default function IndCard({
       className="relative flex-1 h-full bg-white rounded-2xl flex flex-col items-center justify-center gap-2.5 p-4 text-center group transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl overflow-hidden"
       style={{
         border: `2px solid ${status.border}`,
-        boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
+        boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
         minWidth: 0,
       }}
     >
@@ -35,11 +32,7 @@ export default function IndCard({
         }}
       />
 
-      <Ring
-        pct={pct}
-        r={38}
-        sw={8}
-      />
+      <Ring pct={pct} r={38} sw={8} />
 
       <div className="px-2">
         <span
@@ -56,7 +49,7 @@ export default function IndCard({
           className="text-sm font-semibold leading-snug"
           style={{
             fontFamily: "'Libre Baskerville',serif",
-            color: "#0F1E3C",
+            color: '#0F1E3C',
           }}
         >
           {ind.name}
@@ -64,10 +57,7 @@ export default function IndCard({
       </div>
 
       <div className="flex flex-col items-center gap-1">
-        <SemLight
-          pct={pct}
-          dot={10}
-        />
+        <SemLight pct={pct} dot={10} />
 
         <span
           className="text-xs px-2 py-0.5 rounded-full font-semibold"

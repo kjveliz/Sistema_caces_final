@@ -1,10 +1,10 @@
-import Ring from "./Ring";
-import SemLight from "./SemLight";
+import Ring from './Ring';
+import SemLight from './SemLight';
 
-import { getStatus } from "../../utils/evaluation";
-import { PAO_SCORES } from "../../data/evaluation";
+import { getStatus } from '../../utils/evaluation';
+import { PAO_SCORES } from '../../data/evaluation';
 
-import type { IndicatorDef } from "../../types";
+import type { IndicatorDef } from '../../types';
 
 interface PaoGroupCardProps {
   ind: IndicatorDef;
@@ -20,31 +20,26 @@ export default function PaoGroupCard({
   paosOverride,
 }: PaoGroupCardProps) {
   const paos =
-  // Si hay paosOverride, se usa eso (I2 desde DashboardView)
-  paosOverride
-    ? paosOverride
-  : ind.id === "I1"
-    ? [
-        { pao: "PAO 1", pct: -1 },
-        { pao: "PAO 2", pct: -1 },
-        { pao: "PAO 3", pct: -1 },
-      ]
-    : PAO_SCORES[ind.id] || [];
+    // Si hay paosOverride, se usa eso (I2 desde DashboardView)
+    paosOverride
+      ? paosOverride
+      : ind.id === 'I1'
+        ? [
+            { pao: 'PAO 1', pct: -1 },
+            { pao: 'PAO 2', pct: -1 },
+            { pao: 'PAO 3', pct: -1 },
+          ]
+        : PAO_SCORES[ind.id] || [];
 
-  const accent =
-    ind.id === "I1"
-      ? "#1B3A6B"
-      : ind.id === "I2"
-        ? "#7C3AED"
-        : "#0891B2";
+  const accent = ind.id === 'I1' ? '#1B3A6B' : ind.id === 'I2' ? '#7C3AED' : '#0891B2';
 
   return (
     <div
-      className={`${fullHeight ? "h-full" : ""} bg-white rounded-2xl flex flex-col overflow-hidden`}
+      className={`${fullHeight ? 'h-full' : ''} bg-white rounded-2xl flex flex-col overflow-hidden`}
       style={{
         flex: 1,
         border: `2px solid ${accent}22`,
-        boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
+        boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
         minWidth: 0,
       }}
     >
@@ -58,7 +53,7 @@ export default function PaoGroupCard({
       <div
         className="flex-shrink-0 px-4 pt-2.5 pb-2 flex items-center justify-between"
         style={{
-          borderBottom: "1px solid rgba(27,58,107,0.07)",
+          borderBottom: '1px solid rgba(27,58,107,0.07)',
         }}
       >
         <div className="text-left">
@@ -76,7 +71,7 @@ export default function PaoGroupCard({
             className="text-sm font-semibold leading-snug mt-0.5"
             style={{
               fontFamily: "'Libre Baskerville',serif",
-              color: "#0F1E3C",
+              color: '#0F1E3C',
             }}
           >
             {ind.name}
@@ -90,9 +85,9 @@ export default function PaoGroupCard({
 
           const status = sinDatos
             ? {
-                label: "Sin datos",
-                color: "#6B7280",
-                bg: "#F3F4F6",
+                label: 'Sin datos',
+                color: '#6B7280',
+                bg: '#F3F4F6',
               }
             : getStatus(pao.pct);
 
@@ -103,20 +98,14 @@ export default function PaoGroupCard({
               onClick={() => onClick(ind.id, index + 1)}
               className="flex-1 flex flex-col items-center justify-center gap-1.5 px-2 py-3 transition-all hover:bg-blue-50 active:scale-[0.97] group"
               style={{
-                borderRight:
-                  index < paos.length - 1
-                    ? "1px solid rgba(27,58,107,0.07)"
-                    : "none",
-                background:
-                  index % 2 === 0
-                    ? "rgba(27,58,107,0.015)"
-                    : "transparent",
+                borderRight: index < paos.length - 1 ? '1px solid rgba(27,58,107,0.07)' : 'none',
+                background: index % 2 === 0 ? 'rgba(27,58,107,0.015)' : 'transparent',
               }}
             >
               <span
                 className="text-xs font-bold uppercase tracking-widest"
                 style={{
-                  color: "#5A7295",
+                  color: '#5A7295',
                 }}
               >
                 {pao.pao}
@@ -124,23 +113,16 @@ export default function PaoGroupCard({
 
               {!sinDatos ? (
                 <>
-                  <Ring
-                    pct={pao.pct}
-                    r={24}
-                    sw={5}
-                  />
+                  <Ring pct={pao.pct} r={24} sw={5} />
 
-                  <SemLight
-                    pct={pao.pct}
-                    dot={7}
-                  />
+                  <SemLight pct={pao.pct} dot={7} />
                 </>
               ) : (
                 <div
                   className="w-14 h-14 rounded-full flex items-center justify-center text-[11px] font-semibold"
                   style={{
-                    background: "#F3F4F6",
-                    color: "#6B7280",
+                    background: '#F3F4F6',
+                    color: '#6B7280',
                   }}
                 >
                   —

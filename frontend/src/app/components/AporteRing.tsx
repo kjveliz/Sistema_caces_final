@@ -1,8 +1,4 @@
-export type EFCat =
-  | "Satisfactorio"
-  | "Cuasi"
-  | "Poco"
-  | "Deficiente";
+export type EFCat = 'Satisfactorio' | 'Cuasi' | 'Poco' | 'Deficiente';
 
 interface AporteRingProps {
   aporte: number;
@@ -17,11 +13,7 @@ const I3_PERF: Record<EFCat, number> = {
   Deficiente: 0.25,
 };
 
-export default function AporteRing({
-  aporte,
-  weight,
-  cat,
-}: AporteRingProps) {
+export default function AporteRing({ aporte, weight, cat }: AporteRingProps) {
   const placebo = weight === 0;
   const fillRatio = placebo ? I3_PERF[cat] : aporte / weight;
 
@@ -32,33 +24,18 @@ export default function AporteRing({
   const progress = circumference * fillRatio;
 
   const color =
-    cat === "Satisfactorio"
-      ? "#16A34A"
-      : cat === "Cuasi"
-        ? "#CA8A04"
-        : cat === "Poco"
-          ? "#EA580C"
-          : "#DC2626";
+    cat === 'Satisfactorio'
+      ? '#16A34A'
+      : cat === 'Cuasi'
+        ? '#CA8A04'
+        : cat === 'Poco'
+          ? '#EA580C'
+          : '#DC2626';
 
   return (
-    <div
-      className="relative flex-shrink-0"
-      style={{ width: size, height: size }}
-    >
-      <svg
-        width={size}
-        height={size}
-        viewBox={`0 0 ${size} ${size}`}
-        className="rotate-[-90deg]"
-      >
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="none"
-          stroke="#E5E7EB"
-          strokeWidth={sw}
-        />
+    <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="rotate-[-90deg]">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#E5E7EB" strokeWidth={sw} />
 
         <circle
           cx={size / 2}
@@ -70,7 +47,7 @@ export default function AporteRing({
           strokeDasharray={`${progress} ${circumference}`}
           strokeLinecap="round"
           style={{
-            transition: "stroke-dasharray 0.6s ease",
+            transition: 'stroke-dasharray 0.6s ease',
           }}
         />
       </svg>
@@ -90,7 +67,7 @@ export default function AporteRing({
         {placebo && (
           <span
             style={{
-              color: "#9CA3AF",
+              color: '#9CA3AF',
               fontSize: 9,
               fontFamily: "'DM Mono',monospace",
             }}

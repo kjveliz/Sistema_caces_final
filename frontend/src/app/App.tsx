@@ -1,72 +1,61 @@
-import { Toaster } from "sonner";
-import {
-  obtenerEvaluacion,
-  obtenerDatosTasa,
-  obtenerDatosDesercion,
-} from "../services/evidencias";
+import { Toaster } from 'sonner';
+import { obtenerEvaluacion, obtenerDatosTasa, obtenerDatosDesercion } from '../services/evidencias';
 
-import { useEffect, useState } from "react";
-import EvidenceUploadView from "../pages/EvidenceUploadView";
-import DashboardView from "../pages/DashboardView";
-import IndicatorView from "../pages/IndicatorView";
-import CriteriaView from "../pages/CriteriaView";
-import CareersView from "../pages/CareersView";
-import LoginView from "../pages/LoginView";
-import type { UsuarioSesion } from "../services/auth";
+import { useEffect, useState } from 'react';
+import EvidenceUploadView from '../pages/EvidenceUploadView';
+import DashboardView from '../pages/DashboardView';
+import IndicatorView from '../pages/IndicatorView';
+import CriteriaView from '../pages/CriteriaView';
+import CareersView from '../pages/CareersView';
+import LoginView from '../pages/LoginView';
+import type { UsuarioSesion } from '../services/auth';
 
-import type {
-  View,
-  IndicatorDef,
-  Career,
-} from "../types";
+import type { View, IndicatorDef, Career } from '../types';
 
 // ── Indicator factory ────────────────────────────────────────
-function makeIndicators(
-  career: Career,
-): IndicatorDef[] {
-   const indicators: IndicatorDef[] = [
+function makeIndicators(career: Career): IndicatorDef[] {
+  const indicators: IndicatorDef[] = [
     {
-      id: "I1",
+      id: 'I1',
       num: 1,
-      code: "I1",
-      name: "Syllabus",
+      code: 'I1',
+      name: 'Syllabus',
       description:
-        "Evalúa la elaboración y actualización de los sílabos de todas las asignaturas del programa, verificando su coherencia con la malla curricular y el perfil de egreso aprobados institucionalmente.",
-      formula:
-        "(Asignaturas con sílabo actualizado / Total de asignaturas) × 100",
-      period: "Período académico vigente",
+        'Evalúa la elaboración y actualización de los sílabos de todas las asignaturas del programa, verificando su coherencia con la malla curricular y el perfil de egreso aprobados institucionalmente.',
+      formula: '(Asignaturas con sílabo actualizado / Total de asignaturas) × 100',
+      period: 'Período académico vigente',
       purpose:
-        "Garantizar que todas las asignaturas cuenten con una planificación curricular formal, actualizada y coherente que oriente efectivamente el proceso de enseñanza-aprendizaje.",
+        'Garantizar que todas las asignaturas cuenten con una planificación curricular formal, actualizada y coherente que oriente efectivamente el proceso de enseñanza-aprendizaje.',
       cohorts: [],
       slots: [
         {
           sourceNum: 1,
-          label: "Malla curricular",
-          sharedKey: "malla_curricular",
+          label: 'Malla curricular',
+          sharedKey: 'malla_curricular',
         },
         {
           sourceNum: 2,
-          label: "Syllabus",
-          sharedKey: "silabos",
+          label: 'Syllabus',
+          sharedKey: 'silabos',
         },
         {
           sourceNum: 3,
-          label: "Asignaturas",
+          label: 'Asignaturas',
         },
       ],
     },
     {
-      id: "I2",
+      id: 'I2',
       num: 2,
-      code: "I2",
-      name: "Seguimiento de Syllabus",
+      code: 'I2',
+      name: 'Seguimiento de Syllabus',
       description:
-        "Verifica el cumplimiento y seguimiento efectivo de los sílabos durante el período académico a través de registros documentados y actas de revisión periódica.",
+        'Verifica el cumplimiento y seguimiento efectivo de los sílabos durante el período académico a través de registros documentados y actas de revisión periódica.',
       formula:
-        "EF1(×0.33) + EF2(×0.27) + EF3(×0.20) + EF4(×0.13) + EF5(×0.07) = Valor asignatura × 100",
-      period: "Período académico vigente",
+        'EF1(×0.33) + EF2(×0.27) + EF3(×0.20) + EF4(×0.13) + EF5(×0.07) = Valor asignatura × 100',
+      period: 'Período académico vigente',
       purpose:
-        "Asegurar que los docentes cumplen con la planificación del sílabo y que existen mecanismos formales de control y revisión del avance curricular en cada asignatura.",
+        'Asegurar que los docentes cumplen con la planificación del sílabo y que existen mecanismos formales de control y revisión del avance curricular en cada asignatura.',
       cohorts: [],
       slots: [
         {
@@ -80,8 +69,8 @@ function makeIndicators(
           // (compartir_catalogo: id_catalogo_origen=5 -> id_indicador_destino=2)
           // ya existe en la base de datos real -- no requirió migración.
           sourceNum: 7,
-          label: "Malla Curricular",
-          sharedKey: "malla_curricular",
+          label: 'Malla Curricular',
+          sharedKey: 'malla_curricular',
         },
         {
           // Normativa Institucional (DOC.SEG.01, catálogo propio de I2,
@@ -91,7 +80,7 @@ function makeIndicators(
           // se usa en _calculo.php para EF5 (tiposCarreraVigentes) -- no
           // requirió cambios de backend, solo exponerlo en la UI.
           sourceNum: 6,
-          label: "Normativa Institucional",
+          label: 'Normativa Institucional',
         },
         {
           // sourceNum:1 (Syllabus) ya NO usa sharedKey: cada asignatura sube
@@ -99,20 +88,20 @@ function makeIndicators(
           // "syllabus"), no un único archivo compartido desde I1. Ver
           // MEMORIA sección 38.
           sourceNum: 1,
-          label: "Syllabus",
+          label: 'Syllabus',
         },
         {
           sourceNum: 3,
-          label: "Acta de Ajuste Curricular (EF2)",
+          label: 'Acta de Ajuste Curricular (EF2)',
         },
         {
           sourceNum: 4,
-          label: "Evidencia de Difusión (EF3)",
+          label: 'Evidencia de Difusión (EF3)',
         },
         {
           sourceNum: 5,
-          label: "Resultados de Encuesta (CSV)",
-          acceptedType: "csv",
+          label: 'Resultados de Encuesta (CSV)',
+          acceptedType: 'csv',
         },
         {
           // Reporte de Control de Seguimiento (DOC.SEG.06, catálogo propio
@@ -125,111 +114,105 @@ function makeIndicators(
           // IndicatorView.tsx) -- 6 y 7 ya están tomados por
           // Normativa/Malla.
           sourceNum: 8,
-          label: "Reporte de Control de Seguimiento (SIU)",
+          label: 'Reporte de Control de Seguimiento (SIU)',
         },
         {
           // Reporte de Avances del Syllabus (DOC.SEG.07, orden=9). Mismo
           // patrón que el slot anterior.
           sourceNum: 9,
-          label: "Reporte de Avances del Syllabus (SIU)",
+          label: 'Reporte de Avances del Syllabus (SIU)',
         },
       ],
     },
     {
-      id: "I3",
+      id: 'I3',
       num: 3,
-      code: "I3",
-      name: "Tutorías Académicas",
+      code: 'I3',
+      name: 'Tutorías Académicas',
       description:
-        "Evalúa la implementación del sistema institucional de tutorías académicas para el acompañamiento, apoyo y seguimiento al proceso de aprendizaje de los estudiantes.",
-      formula:
-        "EF1(×0.40) + EF2(×0.30) + EF3(×0.20) + EF4(×0.10) = Valor materia × 100",
-      period: "Período académico vigente",
+        'Evalúa la implementación del sistema institucional de tutorías académicas para el acompañamiento, apoyo y seguimiento al proceso de aprendizaje de los estudiantes.',
+      formula: 'EF1(×0.40) + EF2(×0.30) + EF3(×0.20) + EF4(×0.10) = Valor materia × 100',
+      period: 'Período académico vigente',
       purpose:
-        "Medir la cobertura y efectividad del sistema de tutorías como mecanismo de apoyo al rendimiento académico y como estrategia para reducir la deserción estudiantil.",
+        'Medir la cobertura y efectividad del sistema de tutorías como mecanismo de apoyo al rendimiento académico y como estrategia para reducir la deserción estudiantil.',
       cohorts: [],
       slots: [
         {
           sourceNum: 1,
-          label: "Plan de tutorías",
+          label: 'Plan de tutorías',
         },
         {
           sourceNum: 2,
-          label: "Registros de tutorías",
+          label: 'Registros de tutorías',
         },
         {
           sourceNum: 3,
-          label: "Informe de tutorías",
+          label: 'Informe de tutorías',
         },
         {
           sourceNum: 4,
-          label: "Evidencias de atención",
+          label: 'Evidencias de atención',
         },
       ],
     },
     {
-      id: "I4",
+      id: 'I4',
       num: 4,
-      code: "I4",
-      name: "Tasa de Deserción",
+      code: 'I4',
+      name: 'Tasa de Deserción',
       description:
-        "Mide el porcentaje de estudiantes que abandonan sus estudios antes de completar el programa académico, en relación al total de estudiantes matriculados en el período.",
-      formula:
-        "(Estudiantes desertores / Estudiantes matriculados) × 100",
-      period: "Período académico vigente",
+        'Mide el porcentaje de estudiantes que abandonan sus estudios antes de completar el programa académico, en relación al total de estudiantes matriculados en el período.',
+      formula: '(Estudiantes desertores / Estudiantes matriculados) × 100',
+      period: 'Período académico vigente',
       purpose:
-        "Identificar el nivel de abandono estudiantil para implementar estrategias de retención, apoyo y mejora de la permanencia académica en la institución.",
+        'Identificar el nivel de abandono estudiantil para implementar estrategias de retención, apoyo y mejora de la permanencia académica en la institución.',
       cohorts: [],
       slots: [
         {
           sourceNum: 1,
-          label:
-            "Estudiantes matriculados en 1er nivel",
-          sharedKey: "matriculados",
+          label: 'Estudiantes matriculados en 1er nivel',
+          sharedKey: 'matriculados',
         },
         {
           sourceNum: 2,
-          label:
-            "Estudiantes matriculados en 2do año",
+          label: 'Estudiantes matriculados en 2do año',
         },
         {
           sourceNum: 3,
-          label: "Estudiantes desertados en 2do año",
+          label: 'Estudiantes desertados en 2do año',
         },
       ],
     },
     {
-      id: "I5",
+      id: 'I5',
       num: 5,
-      code: "I5",
-      name: "Tasa de Titulación",
+      code: 'I5',
+      name: 'Tasa de Titulación',
       description:
-        "Mide el porcentaje de estudiantes que culminan su proceso formativo y obtienen su título dentro del período de evaluación establecido por el ente rector.",
-      formula:
-        "(Número de graduados / Número de matriculados) × 100",
-      period:
-        "Duración de la carrera + 1 año adicional",
+        'Mide el porcentaje de estudiantes que culminan su proceso formativo y obtienen su título dentro del período de evaluación establecido por el ente rector.',
+      formula: '(Número de graduados / Número de matriculados) × 100',
+      period: 'Duración de la carrera + 1 año adicional',
       purpose:
-        "Permite al evaluador conocer la eficiencia terminal de cada cohorte y determinar si la institución logra que sus estudiantes concluyan sus estudios satisfactoriamente.",
+        'Permite al evaluador conocer la eficiencia terminal de cada cohorte y determinar si la institución logra que sus estudiantes concluyan sus estudios satisfactoriamente.',
       cohorts: [],
       slots: [
         {
           sourceNum: 1,
-          label: "Estudiantes graduados",
+          label: 'Estudiantes graduados',
         },
         {
           sourceNum: 2,
-          label: "Estudiantes matriculados",
-          sharedKey: "matriculados",
+          label: 'Estudiantes matriculados',
+          sharedKey: 'matriculados',
         },
         {
           sourceNum: 3,
-          label: "Informe de titulación",
+          label: 'Informe de titulación',
         },
         {
           sourceNum: 4,
-          label: "Malla curricular",
-          sharedKey: "malla_curricular",
+          label: 'Malla curricular',
+          sharedKey: 'malla_curricular',
         },
       ],
     },
@@ -244,43 +227,26 @@ function makeIndicators(
 
 // ── App ──────────────────────────────────────────────────────
 export default function App() {
-  const [usuario, setUsuario] =
-    useState<UsuarioSesion | null>(null);
+  const [usuario, setUsuario] = useState<UsuarioSesion | null>(null);
 
-  const [view, setView] =
-    useState<View>("login");
+  const [view, setView] = useState<View>('login');
 
-  const [career, setCareer] =
-    useState<Career | null>(null);
+  const [career, setCareer] = useState<Career | null>(null);
 
-  const [indicators, setIndicators] =
-    useState<IndicatorDef[]>([]);
+  const [indicators, setIndicators] = useState<IndicatorDef[]>([]);
 
-  const [selectedId, setSelectedId] =
-    useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const [
-    selectedCohort,
-    setSelectedCohort,
-  ] = useState<string>("B 2025");
+  const [selectedCohort, setSelectedCohort] = useState<string>('B 2025');
 
-  const [selectedPAO, setSelectedPAO] =
-    useState<number>(1);
+  const [selectedPAO, setSelectedPAO] = useState<number>(1);
 
-  const selected = indicators.find(
-    (indicator) =>
-      indicator.id === selectedId,
-  );
+  const selected = indicators.find((indicator) => indicator.id === selectedId);
 
-  const puedeCargar =
-    usuario?.rol === "administrador" ||
-    usuario?.rol === "coordinador";
+  const puedeCargar = usuario?.rol === 'administrador' || usuario?.rol === 'coordinador';
 
   useEffect(() => {
-    if (
-      view !== "dashboard" ||
-      !career
-    ) {
+    if (view !== 'dashboard' || !career) {
       return;
     }
 
@@ -289,54 +255,30 @@ export default function App() {
 
     async function cargarResultadosDashboard() {
       try {
-        const cohorteNormalizada =
-          selectedCohort
-            .replace(/\s+/g, "")
-            .toUpperCase();
+        const cohorteNormalizada = selectedCohort.replace(/\s+/g, '').toUpperCase();
 
-        const evaluacion =
-          await obtenerEvaluacion(
-            carreraActual.code,
-            cohorteNormalizada,
-          );
+        const evaluacion = await obtenerEvaluacion(carreraActual.code, cohorteNormalizada);
 
-        const [
-          datosTitulacion,
-          datosDesercion,
-        ] = await Promise.all([
-          obtenerDatosTasa(
-            evaluacion.id_evaluacion,
-          ),
-          obtenerDatosDesercion(
-            evaluacion.id_evaluacion,
-          ),
+        const [datosTitulacion, datosDesercion] = await Promise.all([
+          obtenerDatosTasa(evaluacion.id_evaluacion),
+          obtenerDatosDesercion(evaluacion.id_evaluacion),
         ]);
 
         if (cancelado) {
           return;
         }
 
-        const registroTitulacion =
-          datosTitulacion.find(
-            (dato) =>
-              dato.cohorte
-                .replace(/\s+/g, "")
-                .toUpperCase() ===
-              cohorteNormalizada,
-          );
+        const registroTitulacion = datosTitulacion.find(
+          (dato) => dato.cohorte.replace(/\s+/g, '').toUpperCase() === cohorteNormalizada,
+        );
 
-        const registroDesercion =
-          datosDesercion.find(
-            (dato) =>
-              dato.cohorte
-                .replace(/\s+/g, "")
-                .toUpperCase() ===
-              cohorteNormalizada,
-          );
+        const registroDesercion = datosDesercion.find(
+          (dato) => dato.cohorte.replace(/\s+/g, '').toUpperCase() === cohorteNormalizada,
+        );
 
         setIndicators((actuales) =>
           actuales.map((indicator) => {
-            if (indicator.id === "I5") {
+            if (indicator.id === 'I5') {
               if (!registroTitulacion) {
                 return {
                   ...indicator,
@@ -349,20 +291,14 @@ export default function App() {
                 cohorts: [
                   {
                     period: selectedCohort,
-                    enrolled:
-                      Number(
-                        registroTitulacion.matriculados,
-                      ) || 0,
-                    graduated:
-                      Number(
-                        registroTitulacion.graduados,
-                      ) || 0,
+                    enrolled: Number(registroTitulacion.matriculados) || 0,
+                    graduated: Number(registroTitulacion.graduados) || 0,
                   },
                 ],
               };
             }
 
-            if (indicator.id === "I4") {
+            if (indicator.id === 'I4') {
               if (
                 !registroDesercion ||
                 registroDesercion.iniciaron_primer_nivel === null ||
@@ -387,14 +323,8 @@ export default function App() {
                 cohorts: [
                   {
                     period: selectedCohort,
-                    enrolled:
-                      Number(
-                        registroDesercion.iniciaron_primer_nivel,
-                      ) || 0,
-                    graduated:
-                      Number(
-                        registroDesercion.no_continuaron,
-                      ) || 0,
+                    enrolled: Number(registroDesercion.iniciaron_primer_nivel) || 0,
+                    graduated: Number(registroDesercion.no_continuaron) || 0,
                   },
                 ],
               };
@@ -404,16 +334,12 @@ export default function App() {
           }),
         );
       } catch (error) {
-        console.error(
-          "No se pudieron cargar los resultados del dashboard:",
-          error,
-        );
+        console.error('No se pudieron cargar los resultados del dashboard:', error);
 
         if (!cancelado) {
           setIndicators((actuales) =>
             actuales.map((indicator) =>
-              indicator.id === "I4" ||
-              indicator.id === "I5"
+              indicator.id === 'I4' || indicator.id === 'I5'
                 ? {
                     ...indicator,
                     cohorts: [],
@@ -430,38 +356,27 @@ export default function App() {
     return () => {
       cancelado = true;
     };
-  }, [
-    view,
-    career,
-    selectedCohort,
-  ]);
+  }, [view, career, selectedCohort]);
 
-  function selectCareer(
-    selectedCareer: Career,
-  ) {
+  function selectCareer(selectedCareer: Career) {
     setCareer(selectedCareer);
 
-    setIndicators(
-      makeIndicators(selectedCareer),
-    );
+    setIndicators(makeIndicators(selectedCareer));
 
     setSelectedId(null);
-    setSelectedCohort("B 2025");
+    setSelectedCohort('B 2025');
     setSelectedPAO(1);
-    setView("criteria");
+    setView('criteria');
   }
 
-  function handleSelectIndicator(
-    id: string,
-    pao?: number,
-  ) {
+  function handleSelectIndicator(id: string, pao?: number) {
     setSelectedId(id);
 
     if (pao !== undefined) {
       setSelectedPAO(pao);
     }
 
-    setView("indicator");
+    setView('indicator');
   }
 
   function handleUpload() {
@@ -470,7 +385,7 @@ export default function App() {
     }
 
     setSelectedId(null);
-    setView("evidUpload");
+    setView('evidUpload');
   }
 
   function handleIndicatorUpload() {
@@ -478,12 +393,10 @@ export default function App() {
       return;
     }
 
-    setView("evidUpload");
+    setView('evidUpload');
   }
 
-  function handleCohortChange(
-    newCohort: string,
-  ) {
+  function handleCohortChange(newCohort: string) {
     if (newCohort === selectedCohort) {
       return;
     }
@@ -500,21 +413,19 @@ export default function App() {
      * el sistema consultará MySQL usando la nueva cohorte.
      */
     if (career) {
-      setIndicators(
-        makeIndicators(career),
-      );
+      setIndicators(makeIndicators(career));
     }
 
-    setView("dashboard");
+    setView('dashboard');
   }
 
   function handleBackToCareers() {
     setCareer(null);
     setIndicators([]);
     setSelectedId(null);
-    setSelectedCohort("B 2025");
+    setSelectedCohort('B 2025');
     setSelectedPAO(1);
-    setView("careers");
+    setView('careers');
   }
 
   function handleLogout() {
@@ -522,107 +433,74 @@ export default function App() {
     setCareer(null);
     setIndicators([]);
     setSelectedId(null);
-    setSelectedCohort("B 2025");
+    setSelectedCohort('B 2025');
     setSelectedPAO(1);
-    setView("login");
+    setView('login');
   }
 
   return (
     <>
-      <Toaster
-        richColors
-        position="bottom-right"
-      />
+      <Toaster richColors position="bottom-right" />
 
-      {view === "login" && (
+      {view === 'login' && (
         <LoginView
           onLogin={(usuarioAutenticado) => {
             setUsuario(usuarioAutenticado);
-            setView("careers");
+            setView('careers');
           }}
         />
       )}
 
-      {view === "careers" && usuario && (
-        <CareersView
-          onSelect={selectCareer}
-          onLogout={handleLogout}
-          usuario={usuario}
-        />
+      {view === 'careers' && usuario && (
+        <CareersView onSelect={selectCareer} onLogout={handleLogout} usuario={usuario} />
       )}
 
-      {view === "criteria" && career && (
+      {view === 'criteria' && career && (
         <CriteriaView
           career={career}
-          onSelectDocencia={() =>
-            setView("dashboard")
-          }
-          onBack={() =>
-            setView("careers")
-          }
+          onSelectDocencia={() => setView('dashboard')}
+          onBack={() => setView('careers')}
           onLogout={handleLogout}
         />
       )}
 
-      {view === "dashboard" && career && (
+      {view === 'dashboard' && career && (
         <DashboardView
           indicators={indicators}
           career={career}
           cohort={selectedCohort}
-          onCohortChange={
-            handleCohortChange
-          }
-          onSelect={
-            handleSelectIndicator
-          }
+          onCohortChange={handleCohortChange}
+          onSelect={handleSelectIndicator}
           onLogout={handleLogout}
           onUpload={handleUpload}
-          onBackToCareers={
-            handleBackToCareers
-          }
+          onBackToCareers={handleBackToCareers}
           usuario={usuario!}
           puedeCargar={Boolean(puedeCargar)}
         />
       )}
 
-      {view === "evidUpload" && career && puedeCargar && (
+      {view === 'evidUpload' && career && puedeCargar && (
         <EvidenceUploadView
           career={career}
           indicators={indicators}
           onChange={setIndicators}
-          onBack={() =>
-            setView(
-              selectedId
-                ? "indicator"
-                : "dashboard",
-            )
-          }
-          preselectedCohort={
-            selectedCohort
-          }
-          preselectedIndicatorId={
-            selectedId ?? undefined
-          }
+          onBack={() => setView(selectedId ? 'indicator' : 'dashboard')}
+          preselectedCohort={selectedCohort}
+          preselectedIndicatorId={selectedId ?? undefined}
         />
       )}
 
-      {view === "indicator" &&
-        selected &&
-        career && (
-          <IndicatorView
-            indicator={selected}
-            onBack={() =>
-              setView("dashboard")
-            }
-            career={career}
-            cohort={selectedCohort}
-            pao={selectedPAO}
-            onUpload={
-              handleIndicatorUpload
-            }
-            puedeCargar={Boolean(puedeCargar)}
-          />
-        )}
+      {view === 'indicator' && selected && career && (
+        <IndicatorView
+          indicator={selected}
+          onBack={() => setView('dashboard')}
+          career={career}
+          cohort={selectedCohort}
+          pao={selectedPAO}
+          onUpload={handleIndicatorUpload}
+          puedeCargar={Boolean(puedeCargar)}
+        />
+      )}
     </>
   );
 }

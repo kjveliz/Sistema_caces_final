@@ -22,7 +22,7 @@ export interface CrearCohorteParams {
   nombreCohorte: string;
   fechaInicio: string;
   fechaFin: string;
-  estado: "Activa" | "Pendiente" | "Cerrada";
+  estado: 'Activa' | 'Pendiente' | 'Cerrada';
 }
 
 interface CrearResponse {
@@ -33,12 +33,12 @@ interface CrearResponse {
 
 export async function listarCohortesEvaluaciones(): Promise<CohorteEvaluacion[]> {
   const respuesta = await fetch(
-    "http://localhost/sistemacaces/api/administracion/cohortes/listar.php",
+    'http://localhost/sistemacaces/api/administracion/cohortes/listar.php',
     {
-      method: "GET",
-      credentials: "include",
+      method: 'GET',
+      credentials: 'include',
       headers: {
-        Accept: "application/json",
+        Accept: 'application/json',
       },
     },
   );
@@ -46,10 +46,7 @@ export async function listarCohortesEvaluaciones(): Promise<CohorteEvaluacion[]>
   const datos = (await respuesta.json()) as ListarResponse;
 
   if (!respuesta.ok || !datos.ok || !datos.datos) {
-    throw new Error(
-      datos.mensaje ||
-        "No se pudieron consultar las cohortes.",
-    );
+    throw new Error(datos.mensaje || 'No se pudieron consultar las cohortes.');
   }
 
   return datos.datos;
@@ -59,13 +56,13 @@ export async function crearCohorteEvaluacion(
   parametros: CrearCohorteParams,
 ): Promise<CohorteEvaluacion> {
   const respuesta = await fetch(
-    "http://localhost/sistemacaces/api/administracion/cohortes/crear.php",
+    'http://localhost/sistemacaces/api/administracion/cohortes/crear.php',
     {
-      method: "POST",
-      credentials: "include",
+      method: 'POST',
+      credentials: 'include',
       headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
       },
       body: JSON.stringify({
         id_carrera: parametros.idCarrera,
@@ -80,10 +77,7 @@ export async function crearCohorteEvaluacion(
   const datos = (await respuesta.json()) as CrearResponse;
 
   if (!respuesta.ok || !datos.ok || !datos.datos) {
-    throw new Error(
-      datos.mensaje ||
-        "No se pudo crear la cohorte.",
-    );
+    throw new Error(datos.mensaje || 'No se pudo crear la cohorte.');
   }
 
   return datos.datos;
@@ -91,16 +85,16 @@ export async function crearCohorteEvaluacion(
 
 export async function cambiarEstadoEvaluacion(
   idEvaluacion: number,
-  estado: "Activa" | "Pendiente" | "Cerrada",
+  estado: 'Activa' | 'Pendiente' | 'Cerrada',
 ): Promise<void> {
   const respuesta = await fetch(
-    "http://localhost/sistemacaces/api/administracion/cohortes/cambiar_estado.php",
+    'http://localhost/sistemacaces/api/administracion/cohortes/cambiar_estado.php',
     {
-      method: "POST",
-      credentials: "include",
+      method: 'POST',
+      credentials: 'include',
       headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
       },
       body: JSON.stringify({
         id_evaluacion: idEvaluacion,
@@ -112,9 +106,6 @@ export async function cambiarEstadoEvaluacion(
   const datos = await respuesta.json();
 
   if (!respuesta.ok || !datos.ok) {
-    throw new Error(
-      datos.mensaje ||
-        "No se pudo actualizar la evaluación.",
-    );
+    throw new Error(datos.mensaje || 'No se pudo actualizar la evaluación.');
   }
 }

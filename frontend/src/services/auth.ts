@@ -1,7 +1,4 @@
-export type RolUsuario =
-  | "administrador"
-  | "coordinador"
-  | "evaluador";
+export type RolUsuario = 'administrador' | 'coordinador' | 'evaluador';
 
 export interface UsuarioSesion {
   id_usuario: number;
@@ -21,35 +18,27 @@ export async function iniciarSesion(
   correo: string,
   contrasena: string,
 ): Promise<LoginResponse & { usuario: UsuarioSesion }> {
-  const respuesta = await fetch(
-    "http://localhost/sistemacaces/api/auth/login.php",
-    {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
-        correo,
-        contrasena,
-      }),
+  const respuesta = await fetch('http://localhost/sistemacaces/api/auth/login.php', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
     },
-  );
+    body: JSON.stringify({
+      correo,
+      contrasena,
+    }),
+  });
 
   const datos = (await respuesta.json()) as LoginResponse;
 
   if (!respuesta.ok) {
-    throw new Error(
-      datos.mensaje || "No se pudo iniciar sesión.",
-    );
+    throw new Error(datos.mensaje || 'No se pudo iniciar sesión.');
   }
 
   if (!datos.ok || !datos.usuario) {
-    throw new Error(
-      datos.mensaje ||
-        "El servidor no devolvió los datos del usuario.",
-    );
+    throw new Error(datos.mensaje || 'El servidor no devolvió los datos del usuario.');
   }
 
   return datos as LoginResponse & { usuario: UsuarioSesion };

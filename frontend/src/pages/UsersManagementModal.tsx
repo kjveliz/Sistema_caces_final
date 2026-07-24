@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from 'react';
 import {
   CheckCircle2,
   Eye,
@@ -9,40 +9,34 @@ import {
   UserPlus,
   Users,
   X,
-} from "lucide-react";
-import { toast } from "sonner";
+} from 'lucide-react';
+import { toast } from 'sonner';
 
 import {
   cambiarEstadoUsuario,
   crearUsuario,
   listarUsuarios,
   type UsuarioSistema,
-} from "../services/usuarios";
+} from '../services/usuarios';
 
 interface UsersManagementModalProps {
   open: boolean;
   onClose: () => void;
 }
 
-type RolUsuario =
-  | "administrador"
-  | "coordinador"
-  | "evaluador";
+type RolUsuario = 'administrador' | 'coordinador' | 'evaluador';
 
-export default function UsersManagementModal({
-  open,
-  onClose,
-}: UsersManagementModalProps) {
+export default function UsersManagementModal({ open, onClose }: UsersManagementModalProps) {
   const [usuarios, setUsuarios] = useState<UsuarioSistema[]>([]);
   const [cargando, setCargando] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [cambiandoId, setCambiandoId] = useState<number | null>(null);
 
-  const [nombres, setNombres] = useState("");
-  const [apellidos, setApellidos] = useState("");
-  const [correo, setCorreo] = useState("");
-  const [contrasena, setContrasena] = useState("");
-  const [rol, setRol] = useState<RolUsuario>("evaluador");
+  const [nombres, setNombres] = useState('');
+  const [apellidos, setApellidos] = useState('');
+  const [correo, setCorreo] = useState('');
+  const [contrasena, setContrasena] = useState('');
+  const [rol, setRol] = useState<RolUsuario>('evaluador');
   const [activo, setActivo] = useState(1);
   const [mostrarContrasena, setMostrarContrasena] = useState(false);
 
@@ -60,9 +54,8 @@ export default function UsersManagementModal({
       setCargando(true);
       setUsuarios(await listarUsuarios());
     } catch (error) {
-      toast.error("No se pudieron cargar los usuarios", {
-        description:
-          error instanceof Error ? error.message : "Ocurrió un error inesperado.",
+      toast.error('No se pudieron cargar los usuarios', {
+        description: error instanceof Error ? error.message : 'Ocurrió un error inesperado.',
       });
     } finally {
       setCargando(false);
@@ -70,11 +63,11 @@ export default function UsersManagementModal({
   }
 
   function limpiarFormulario() {
-    setNombres("");
-    setApellidos("");
-    setCorreo("");
-    setContrasena("");
-    setRol("evaluador");
+    setNombres('');
+    setApellidos('');
+    setCorreo('');
+    setContrasena('');
+    setRol('evaluador');
     setActivo(1);
     setMostrarContrasena(false);
   }
@@ -94,13 +87,12 @@ export default function UsersManagementModal({
         activo,
       });
 
-      toast.success("Usuario creado correctamente");
+      toast.success('Usuario creado correctamente');
       limpiarFormulario();
       await cargarUsuarios();
     } catch (error) {
-      toast.error("No se pudo crear el usuario", {
-        description:
-          error instanceof Error ? error.message : "Ocurrió un error inesperado.",
+      toast.error('No se pudo crear el usuario', {
+        description: error instanceof Error ? error.message : 'Ocurrió un error inesperado.',
       });
     } finally {
       setGuardando(false);
@@ -116,19 +108,14 @@ export default function UsersManagementModal({
 
       setUsuarios((actuales) =>
         actuales.map((item) =>
-          item.id_usuario === usuario.id_usuario
-            ? { ...item, activo: nuevoEstado }
-            : item,
+          item.id_usuario === usuario.id_usuario ? { ...item, activo: nuevoEstado } : item,
         ),
       );
 
-      toast.success(
-        nuevoEstado === 1 ? "Usuario activado" : "Usuario desactivado",
-      );
+      toast.success(nuevoEstado === 1 ? 'Usuario activado' : 'Usuario desactivado');
     } catch (error) {
-      toast.error("No se pudo cambiar el estado", {
-        description:
-          error instanceof Error ? error.message : "Ocurrió un error inesperado.",
+      toast.error('No se pudo cambiar el estado', {
+        description: error instanceof Error ? error.message : 'Ocurrió un error inesperado.',
       });
     } finally {
       setCambiandoId(null);
@@ -140,26 +127,26 @@ export default function UsersManagementModal({
   return (
     <div
       className="fixed inset-0 z-[70] flex items-center justify-center p-4"
-      style={{ background: "rgba(15,30,60,0.48)" }}
+      style={{ background: 'rgba(15,30,60,0.48)' }}
     >
       <div
         className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col"
         style={{
-          maxHeight: "92vh",
-          border: "1px solid rgba(27,58,107,0.12)",
+          maxHeight: '92vh',
+          border: '1px solid rgba(27,58,107,0.12)',
         }}
       >
         <div
           className="px-6 py-4 flex items-center justify-between flex-shrink-0"
           style={{
-            borderBottom: "1px solid rgba(27,58,107,0.1)",
-            background: "#F8FAFD",
+            borderBottom: '1px solid rgba(27,58,107,0.1)',
+            background: '#F8FAFD',
           }}
         >
           <div className="flex items-center gap-3">
             <div
               className="w-9 h-9 rounded-xl flex items-center justify-center"
-              style={{ background: "#1B3A6B", color: "#fff" }}
+              style={{ background: '#1B3A6B', color: '#fff' }}
             >
               <Users size={17} />
             </div>
@@ -168,14 +155,14 @@ export default function UsersManagementModal({
               <h2
                 className="text-base font-bold"
                 style={{
-                  color: "#0F1E3C",
+                  color: '#0F1E3C',
                   fontFamily: "'Libre Baskerville',serif",
                 }}
               >
                 Gestión de usuarios
               </h2>
 
-              <p className="text-xs mt-0.5" style={{ color: "#5A7295" }}>
+              <p className="text-xs mt-0.5" style={{ color: '#5A7295' }}>
                 {usuarios.length} registrados · {totalActivos} activos
               </p>
             </div>
@@ -188,9 +175,9 @@ export default function UsersManagementModal({
               disabled={cargando}
               className="p-2 rounded-lg hover:bg-blue-50 transition-colors"
               title="Actualizar"
-              style={{ color: "#1B3A6B" }}
+              style={{ color: '#1B3A6B' }}
             >
-              <RefreshCw size={15} className={cargando ? "animate-spin" : ""} />
+              <RefreshCw size={15} className={cargando ? 'animate-spin' : ''} />
             </button>
 
             <button
@@ -199,7 +186,7 @@ export default function UsersManagementModal({
               className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
               title="Cerrar"
             >
-              <X size={16} style={{ color: "#5A7295" }} />
+              <X size={16} style={{ color: '#5A7295' }} />
             </button>
           </div>
         </div>
@@ -210,26 +197,26 @@ export default function UsersManagementModal({
             autoComplete="off"
             className="p-5 space-y-4 overflow-auto"
             style={{
-              borderRight: "1px solid rgba(27,58,107,0.08)",
-              background: "#FBFCFE",
+              borderRight: '1px solid rgba(27,58,107,0.08)',
+              background: '#FBFCFE',
             }}
           >
             <div className="flex items-center gap-2">
-              <UserPlus size={15} style={{ color: "#2563EB" }} />
-              <h3 className="text-sm font-bold" style={{ color: "#0F1E3C" }}>
+              <UserPlus size={15} style={{ color: '#2563EB' }} />
+              <h3 className="text-sm font-bold" style={{ color: '#0F1E3C' }}>
                 Nuevo usuario
               </h3>
             </div>
 
             {[
-              ["Nombres", nombres, setNombres, "text"],
-              ["Apellidos", apellidos, setApellidos, "text"],
-              ["Correo", correo, setCorreo, "email"],
+              ['Nombres', nombres, setNombres, 'text'],
+              ['Apellidos', apellidos, setApellidos, 'text'],
+              ['Correo', correo, setCorreo, 'email'],
             ].map(([label, value, setter, type]) => (
               <div key={String(label)}>
                 <label
                   className="block text-xs font-bold uppercase tracking-widest mb-1.5"
-                  style={{ color: "#5A7295" }}
+                  style={{ color: '#5A7295' }}
                 >
                   {String(label)}
                 </label>
@@ -237,16 +224,14 @@ export default function UsersManagementModal({
                   type={String(type)}
                   value={String(value)}
                   onChange={(e) =>
-                    (setter as React.Dispatch<React.SetStateAction<string>>)(
-                      e.target.value,
-                    )
+                    (setter as React.Dispatch<React.SetStateAction<string>>)(e.target.value)
                   }
                   required
                   className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none"
                   style={{
-                    background: "#fff",
-                    borderColor: "rgba(27,58,107,0.18)",
-                    color: "#0F1E3C",
+                    background: '#fff',
+                    borderColor: 'rgba(27,58,107,0.18)',
+                    color: '#0F1E3C',
                   }}
                 />
               </div>
@@ -255,14 +240,14 @@ export default function UsersManagementModal({
             <div>
               <label
                 className="block text-xs font-bold uppercase tracking-widest mb-1.5"
-                style={{ color: "#5A7295" }}
+                style={{ color: '#5A7295' }}
               >
                 Contraseña
               </label>
 
               <div className="relative">
                 <input
-                  type={mostrarContrasena ? "text" : "password"}
+                  type={mostrarContrasena ? 'text' : 'password'}
                   autoComplete="new-password"
                   value={contrasena}
                   onChange={(e) => setContrasena(e.target.value)}
@@ -270,9 +255,9 @@ export default function UsersManagementModal({
                   minLength={8}
                   className="w-full px-3 py-2.5 pr-10 rounded-xl text-sm border outline-none"
                   style={{
-                    background: "#fff",
-                    borderColor: "rgba(27,58,107,0.18)",
-                    color: "#0F1E3C",
+                    background: '#fff',
+                    borderColor: 'rgba(27,58,107,0.18)',
+                    color: '#0F1E3C',
                   }}
                 />
 
@@ -280,7 +265,7 @@ export default function UsersManagementModal({
                   type="button"
                   onClick={() => setMostrarContrasena(!mostrarContrasena)}
                   className="absolute right-3 top-1/2 -translate-y-1/2"
-                  style={{ color: "#5A7295" }}
+                  style={{ color: '#5A7295' }}
                 >
                   {mostrarContrasena ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
@@ -290,7 +275,7 @@ export default function UsersManagementModal({
             <div>
               <label
                 className="block text-xs font-bold uppercase tracking-widest mb-1.5"
-                style={{ color: "#5A7295" }}
+                style={{ color: '#5A7295' }}
               >
                 Rol
               </label>
@@ -300,9 +285,9 @@ export default function UsersManagementModal({
                 onChange={(e) => setRol(e.target.value as RolUsuario)}
                 className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none"
                 style={{
-                  background: "#fff",
-                  borderColor: "rgba(27,58,107,0.18)",
-                  color: "#0F1E3C",
+                  background: '#fff',
+                  borderColor: 'rgba(27,58,107,0.18)',
+                  color: '#0F1E3C',
                 }}
               >
                 <option value="administrador">Administrador</option>
@@ -317,7 +302,7 @@ export default function UsersManagementModal({
                 checked={activo === 1}
                 onChange={(e) => setActivo(e.target.checked ? 1 : 0)}
               />
-              <span className="text-sm font-medium" style={{ color: "#374151" }}>
+              <span className="text-sm font-medium" style={{ color: '#374151' }}>
                 Cuenta activa
               </span>
             </label>
@@ -327,8 +312,8 @@ export default function UsersManagementModal({
               disabled={guardando}
               className="w-full py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all hover:opacity-90"
               style={{
-                background: guardando ? "#94A3B8" : "#1B3A6B",
-                color: "#fff",
+                background: guardando ? '#94A3B8' : '#1B3A6B',
+                color: '#fff',
               }}
             >
               {guardando ? (
@@ -349,15 +334,15 @@ export default function UsersManagementModal({
             <div
               className="grid grid-cols-[1.2fr_1.5fr_0.8fr_0.7fr] gap-3 px-5 py-3 flex-shrink-0"
               style={{
-                background: "#F8FAFD",
-                borderBottom: "1px solid rgba(27,58,107,0.08)",
+                background: '#F8FAFD',
+                borderBottom: '1px solid rgba(27,58,107,0.08)',
               }}
             >
-              {["Usuario", "Correo", "Rol", "Estado"].map((titulo) => (
+              {['Usuario', 'Correo', 'Rol', 'Estado'].map((titulo) => (
                 <span
                   key={titulo}
                   className="text-xs font-bold uppercase tracking-widest"
-                  style={{ color: "#5A7295" }}
+                  style={{ color: '#5A7295' }}
                 >
                   {titulo}
                 </span>
@@ -367,15 +352,11 @@ export default function UsersManagementModal({
             <div className="flex-1 overflow-auto">
               {cargando ? (
                 <div className="h-full flex items-center justify-center">
-                  <Loader2
-                    size={24}
-                    className="animate-spin"
-                    style={{ color: "#1B3A6B" }}
-                  />
+                  <Loader2 size={24} className="animate-spin" style={{ color: '#1B3A6B' }} />
                 </div>
               ) : usuarios.length === 0 ? (
                 <div className="h-full flex items-center justify-center">
-                  <p className="text-sm" style={{ color: "#94A3B8" }}>
+                  <p className="text-sm" style={{ color: '#94A3B8' }}>
                     No existen usuarios registrados.
                   </p>
                 </div>
@@ -388,25 +369,22 @@ export default function UsersManagementModal({
                       key={usuario.id_usuario}
                       className="grid grid-cols-[1.2fr_1.5fr_0.8fr_0.7fr] gap-3 items-center px-5 py-3"
                       style={{
-                        borderBottom: "1px solid rgba(27,58,107,0.06)",
+                        borderBottom: '1px solid rgba(27,58,107,0.06)',
                       }}
                     >
-                      <p
-                        className="text-sm font-semibold truncate"
-                        style={{ color: "#0F1E3C" }}
-                      >
+                      <p className="text-sm font-semibold truncate" style={{ color: '#0F1E3C' }}>
                         {usuario.nombres} {usuario.apellidos}
                       </p>
 
-                      <p className="text-xs truncate" style={{ color: "#5A7295" }}>
+                      <p className="text-xs truncate" style={{ color: '#5A7295' }}>
                         {usuario.correo}
                       </p>
 
                       <div className="flex items-center gap-1.5">
-                        <ShieldCheck size={12} style={{ color: "#2563EB" }} />
+                        <ShieldCheck size={12} style={{ color: '#2563EB' }} />
                         <span
                           className="text-xs font-semibold capitalize"
-                          style={{ color: "#374151" }}
+                          style={{ color: '#374151' }}
                         >
                           {usuario.rol}
                         </span>
@@ -418,8 +396,8 @@ export default function UsersManagementModal({
                         disabled={cambiandoId === usuario.id_usuario}
                         className="justify-self-start flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all hover:opacity-80"
                         style={{
-                          background: estaActivo ? "#DCFCE7" : "#FEE2E2",
-                          color: estaActivo ? "#15803D" : "#B91C1C",
+                          background: estaActivo ? '#DCFCE7' : '#FEE2E2',
+                          color: estaActivo ? '#15803D' : '#B91C1C',
                         }}
                       >
                         {cambiandoId === usuario.id_usuario ? (
@@ -430,7 +408,7 @@ export default function UsersManagementModal({
                           <X size={11} />
                         )}
 
-                        {estaActivo ? "Activo" : "Inactivo"}
+                        {estaActivo ? 'Activo' : 'Inactivo'}
                       </button>
                     </div>
                   );

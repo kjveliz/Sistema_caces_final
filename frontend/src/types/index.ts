@@ -1,22 +1,8 @@
-export type View =
-  | "login"
-  | "careers"
-  | "criteria"
-  | "dashboard"
-  | "evidUpload"
-  | "indicator";
+export type View = 'login' | 'careers' | 'criteria' | 'dashboard' | 'evidUpload' | 'indicator';
 
-export type TabId =
-  | "cohorts"
-  | "evidences"
-  | "ficha"
-  | "results";
+export type TabId = 'cohorts' | 'evidences' | 'ficha' | 'results';
 
-export type EvidStep =
-  | "selectIndicator"
-  | "configSyllabus"
-  | "configTitDes"
-  | "upload";
+export type EvidStep = 'selectIndicator' | 'configSyllabus' | 'configTitDes' | 'upload';
 
 export interface UploadedFile {
   fileName: string;
@@ -33,7 +19,7 @@ export interface EvidenceSlot {
 
   // Tipo de archivo que acepta este slot. Si no se especifica, se asume
   // "pdf" (comportamiento histórico de todos los slots existentes).
-  acceptedType?: "pdf" | "csv";
+  acceptedType?: 'pdf' | 'csv';
 
   idCatalogo?: number;
   codigoEvidencia?: string;

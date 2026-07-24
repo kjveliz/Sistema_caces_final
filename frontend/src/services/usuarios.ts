@@ -3,10 +3,7 @@ export interface UsuarioSistema {
   nombres: string;
   apellidos: string;
   correo: string;
-  rol:
-    | "administrador"
-    | "coordinador"
-    | "evaluador";
+  rol: 'administrador' | 'coordinador' | 'evaluador';
   activo: number;
 }
 
@@ -21,10 +18,7 @@ interface CrearUsuarioParams {
   apellidos: string;
   correo: string;
   contrasena: string;
-  rol:
-    | "administrador"
-    | "coordinador"
-    | "evaluador";
+  rol: 'administrador' | 'coordinador' | 'evaluador';
   activo: number;
 }
 
@@ -34,82 +28,59 @@ interface CrearUsuarioResponse {
   datos?: UsuarioSistema;
 }
 
-export async function listarUsuarios(): Promise<
-  UsuarioSistema[]
-> {
+export async function listarUsuarios(): Promise<UsuarioSistema[]> {
   const respuesta = await fetch(
-    "http://localhost/sistemacaces/api/administracion/usuarios/listar.php",
+    'http://localhost/sistemacaces/api/administracion/usuarios/listar.php',
     {
-      method: "GET",
-      credentials: "include",
+      method: 'GET',
+      credentials: 'include',
       headers: {
-        Accept: "application/json",
+        Accept: 'application/json',
       },
     },
   );
 
-  const datos =
-    (await respuesta.json()) as RespuestaUsuarios;
+  const datos = (await respuesta.json()) as RespuestaUsuarios;
 
-  if (
-    !respuesta.ok ||
-    !datos.ok ||
-    !datos.datos
-  ) {
-    throw new Error(
-      datos.mensaje ||
-        "No se pudieron consultar los usuarios.",
-    );
+  if (!respuesta.ok || !datos.ok || !datos.datos) {
+    throw new Error(datos.mensaje || 'No se pudieron consultar los usuarios.');
   }
 
   return datos.datos;
 }
 
-export async function crearUsuario(
-  parametros: CrearUsuarioParams,
-): Promise<UsuarioSistema> {
+export async function crearUsuario(parametros: CrearUsuarioParams): Promise<UsuarioSistema> {
   const respuesta = await fetch(
-    "http://localhost/sistemacaces/api/administracion/usuarios/crear.php",
+    'http://localhost/sistemacaces/api/administracion/usuarios/crear.php',
     {
-      method: "POST",
-      credentials: "include",
+      method: 'POST',
+      credentials: 'include',
       headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
       },
       body: JSON.stringify(parametros),
     },
   );
 
-  const datos =
-    (await respuesta.json()) as CrearUsuarioResponse;
+  const datos = (await respuesta.json()) as CrearUsuarioResponse;
 
-  if (
-    !respuesta.ok ||
-    !datos.ok ||
-    !datos.datos
-  ) {
-    throw new Error(
-      datos.mensaje ||
-        "No se pudo crear el usuario.",
-    );
+  if (!respuesta.ok || !datos.ok || !datos.datos) {
+    throw new Error(datos.mensaje || 'No se pudo crear el usuario.');
   }
 
   return datos.datos;
 }
 
-export async function cambiarEstadoUsuario(
-  idUsuario: number,
-  activo: number,
-): Promise<void> {
+export async function cambiarEstadoUsuario(idUsuario: number, activo: number): Promise<void> {
   const respuesta = await fetch(
-    "http://localhost/sistemacaces/api/administracion/usuarios/cambiar_estado.php",
+    'http://localhost/sistemacaces/api/administracion/usuarios/cambiar_estado.php',
     {
-      method: "POST",
-      credentials: "include",
+      method: 'POST',
+      credentials: 'include',
       headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
       },
       body: JSON.stringify({
         id_usuario: idUsuario,
@@ -121,9 +92,6 @@ export async function cambiarEstadoUsuario(
   const datos = await respuesta.json();
 
   if (!respuesta.ok || !datos.ok) {
-    throw new Error(
-      datos.mensaje ||
-        "No se pudo actualizar el usuario.",
-    );
+    throw new Error(datos.mensaje || 'No se pudo actualizar el usuario.');
   }
 }

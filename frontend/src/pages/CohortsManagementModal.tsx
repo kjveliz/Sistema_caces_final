@@ -1,19 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
-import {
-  CalendarDays,
-  Loader2,
-  Plus,
-  RefreshCw,
-  X,
-} from "lucide-react";
-import { toast } from "sonner";
+import { useEffect, useMemo, useState } from 'react';
+import { CalendarDays, Loader2, Plus, RefreshCw, X } from 'lucide-react';
+import { toast } from 'sonner';
 
 import {
   cambiarEstadoEvaluacion,
   crearCohorteEvaluacion,
   listarCohortesEvaluaciones,
   type CohorteEvaluacion,
-} from "../services/cohortes";
+} from '../services/cohortes';
 
 interface CohortsManagementModalProps {
   open: boolean;
@@ -24,10 +18,7 @@ interface CohortsManagementModalProps {
   }[];
 }
 
-type EstadoEvaluacion =
-  | "Activa"
-  | "Pendiente"
-  | "Cerrada";
+type EstadoEvaluacion = 'Activa' | 'Pendiente' | 'Cerrada';
 
 export default function CohortsManagementModal({
   open,
@@ -39,19 +30,18 @@ export default function CohortsManagementModal({
   const [guardando, setGuardando] = useState(false);
   const [cambiandoId, setCambiandoId] = useState<number | null>(null);
 
-  const [idCarrera, setIdCarrera] = useState("");
-  const [nombreCohorte, setNombreCohorte] = useState("");
-  const [fechaInicio, setFechaInicio] = useState("");
-  const [fechaFin, setFechaFin] = useState("");
-  const [estado, setEstado] =
-    useState<EstadoEvaluacion>("Activa");
+  const [idCarrera, setIdCarrera] = useState('');
+  const [nombreCohorte, setNombreCohorte] = useState('');
+  const [fechaInicio, setFechaInicio] = useState('');
+  const [fechaFin, setFechaFin] = useState('');
+  const [estado, setEstado] = useState<EstadoEvaluacion>('Activa');
 
   useEffect(() => {
     if (open) void cargar();
   }, [open]);
 
   const totalActivas = useMemo(
-    () => datos.filter((item) => item.estado === "Activa").length,
+    () => datos.filter((item) => item.estado === 'Activa').length,
     [datos],
   );
 
@@ -60,11 +50,8 @@ export default function CohortsManagementModal({
       setCargando(true);
       setDatos(await listarCohortesEvaluaciones());
     } catch (error) {
-      toast.error("No se pudieron cargar las cohortes", {
-        description:
-          error instanceof Error
-            ? error.message
-            : "Ocurrió un error inesperado.",
+      toast.error('No se pudieron cargar las cohortes', {
+        description: error instanceof Error ? error.message : 'Ocurrió un error inesperado.',
       });
     } finally {
       setCargando(false);
@@ -72,16 +59,14 @@ export default function CohortsManagementModal({
   }
 
   function limpiar() {
-    setIdCarrera("");
-    setNombreCohorte("");
-    setFechaInicio("");
-    setFechaFin("");
-    setEstado("Activa");
+    setIdCarrera('');
+    setNombreCohorte('');
+    setFechaInicio('');
+    setFechaFin('');
+    setEstado('Activa');
   }
 
-  async function guardar(
-    event: React.FormEvent<HTMLFormElement>,
-  ) {
+  async function guardar(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     try {
@@ -95,33 +80,24 @@ export default function CohortsManagementModal({
         estado,
       });
 
-      toast.success("Cohorte y evaluación creadas");
+      toast.success('Cohorte y evaluación creadas');
       limpiar();
       await cargar();
     } catch (error) {
-      toast.error("No se pudo crear la cohorte", {
-        description:
-          error instanceof Error
-            ? error.message
-            : "Ocurrió un error inesperado.",
+      toast.error('No se pudo crear la cohorte', {
+        description: error instanceof Error ? error.message : 'Ocurrió un error inesperado.',
       });
     } finally {
       setGuardando(false);
     }
   }
 
-  async function actualizarEstado(
-    item: CohorteEvaluacion,
-    nuevoEstado: EstadoEvaluacion,
-  ) {
+  async function actualizarEstado(item: CohorteEvaluacion, nuevoEstado: EstadoEvaluacion) {
     if (!item.id_evaluacion) return;
 
     try {
       setCambiandoId(item.id_evaluacion);
-      await cambiarEstadoEvaluacion(
-        item.id_evaluacion,
-        nuevoEstado,
-      );
+      await cambiarEstadoEvaluacion(item.id_evaluacion, nuevoEstado);
 
       setDatos((actuales) =>
         actuales.map((registro) =>
@@ -131,13 +107,10 @@ export default function CohortsManagementModal({
         ),
       );
 
-      toast.success("Estado actualizado");
+      toast.success('Estado actualizado');
     } catch (error) {
-      toast.error("No se pudo cambiar el estado", {
-        description:
-          error instanceof Error
-            ? error.message
-            : "Ocurrió un error inesperado.",
+      toast.error('No se pudo cambiar el estado', {
+        description: error instanceof Error ? error.message : 'Ocurrió un error inesperado.',
       });
     } finally {
       setCambiandoId(null);
@@ -149,27 +122,26 @@ export default function CohortsManagementModal({
   return (
     <div
       className="fixed inset-0 z-[70] flex items-center justify-center p-4"
-      style={{ background: "rgba(15,30,60,0.48)" }}
+      style={{ background: 'rgba(15,30,60,0.48)' }}
     >
       <div
         className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col"
         style={{
-          maxHeight: "92vh",
-          border: "1px solid rgba(27,58,107,0.12)",
+          maxHeight: '92vh',
+          border: '1px solid rgba(27,58,107,0.12)',
         }}
       >
         <div
           className="px-6 py-4 flex items-center justify-between"
           style={{
-            borderBottom:
-              "1px solid rgba(27,58,107,0.1)",
-            background: "#F8FAFD",
+            borderBottom: '1px solid rgba(27,58,107,0.1)',
+            background: '#F8FAFD',
           }}
         >
           <div className="flex items-center gap-3">
             <div
               className="w-9 h-9 rounded-xl flex items-center justify-center"
-              style={{ background: "#1B3A6B", color: "#fff" }}
+              style={{ background: '#1B3A6B', color: '#fff' }}
             >
               <CalendarDays size={17} />
             </div>
@@ -178,13 +150,13 @@ export default function CohortsManagementModal({
               <h2
                 className="text-base font-bold"
                 style={{
-                  color: "#0F1E3C",
+                  color: '#0F1E3C',
                   fontFamily: "'Libre Baskerville',serif",
                 }}
               >
                 Gestión de cohortes
               </h2>
-              <p className="text-xs mt-0.5" style={{ color: "#5A7295" }}>
+              <p className="text-xs mt-0.5" style={{ color: '#5A7295' }}>
                 {datos.length} registradas · {totalActivas} activas
               </p>
             </div>
@@ -198,16 +170,12 @@ export default function CohortsManagementModal({
             >
               <RefreshCw
                 size={15}
-                className={cargando ? "animate-spin" : ""}
-                style={{ color: "#1B3A6B" }}
+                className={cargando ? 'animate-spin' : ''}
+                style={{ color: '#1B3A6B' }}
               />
             </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-2 rounded-lg hover:bg-gray-100"
-            >
-              <X size={16} style={{ color: "#5A7295" }} />
+            <button type="button" onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100">
+              <X size={16} style={{ color: '#5A7295' }} />
             </button>
           </div>
         </div>
@@ -217,17 +185,19 @@ export default function CohortsManagementModal({
             onSubmit={guardar}
             className="p-5 space-y-4 overflow-auto"
             style={{
-              borderRight:
-                "1px solid rgba(27,58,107,0.08)",
-              background: "#FBFCFE",
+              borderRight: '1px solid rgba(27,58,107,0.08)',
+              background: '#FBFCFE',
             }}
           >
-            <h3 className="text-sm font-bold" style={{ color: "#0F1E3C" }}>
+            <h3 className="text-sm font-bold" style={{ color: '#0F1E3C' }}>
               Nueva cohorte
             </h3>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-widest mb-1.5" style={{ color: "#5A7295" }}>
+              <label
+                className="block text-xs font-bold uppercase tracking-widest mb-1.5"
+                style={{ color: '#5A7295' }}
+              >
                 Carrera
               </label>
               <select
@@ -246,7 +216,10 @@ export default function CohortsManagementModal({
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-widest mb-1.5" style={{ color: "#5A7295" }}>
+              <label
+                className="block text-xs font-bold uppercase tracking-widest mb-1.5"
+                style={{ color: '#5A7295' }}
+              >
                 Nombre
               </label>
               <input
@@ -260,7 +233,10 @@ export default function CohortsManagementModal({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-widest mb-1.5" style={{ color: "#5A7295" }}>
+                <label
+                  className="block text-xs font-bold uppercase tracking-widest mb-1.5"
+                  style={{ color: '#5A7295' }}
+                >
                   Inicio
                 </label>
                 <input
@@ -273,7 +249,10 @@ export default function CohortsManagementModal({
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-widest mb-1.5" style={{ color: "#5A7295" }}>
+                <label
+                  className="block text-xs font-bold uppercase tracking-widest mb-1.5"
+                  style={{ color: '#5A7295' }}
+                >
                   Fin
                 </label>
                 <input
@@ -287,14 +266,15 @@ export default function CohortsManagementModal({
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-widest mb-1.5" style={{ color: "#5A7295" }}>
+              <label
+                className="block text-xs font-bold uppercase tracking-widest mb-1.5"
+                style={{ color: '#5A7295' }}
+              >
                 Estado
               </label>
               <select
                 value={estado}
-                onChange={(e) =>
-                  setEstado(e.target.value as EstadoEvaluacion)
-                }
+                onChange={(e) => setEstado(e.target.value as EstadoEvaluacion)}
                 className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none"
               >
                 <option value="Activa">Activa</option>
@@ -308,16 +288,12 @@ export default function CohortsManagementModal({
               disabled={guardando}
               className="w-full py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2"
               style={{
-                background: guardando ? "#94A3B8" : "#1B3A6B",
-                color: "#fff",
+                background: guardando ? '#94A3B8' : '#1B3A6B',
+                color: '#fff',
               }}
             >
-              {guardando ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <Plus size={14} />
-              )}
-              {guardando ? "Guardando..." : "Crear cohorte"}
+              {guardando ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+              {guardando ? 'Guardando...' : 'Crear cohorte'}
             </button>
           </form>
 
@@ -325,16 +301,15 @@ export default function CohortsManagementModal({
             <div
               className="grid grid-cols-[1fr_1.4fr_0.9fr_0.9fr] gap-3 px-5 py-3"
               style={{
-                background: "#F8FAFD",
-                borderBottom:
-                  "1px solid rgba(27,58,107,0.08)",
+                background: '#F8FAFD',
+                borderBottom: '1px solid rgba(27,58,107,0.08)',
               }}
             >
-              {["Cohorte", "Carrera", "Periodo", "Estado"].map((titulo) => (
+              {['Cohorte', 'Carrera', 'Periodo', 'Estado'].map((titulo) => (
                 <span
                   key={titulo}
                   className="text-xs font-bold uppercase tracking-widest"
-                  style={{ color: "#5A7295" }}
+                  style={{ color: '#5A7295' }}
                 >
                   {titulo}
                 </span>
@@ -352,31 +327,25 @@ export default function CohortsManagementModal({
                     key={item.id_cohorte}
                     className="grid grid-cols-[1fr_1.4fr_0.9fr_0.9fr] gap-3 items-center px-5 py-3"
                     style={{
-                      borderBottom:
-                        "1px solid rgba(27,58,107,0.06)",
+                      borderBottom: '1px solid rgba(27,58,107,0.06)',
                     }}
                   >
-                    <span className="text-sm font-bold" style={{ color: "#0F1E3C" }}>
+                    <span className="text-sm font-bold" style={{ color: '#0F1E3C' }}>
                       {item.nombre_cohorte}
                     </span>
-                    <span className="text-xs" style={{ color: "#5A7295" }}>
+                    <span className="text-xs" style={{ color: '#5A7295' }}>
                       {item.carrera}
                     </span>
-                    <span className="text-xs" style={{ color: "#5A7295" }}>
-                      {item.fecha_inicio ?? "—"}<br />
-                      {item.fecha_fin ?? "—"}
+                    <span className="text-xs" style={{ color: '#5A7295' }}>
+                      {item.fecha_inicio ?? '—'}
+                      <br />
+                      {item.fecha_fin ?? '—'}
                     </span>
                     <select
-                      value={(item.estado ?? "Pendiente") as EstadoEvaluacion}
-                      disabled={
-                        !item.id_evaluacion ||
-                        cambiandoId === item.id_evaluacion
-                      }
+                      value={(item.estado ?? 'Pendiente') as EstadoEvaluacion}
+                      disabled={!item.id_evaluacion || cambiandoId === item.id_evaluacion}
                       onChange={(e) =>
-                        void actualizarEstado(
-                          item,
-                          e.target.value as EstadoEvaluacion,
-                        )
+                        void actualizarEstado(item, e.target.value as EstadoEvaluacion)
                       }
                       className="px-2 py-1.5 rounded-lg text-xs border"
                     >

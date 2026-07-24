@@ -32,28 +32,23 @@ export async function prepararPdf({
 }: PrepararPdfParams): Promise<PrepararPdfResponse> {
   const formulario = new FormData();
 
-  formulario.append("archivo", archivo);
-  formulario.append("id_catalogo", String(idCatalogo));
-  formulario.append("codigo_carrera", codigoCarrera);
-  formulario.append("cohorte", cohorte);
-  formulario.append("criterio", String(criterio));
-  formulario.append("indicador", String(indicador));
+  formulario.append('archivo', archivo);
+  formulario.append('id_catalogo', String(idCatalogo));
+  formulario.append('codigo_carrera', codigoCarrera);
+  formulario.append('cohorte', cohorte);
+  formulario.append('criterio', String(criterio));
+  formulario.append('indicador', String(indicador));
 
-  const respuesta = await fetch(
-    "http://localhost/sistemacaces/api/evidencias/preparar_pdf.php",
-    {
-      method: "POST",
-      credentials: "include",
-      body: formulario,
-    },
-  );
+  const respuesta = await fetch('http://localhost/sistemacaces/api/evidencias/preparar_pdf.php', {
+    method: 'POST',
+    credentials: 'include',
+    body: formulario,
+  });
 
   const datos = (await respuesta.json()) as PrepararPdfResponse;
 
   if (!respuesta.ok || !datos.ok) {
-    throw new Error(
-      datos.mensaje || "No se pudo procesar el archivo.",
-    );
+    throw new Error(datos.mensaje || 'No se pudo procesar el archivo.');
   }
 
   return datos;
@@ -74,15 +69,13 @@ interface CatalogoResponse {
   datos: CatalogoEvidencia[];
 }
 
-export async function obtenerCatalogoEvidencias(
-  idIndicador: number,
-): Promise<CatalogoEvidencia[]> {
+export async function obtenerCatalogoEvidencias(idIndicador: number): Promise<CatalogoEvidencia[]> {
   const respuesta = await fetch(
     `http://localhost/sistemacaces/api/catalogo/obtener_evidencias.php?id_indicador=${idIndicador}`,
     {
-      credentials: "include",
+      credentials: 'include',
       headers: {
-        Accept: "application/json",
+        Accept: 'application/json',
       },
     },
   );
@@ -90,10 +83,7 @@ export async function obtenerCatalogoEvidencias(
   const datos = (await respuesta.json()) as CatalogoResponse;
 
   if (!respuesta.ok || !datos.ok) {
-    throw new Error(
-      datos.mensaje ||
-        "No se pudo cargar el catálogo de evidencias.",
-    );
+    throw new Error(datos.mensaje || 'No se pudo cargar el catálogo de evidencias.');
   }
 
   return datos.datos;
@@ -130,21 +120,17 @@ export async function obtenerEvaluacion(
   const respuesta = await fetch(
     `http://localhost/sistemacaces/api/evaluaciones/obtener_evaluacion.php?${parametros.toString()}`,
     {
-      credentials: "include",
+      credentials: 'include',
       headers: {
-        Accept: "application/json",
+        Accept: 'application/json',
       },
     },
   );
 
-  const datos =
-    (await respuesta.json()) as ObtenerEvaluacionResponse;
+  const datos = (await respuesta.json()) as ObtenerEvaluacionResponse;
 
   if (!respuesta.ok || !datos.ok || !datos.datos) {
-    throw new Error(
-      datos.mensaje ||
-        "No se pudo obtener la evaluación.",
-    );
+    throw new Error(datos.mensaje || 'No se pudo obtener la evaluación.');
   }
 
   return datos.datos;
@@ -176,13 +162,13 @@ export async function guardarEvidencia({
   urlArchivo,
 }: GuardarEvidenciaParams): Promise<GuardarEvidenciaResponse> {
   const respuesta = await fetch(
-    "http://localhost/sistemacaces/api/evidencias/guardar_evidencia.php",
+    'http://localhost/sistemacaces/api/evidencias/guardar_evidencia.php',
     {
-      method: "POST",
-      credentials: "include",
+      method: 'POST',
+      credentials: 'include',
       headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
       },
       body: JSON.stringify({
         id_catalogo: idCatalogo,
@@ -196,14 +182,10 @@ export async function guardarEvidencia({
     },
   );
 
-  const datos =
-    (await respuesta.json()) as GuardarEvidenciaResponse;
+  const datos = (await respuesta.json()) as GuardarEvidenciaResponse;
 
   if (!respuesta.ok || !datos.ok) {
-    throw new Error(
-      datos.mensaje ||
-        "No se pudo guardar la evidencia.",
-    );
+    throw new Error(datos.mensaje || 'No se pudo guardar la evidencia.');
   }
 
   return datos;
@@ -242,21 +224,17 @@ export async function obtenerEvidenciasGuardadas(
   const respuesta = await fetch(
     `http://localhost/sistemacaces/api/evidencias/obtener_evidencias_guardadas.php?${parametros.toString()}`,
     {
-      credentials: "include",
+      credentials: 'include',
       headers: {
-        Accept: "application/json",
+        Accept: 'application/json',
       },
     },
   );
 
-  const datos =
-    (await respuesta.json()) as EvidenciasGuardadasResponse;
+  const datos = (await respuesta.json()) as EvidenciasGuardadasResponse;
 
   if (!respuesta.ok || !datos.ok) {
-    throw new Error(
-      datos.mensaje ||
-        "No se pudieron consultar las evidencias guardadas.",
-    );
+    throw new Error(datos.mensaje || 'No se pudieron consultar las evidencias guardadas.');
   }
 
   return datos.datos;
@@ -291,29 +269,23 @@ export async function obtenerEvidenciasCompartidas(
 ): Promise<EvidenciaCompartida[]> {
   const parametros = new URLSearchParams({
     id_evaluacion: String(idEvaluacion),
-    id_indicador_destino: String(
-      idIndicadorDestino,
-    ),
+    id_indicador_destino: String(idIndicadorDestino),
   });
 
   const respuesta = await fetch(
     `http://localhost/sistemacaces/api/evidencias/obtener_compartidas.php?${parametros.toString()}`,
     {
-      credentials: "include",
+      credentials: 'include',
       headers: {
-        Accept: "application/json",
+        Accept: 'application/json',
       },
     },
   );
 
-  const datos =
-    (await respuesta.json()) as EvidenciasCompartidasResponse;
+  const datos = (await respuesta.json()) as EvidenciasCompartidasResponse;
 
   if (!respuesta.ok || !datos.ok) {
-    throw new Error(
-      datos.mensaje ||
-        "No se pudieron consultar las evidencias compartidas.",
-    );
+    throw new Error(datos.mensaje || 'No se pudieron consultar las evidencias compartidas.');
   }
 
   return datos.datos;
@@ -344,7 +316,7 @@ interface SubirDriveParams {
   nombreArchivo: string;
   // "pdf" (default, retrocompatible con todos los slots existentes) o "csv"
   // para el slot de resultados de encuesta.
-  tipoEsperado?: "pdf" | "csv";
+  tipoEsperado?: 'pdf' | 'csv';
 }
 
 export async function subirPdfGoogleDrive({
@@ -354,35 +326,31 @@ export async function subirPdfGoogleDrive({
   cohorte,
   indicador,
   nombreArchivo,
-  tipoEsperado = "pdf",
+  tipoEsperado = 'pdf',
 }: SubirDriveParams): Promise<SubirDriveResponse> {
   const formulario = new FormData();
 
-  formulario.append("archivo", archivo);
-  formulario.append("codigo_carrera", codigoCarrera);
-  formulario.append("nombre_carrera", nombreCarrera);
-  formulario.append("cohorte", cohorte);
-  formulario.append("indicador", String(indicador));
-  formulario.append("nombre_archivo", nombreArchivo);
-  formulario.append("tipo_esperado", tipoEsperado);
+  formulario.append('archivo', archivo);
+  formulario.append('codigo_carrera', codigoCarrera);
+  formulario.append('nombre_carrera', nombreCarrera);
+  formulario.append('cohorte', cohorte);
+  formulario.append('indicador', String(indicador));
+  formulario.append('nombre_archivo', nombreArchivo);
+  formulario.append('tipo_esperado', tipoEsperado);
 
   const respuesta = await fetch(
-    "http://localhost/sistemacaces/api/google_drive/subir_archivo.php",
+    'http://localhost/sistemacaces/api/google_drive/subir_archivo.php',
     {
-      method: "POST",
-      credentials: "include",
+      method: 'POST',
+      credentials: 'include',
       body: formulario,
     },
   );
 
-  const datos =
-    (await respuesta.json()) as SubirDriveResponse;
+  const datos = (await respuesta.json()) as SubirDriveResponse;
 
   if (!respuesta.ok || !datos.ok || !datos.datos) {
-    throw new Error(
-      datos.mensaje ||
-        "No se pudo subir el PDF a Google Drive.",
-    );
+    throw new Error(datos.mensaje || 'No se pudo subir el PDF a Google Drive.');
   }
 
   return datos;
@@ -398,88 +366,66 @@ export interface LecturaMatriculadosResponse {
   };
 }
 
-export async function leerMatriculadosPdf(
-  archivo: File,
-): Promise<LecturaMatriculadosResponse> {
+export async function leerMatriculadosPdf(archivo: File): Promise<LecturaMatriculadosResponse> {
   const formulario = new FormData();
 
-  formulario.append("archivo", archivo);
+  formulario.append('archivo', archivo);
 
   const respuesta = await fetch(
-    "http://localhost/sistemacaces/api/evidencias/leer_matriculados.php",
+    'http://localhost/sistemacaces/api/evidencias/leer_matriculados.php',
     {
-      method: "POST",
-      credentials: "include",
+      method: 'POST',
+      credentials: 'include',
       body: formulario,
     },
   );
 
-  const datos =
-    (await respuesta.json()) as LecturaMatriculadosResponse;
+  const datos = (await respuesta.json()) as LecturaMatriculadosResponse;
 
-  if (
-    !respuesta.ok ||
-    !datos.ok ||
-    !datos.datos
-  ) {
-    throw new Error(
-      datos.mensaje ||
-        "No se pudo leer el PDF de matriculados.",
-    );
+  if (!respuesta.ok || !datos.ok || !datos.datos) {
+    throw new Error(datos.mensaje || 'No se pudo leer el PDF de matriculados.');
   }
 
   return datos;
 }
 
 export interface CohorteTitulacion {
+  cohorte: string;
 
-  cohorte:string;
+  matriculados: number;
 
-  matriculados:number;
+  graduados: number;
 
-  graduados:number;
-
-  tasa:number;
-
+  tasa: number;
 }
 
-export async function obtenerDatosTasa(
-  idEvaluacion:number
-):  Promise<CohorteTitulacion[]>{
-  const respuesta=await fetch(
+export async function obtenerDatosTasa(idEvaluacion: number): Promise<CohorteTitulacion[]> {
+  const respuesta = await fetch(
     `http://localhost/sistemacaces/api/tasa_titulacion/obtener.php?id_evaluacion=${idEvaluacion}`,
-  {
-    method: "GET",
-    credentials:"include",
-    headers: {
-        Accept: "application/json",
+    {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        Accept: 'application/json',
+      },
     },
-  }
-);
+  );
 
-const datos=await respuesta.json();
+  const datos = await respuesta.json();
 
- if (!respuesta.ok || !datos.ok) {
-    throw new Error(
-      datos.mensaje ||
-        "No se pudieron consultar los datos.",
-    );
+  if (!respuesta.ok || !datos.ok) {
+    throw new Error(datos.mensaje || 'No se pudieron consultar los datos.');
   }
 
   return datos.datos ?? [];
-
 }
 
-export type TipoDatoTitulacion =
-  | "matriculados"
-  | "graduados";
+export type TipoDatoTitulacion = 'matriculados' | 'graduados';
 
 export interface LecturaPdfTitulacion {
   tipo_dato: TipoDatoTitulacion;
   total: number;
-  metodo:
-    | "total_reportado"
-    | "identificaciones_unicas";
+  metodo: 'total_reportado' | 'identificaciones_unicas';
   cohorte_detectada: string | null;
   periodo_detectado: string | null;
   identificaciones_detectadas: number;
@@ -497,30 +443,19 @@ export async function leerPdfTitulacion(
 ): Promise<LecturaPdfTitulacion> {
   const formulario = new FormData();
 
-  formulario.append("archivo", archivo);
-  formulario.append("tipo_dato", tipoDato);
+  formulario.append('archivo', archivo);
+  formulario.append('tipo_dato', tipoDato);
 
-  const respuesta = await fetch(
-    "http://localhost/sistemacaces/api/tasa_titulacion/leer_pdf.php",
-    {
-      method: "POST",
-      credentials: "include",
-      body: formulario,
-    },
-  );
+  const respuesta = await fetch('http://localhost/sistemacaces/api/tasa_titulacion/leer_pdf.php', {
+    method: 'POST',
+    credentials: 'include',
+    body: formulario,
+  });
 
-  const datos =
-    (await respuesta.json()) as LeerPdfTitulacionResponse;
+  const datos = (await respuesta.json()) as LeerPdfTitulacionResponse;
 
-  if (
-    !respuesta.ok ||
-    !datos.ok ||
-    !datos.datos
-  ) {
-    throw new Error(
-      datos.mensaje ||
-        "No se pudo leer el PDF.",
-    );
+  if (!respuesta.ok || !datos.ok || !datos.datos) {
+    throw new Error(datos.mensaje || 'No se pudo leer el PDF.');
   }
 
   return datos.datos;
@@ -566,48 +501,32 @@ export async function guardarDatoTitulacion({
     cuerpo.graduados = graduados;
   }
 
-  const respuesta = await fetch(
-    "http://localhost/sistemacaces/api/tasa_titulacion/guardar.php",
-    {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify(cuerpo),
+  const respuesta = await fetch('http://localhost/sistemacaces/api/tasa_titulacion/guardar.php', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
     },
-  );
+    body: JSON.stringify(cuerpo),
+  });
 
-  const datos =
-    (await respuesta.json()) as GuardarDatoTitulacionResponse;
+  const datos = (await respuesta.json()) as GuardarDatoTitulacionResponse;
 
-  if (
-    !respuesta.ok ||
-    !datos.ok ||
-    !datos.datos
-  ) {
-    throw new Error(
-      datos.mensaje ||
-        "No se pudo guardar el cálculo.",
-    );
+  if (!respuesta.ok || !datos.ok || !datos.datos) {
+    throw new Error(datos.mensaje || 'No se pudo guardar el cálculo.');
   }
 
   return datos.datos;
 }
 
 //Tasa de Deserción
-export type TipoDatoDesercion =
-  | "primer_nivel"
-  | "segundo_anio"
-  | "no_continuaron";
+export type TipoDatoDesercion = 'primer_nivel' | 'segundo_anio' | 'no_continuaron';
 
 export interface LecturaPdfDesercion {
   tipo_dato: TipoDatoDesercion;
   total: number;
-  metodo:
-    | "total_reportado"
-    | "identificaciones_unicas";
+  metodo: 'total_reportado' | 'identificaciones_unicas';
   cohorte_detectada: string | null;
   periodo_detectado: string | null;
   identificaciones_detectadas: number;
@@ -625,30 +544,19 @@ export async function leerPdfDesercion(
 ): Promise<LecturaPdfDesercion> {
   const formulario = new FormData();
 
-  formulario.append("archivo", archivo);
-  formulario.append("tipo_dato", tipoDato);
+  formulario.append('archivo', archivo);
+  formulario.append('tipo_dato', tipoDato);
 
-  const respuesta = await fetch(
-    "http://localhost/sistemacaces/api/tasa_desercion/leer_pdf.php",
-    {
-      method: "POST",
-      credentials: "include",
-      body: formulario,
-    },
-  );
+  const respuesta = await fetch('http://localhost/sistemacaces/api/tasa_desercion/leer_pdf.php', {
+    method: 'POST',
+    credentials: 'include',
+    body: formulario,
+  });
 
-  const datos =
-    (await respuesta.json()) as LeerPdfDesercionResponse;
+  const datos = (await respuesta.json()) as LeerPdfDesercionResponse;
 
-  if (
-    !respuesta.ok ||
-    !datos.ok ||
-    !datos.datos
-  ) {
-    throw new Error(
-      datos.mensaje ||
-        "No se pudo leer el PDF de deserción.",
-    );
+  if (!respuesta.ok || !datos.ok || !datos.datos) {
+    throw new Error(datos.mensaje || 'No se pudo leer el PDF de deserción.');
   }
 
   return datos.datos;
@@ -691,44 +599,31 @@ export async function guardarDatoDesercion({
   };
 
   if (iniciaronPrimerNivel !== undefined) {
-    cuerpo.iniciaron_primer_nivel =
-      iniciaronPrimerNivel;
+    cuerpo.iniciaron_primer_nivel = iniciaronPrimerNivel;
   }
 
   if (matriculadosSegundoAnio !== undefined) {
-    cuerpo.matriculados_segundo_anio =
-      matriculadosSegundoAnio;
+    cuerpo.matriculados_segundo_anio = matriculadosSegundoAnio;
   }
 
   if (noContinuaron !== undefined) {
     cuerpo.no_continuaron = noContinuaron;
   }
 
-  const respuesta = await fetch(
-    "http://localhost/sistemacaces/api/tasa_desercion/guardar.php",
-    {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify(cuerpo),
+  const respuesta = await fetch('http://localhost/sistemacaces/api/tasa_desercion/guardar.php', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
     },
-  );
+    body: JSON.stringify(cuerpo),
+  });
 
-  const datos =
-    (await respuesta.json()) as GuardarDatoDesercionResponse;
+  const datos = (await respuesta.json()) as GuardarDatoDesercionResponse;
 
-  if (
-    !respuesta.ok ||
-    !datos.ok ||
-    !datos.datos
-  ) {
-    throw new Error(
-      datos.mensaje ||
-        "No se pudo guardar el cálculo de deserción.",
-    );
+  if (!respuesta.ok || !datos.ok || !datos.datos) {
+    throw new Error(datos.mensaje || 'No se pudo guardar el cálculo de deserción.');
   }
 
   return datos.datos;
@@ -748,28 +643,22 @@ interface ObtenerDatosDesercionResponse {
   datos?: CohorteDesercion[];
 }
 
-export async function obtenerDatosDesercion(
-  idEvaluacion: number,
-): Promise<CohorteDesercion[]> {
+export async function obtenerDatosDesercion(idEvaluacion: number): Promise<CohorteDesercion[]> {
   const respuesta = await fetch(
     `http://localhost/sistemacaces/api/tasa_desercion/obtener.php?id_evaluacion=${idEvaluacion}`,
     {
-      method: "GET",
-      credentials: "include",
+      method: 'GET',
+      credentials: 'include',
       headers: {
-        Accept: "application/json",
+        Accept: 'application/json',
       },
     },
   );
 
-  const datos =
-    (await respuesta.json()) as ObtenerDatosDesercionResponse;
+  const datos = (await respuesta.json()) as ObtenerDatosDesercionResponse;
 
   if (!respuesta.ok || !datos.ok) {
-    throw new Error(
-      datos.mensaje ||
-        "No se pudieron consultar los datos de deserción.",
-    );
+    throw new Error(datos.mensaje || 'No se pudieron consultar los datos de deserción.');
   }
 
   return datos.datos ?? [];
@@ -802,11 +691,11 @@ export async function obtenerMallaCurricular(
   const respuesta = await fetch(
     `http://localhost/sistemacaces/api/carreras/obtener_malla.php?${parametros.toString()}`,
     {
-      method: "GET",
-      credentials: "include",
-      cache: "no-store",
+      method: 'GET',
+      credentials: 'include',
+      cache: 'no-store',
       headers: {
-        Accept: "application/json",
+        Accept: 'application/json',
       },
     },
   );
@@ -814,20 +703,15 @@ export async function obtenerMallaCurricular(
   let datos: ObtenerMallaCurricularResponse;
 
   try {
-    datos =
-      (await respuesta.json()) as ObtenerMallaCurricularResponse;
+    datos = (await respuesta.json()) as ObtenerMallaCurricularResponse;
   } catch {
     throw new Error(
-      "El servidor no devolvió una respuesta válida al consultar la malla curricular.",
+      'El servidor no devolvió una respuesta válida al consultar la malla curricular.',
     );
   }
 
   if (!respuesta.ok || !datos.ok) {
-    throw new Error(
-      datos.mensaje ??
-        datos.detalle ??
-        "No se pudo consultar la malla curricular.",
-    );
+    throw new Error(datos.mensaje ?? datos.detalle ?? 'No se pudo consultar la malla curricular.');
   }
 
   return datos.datos ?? null;

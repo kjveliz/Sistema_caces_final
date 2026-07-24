@@ -1,13 +1,13 @@
-const BASE = "http://localhost/sistemacaces/api/tutorias_academicas";
+const BASE = 'http://localhost/sistemacaces/api/tutorias_academicas';
 
 async function getJson<T>(url: string): Promise<T> {
   const respuesta = await fetch(url, {
-    credentials: "include",
-    headers: { Accept: "application/json" },
+    credentials: 'include',
+    headers: { Accept: 'application/json' },
   });
   const datos = await respuesta.json();
   if (!respuesta.ok || !datos.ok) {
-    throw new Error(datos.mensaje || "No se pudo completar la solicitud.");
+    throw new Error(datos.mensaje || 'No se pudo completar la solicitud.');
   }
   return datos.datos as T;
 }
@@ -21,12 +21,9 @@ async function getJson<T>(url: string): Promise<T> {
 // vía encuesta como I2. Esta capa de servicio NO cambia esa lógica: solo
 // llama a los endpoints reales ya implementados en el backend.
 export type TipoEvidenciaTutorias =
-  | "plan_tutorias"
-  | "registro_tutorias"
-  | "informe_tutorias"
-  | "evidencia_atencion";
+  'plan_tutorias' | 'registro_tutorias' | 'informe_tutorias' | 'evidencia_atencion';
 
-export type EfTutorias = "EF1" | "EF2" | "EF3" | "EF4";
+export type EfTutorias = 'EF1' | 'EF2' | 'EF3' | 'EF4';
 
 export interface PuntoValidacionTutorias {
   nombre: string;
@@ -71,19 +68,19 @@ export async function subirEvidenciaTutorias(params: {
   total_puntos: number;
 }> {
   const formulario = new FormData();
-  formulario.append("id_asignatura", String(params.idAsignatura));
-  formulario.append("tipo", params.tipo);
-  formulario.append("archivo", params.archivo);
+  formulario.append('id_asignatura', String(params.idAsignatura));
+  formulario.append('tipo', params.tipo);
+  formulario.append('archivo', params.archivo);
 
   const respuesta = await fetch(`${BASE}/evidencia_subir.php`, {
-    method: "POST",
-    credentials: "include",
+    method: 'POST',
+    credentials: 'include',
     body: formulario,
   });
 
   const datos = await respuesta.json();
   if (!respuesta.ok || !datos.ok) {
-    throw new Error(datos.mensaje || "No se pudo subir la evidencia.");
+    throw new Error(datos.mensaje || 'No se pudo subir la evidencia.');
   }
   return datos.datos;
 }
@@ -96,7 +93,7 @@ export interface EfResultadoTutorias {
   label: string;
   peso: number;
   pct: number | null;
-  estado: "ok" | "sin_datos";
+  estado: 'ok' | 'sin_datos';
   cumplidos: number;
   total_puntos: number;
   detalle_puntos: PuntoValidacionTutorias[];
@@ -106,7 +103,7 @@ export interface ResultadoAsignaturaTutorias {
   id_asignatura: number;
   nombre_asignatura: string;
   valoracion_general: number | null;
-  estado_general: "completo" | "parcial";
+  estado_general: 'completo' | 'parcial';
   escala: string | null;
   color_escala: string | null;
   efs: Record<EfTutorias, EfResultadoTutorias>;
@@ -114,7 +111,7 @@ export interface ResultadoAsignaturaTutorias {
 
 export interface ResultadoCohorteTutorias {
   valoracion_general: number | null;
-  estado_general: "completo" | "parcial" | "sin_datos";
+  estado_general: 'completo' | 'parcial' | 'sin_datos';
   escala: string | null;
   color_escala: string | null;
   detalle_asignaturas: ResultadoAsignaturaTutorias[];
@@ -124,7 +121,9 @@ export function obtenerResultadoAsignaturaTutorias(
   idAsignatura: number,
   idEvaluacion: number,
 ): Promise<ResultadoAsignaturaTutorias> {
-  return getJson(`${BASE}/resultado_asignatura.php?id_asignatura=${idAsignatura}&id_evaluacion=${idEvaluacion}`);
+  return getJson(
+    `${BASE}/resultado_asignatura.php?id_asignatura=${idAsignatura}&id_evaluacion=${idEvaluacion}`,
+  );
 }
 
 export function obtenerResultadoCohorteTutorias(
@@ -136,6 +135,6 @@ export function obtenerResultadoCohorteTutorias(
     id_cohorte: String(idCohorte),
     id_evaluacion: String(idEvaluacion),
   });
-  if (idPeriodo) params.set("id_periodo", String(idPeriodo));
+  if (idPeriodo) params.set('id_periodo', String(idPeriodo));
   return getJson(`${BASE}/resultado_cohorte.php?${params.toString()}`);
 }
