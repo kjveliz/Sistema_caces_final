@@ -62,10 +62,14 @@ test('subir evidencia de I2 (Normativa Institucional)', async ({ page }) => {
   await page.getByRole('button', { name: 'Continuar a carga de archivos →' }).click();
 
   // Paso "Cargar archivos": el input real está oculto (PdfZone.tsx sube por
-  // click en un botón "Subir" que dispara el input); Playwright puede setear
-  // el archivo directamente sobre el input aunque esté oculto.
+  // click en un botón "Subir"/"Cambiar" que dispara el input); Playwright
+  // puede setear el archivo directamente sobre el input aunque esté oculto.
+  // El label real del slot (catalogo_evidencias, DOC.SEG.01) es "Reglamento
+  // / Normativa institucional", no "Normativa Institucional" -- confirmado
+  // contra la BD real, PdfZone.tsx sigue renderizando el <input> aunque el
+  // slot ya tenga archivo cargado (solo cambia el botón a "Cambiar").
   const zonaNormativa = page.locator(
-    'xpath=//p[normalize-space(text())="Normativa Institucional"]/ancestor::div[.//input[@type="file"]][1]',
+    'xpath=//p[normalize-space(text())="Reglamento / Normativa institucional"]/ancestor::div[.//input[@type="file"]][1]',
   );
   await expect(zonaNormativa).toBeVisible({ timeout: 15_000 });
   await zonaNormativa.locator('input[type="file"]').setInputFiles(PDF_FIXTURE);
