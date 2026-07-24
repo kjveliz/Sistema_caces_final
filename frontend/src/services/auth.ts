@@ -20,7 +20,7 @@ export interface LoginResponse {
 export async function iniciarSesion(
   correo: string,
   contrasena: string,
-): Promise<LoginResponse> {
+): Promise<LoginResponse & { usuario: UsuarioSesion }> {
   const respuesta = await fetch(
     "http://localhost/sistemacaces/api/auth/login.php",
     {
@@ -52,5 +52,5 @@ export async function iniciarSesion(
     );
   }
 
-  return datos;
+  return datos as LoginResponse & { usuario: UsuarioSesion };
 }

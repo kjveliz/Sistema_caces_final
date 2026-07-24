@@ -1108,7 +1108,7 @@ useEffect(() => {
     }
 
     const tipo = I2_SLOT_TIPO[slot.sourceNum];
-    let activoSubida = true;
+    const activoSubida = true;
 
     setSubiendoEvidencia(true);
     setMensajeSubida(esCsv
@@ -1171,7 +1171,7 @@ useEffect(() => {
     }
 
     const tipo = I3_SLOT_TIPO[slot.sourceNum];
-    let activoSubida = true;
+    const activoSubida = true;
 
     setSubiendoEvidencia(true);
     setMensajeSubida("Validando y subiendo el archivo PDF...");

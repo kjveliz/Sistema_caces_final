@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    /* Target de build: coincide con lo que ya produce Vite/esbuild */
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+
+    /* Resolución de módulos consistente con Vite */
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "allowImportingTsExtensions": false,
+    "noEmit": true,
+
+    /* Alias @ -> src, igual que en vite.config.ts (TS7 removió baseUrl) */
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+
+    /* Verificación estricta de tipos (Fase 1 del plan de mejora) */
+    "strict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
+  },
+  "include": ["src"]
+}

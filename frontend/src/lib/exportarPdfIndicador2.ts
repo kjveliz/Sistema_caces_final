@@ -691,7 +691,7 @@ export async function construirDocumentoIndicador2(datos: DatosPdfIndicador2): P
   y = drawSectionSub(doc, MARGIN_X, y, CONTENT_W, `Preguntas que alimentan EF1 y EF4 - respuestas consideradas para esta asignatura: ${encuestaDetalle.respuestas_totales_materia}.`);
   y = drawDetalleEncuesta(doc, y, encuestaDetalle, checkPageBreak);
 
-  y = drawValidityNote(doc, y);
+  drawValidityNote(doc, y);
 
   // ── Página(s) de anexo: las 23 preguntas ──
   doc.addPage();
@@ -712,7 +712,7 @@ export async function construirDocumentoIndicador2(datos: DatosPdfIndicador2): P
 // ══════════════════════════════════════════════════════════════════════════
 // API pública usada por la app (IndicatorView.tsx).
 // ══════════════════════════════════════════════════════════════════════════
-export interface ExportarPdfIndicador2Params extends DatosPdfIndicador2 {}
+export type ExportarPdfIndicador2Params = DatosPdfIndicador2;
 
 export async function exportarPdfIndicador2(params: ExportarPdfIndicador2Params): Promise<void> {
   const doc = await construirDocumentoIndicador2(params);
