@@ -36,6 +36,11 @@ test('subir evidencia de I2 (Normativa Institucional)', async ({ page }) => {
 
   await cardI2.getByRole('button').first().click();
 
+  // IndicatorView abre I2 por defecto en la pestaña "Resultados"; el botón
+  // "Cargar evidencias" vive dentro de la pestaña "Evidencias" (ver
+  // IndicatorView.tsx, tab === 'evidences').
+  await page.getByRole('button', { name: 'Evidencias', exact: true }).click();
+
   const botonCargar = page.getByRole('button', { name: 'Cargar evidencias' });
   await expect(botonCargar).toBeVisible({ timeout: 15_000 });
   await botonCargar.click();
