@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\SeguimientoSyllabus;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/../../../api/seguimiento_syllabus/_calculo.php';
@@ -17,9 +18,7 @@ require_once __DIR__ . '/../../../api/seguimiento_syllabus/_calculo.php';
  */
 final class CalculoTest extends TestCase
 {
-    /**
-     * @dataProvider proveedorEscalas
-     */
+    #[DataProvider('proveedorEscalas')]
     public function testCalcularEscala(?float $valoracion, ?string $escalaEsperada, ?string $colorEsperado): void
     {
         [$escala, $color] = calcularEscala($valoracion);

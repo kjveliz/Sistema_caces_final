@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\TasaDesercion;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -29,9 +30,7 @@ final class CalculoTest extends TestCase
         $this->assertSame('PAO 1 2026', $resultado['periodo_detectado']);
     }
 
-    /**
-     * @dataProvider proveedorFrasesDeTotal
-     */
+    #[DataProvider('proveedorFrasesDeTotal')]
     public function testReconoceCadaVarianteDeFraseDeTotal(string $frase, int $totalEsperado): void
     {
         $resultado = extraerDatosDesercion("Encabezado\n{$frase}\nPie de página");
@@ -77,9 +76,7 @@ final class CalculoTest extends TestCase
         extraerDatosDesercion("Documento sin datos reconocibles ni cedulas.");
     }
 
-    /**
-     * @dataProvider proveedorFormatosCohorte
-     */
+    #[DataProvider('proveedorFormatosCohorte')]
     public function testDetectaCohorteEnDistintosFormatos(string $texto, string $esperado): void
     {
         $resultado = extraerDatosDesercion("Total alumnos: 5\n" . $texto);

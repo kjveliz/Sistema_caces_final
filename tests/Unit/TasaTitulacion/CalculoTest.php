@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\TasaTitulacion;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -17,9 +18,7 @@ require_once __DIR__ . '/../../../api/tasa_titulacion/_calculo.php';
  */
 final class CalculoTest extends TestCase
 {
-    /**
-     * @dataProvider proveedorFrasesMatriculados
-     */
+    #[DataProvider('proveedorFrasesMatriculados')]
     public function testReconoceFrasesDeTotalParaMatriculados(string $frase, int $totalEsperado): void
     {
         $resultado = extraerDatosTitulacion("Encabezado\n{$frase}\nPie", 'matriculados');
@@ -38,9 +37,7 @@ final class CalculoTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider proveedorFrasesGraduados
-     */
+    #[DataProvider('proveedorFrasesGraduados')]
     public function testReconoceFrasesDeTotalParaGraduados(string $frase, int $totalEsperado): void
     {
         $resultado = extraerDatosTitulacion("Encabezado\n{$frase}\nPie", 'graduados');
