@@ -54,6 +54,9 @@ abstract class IntegrationTestCase extends TestCase
             'DB_USER' => getenv('DB_USER') ?: 'root',
             'DB_PASS' => getenv('DB_PASS') ?: '',
             'DB_PORT' => getenv('DB_PORT') ?: '3306',
+            // Sin prefijo de subcarpeta acá (a diferencia de XAMPP en
+            // producción) -- ver router-testing.php y public/index.php.
+            'APP_BASE_PATH' => '',
         ]);
 
         self::prepararBaseDeDatos();
@@ -70,11 +73,13 @@ abstract class IntegrationTestCase extends TestCase
         // instante y el servidor nunca llega a levantarse (visto en vivo:
         // timeout de esperarServidor() en los 3 casos, siempre a los 5s).
         $prefijo = PHP_OS_FAMILY === 'Windows' ? '' : 'exec ';
+        $router = escapeshellarg(__DIR__ . '/router-testing.php');
         $comando = sprintf(
-            '%sphp -d variables_order=EGPCS -S 127.0.0.1:%d -t %s',
+            '%sphp -d variables_order=EGPCS -S 127.0.0.1:%d -t %s %s',
             $prefijo,
             $port,
-            escapeshellarg(self::$repoRoot)
+            escapeshellarg(self::$repoRoot),
+            $router
         );
 
         self::$serverProcess = proc_open($comando, $descriptores, $pipes, self::$repoRoot, self::$serverEnv);

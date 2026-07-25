@@ -9,9 +9,13 @@ use Tests\Integration\IntegrationTestCase;
 require_once __DIR__ . '/../IntegrationTestCase.php';
 
 /**
- * Tests de integración de api/seguimiento_syllabus/resultado_asignatura.php
+ * Tests de integración de GET /seguimiento-syllabus/resultado-asignatura
  * (resultado del indicador I2 para una asignatura), contra la BD de prueba
  * sembrada por los seeders de la Fase 2.
+ *
+ * Migrado a Slim en la Fase 3 (ver SeguimientoSyllabusController) -- antes
+ * le pegaba directo a api/seguimiento_syllabus/resultado_asignatura.php,
+ * ahora archivo eliminado. Misma lógica, mismos asserts.
  *
  * Datos de referencia sembrados por AsignaturaSeeder/EvaluacionesSeeder:
  *   - id_asignatura 1..5, todas del PAO 1 (id_periodoacademico=1, cohorte
@@ -28,7 +32,7 @@ final class ResultadoAsignaturaTest extends IntegrationTestCase
 
     public function testSinParametrosDevuelve400(): void
     {
-        $respuesta = $this->peticion('GET', '/api/seguimiento_syllabus/resultado_asignatura.php');
+        $respuesta = $this->peticion('GET', '/seguimiento-syllabus/resultado-asignatura');
 
         $this->assertSame(400, $respuesta['status']);
         $this->assertFalse($respuesta['json']['ok']);
@@ -38,7 +42,7 @@ final class ResultadoAsignaturaTest extends IntegrationTestCase
     {
         $respuesta = $this->peticion(
             'GET',
-            '/api/seguimiento_syllabus/resultado_asignatura.php?id_asignatura=99999&id_evaluacion=' . self::ID_EVALUACION
+            '/seguimiento-syllabus/resultado-asignatura?id_asignatura=99999&id_evaluacion=' . self::ID_EVALUACION
         );
 
         $this->assertSame(404, $respuesta['status']);
@@ -51,7 +55,7 @@ final class ResultadoAsignaturaTest extends IntegrationTestCase
         // evidencia_asignatura sembrada a propósito.
         $respuesta = $this->peticion(
             'GET',
-            '/api/seguimiento_syllabus/resultado_asignatura.php?id_asignatura=2&id_evaluacion=' . self::ID_EVALUACION
+            '/seguimiento-syllabus/resultado-asignatura?id_asignatura=2&id_evaluacion=' . self::ID_EVALUACION
         );
 
         $this->assertSame(200, $respuesta['status']);
@@ -79,7 +83,7 @@ final class ResultadoAsignaturaTest extends IntegrationTestCase
 
         $respuesta = $this->peticion(
             'GET',
-            "/api/seguimiento_syllabus/resultado_asignatura.php?id_asignatura={$idAsignatura}&id_evaluacion=" . self::ID_EVALUACION
+            "/seguimiento-syllabus/resultado-asignatura?id_asignatura={$idAsignatura}&id_evaluacion=" . self::ID_EVALUACION
         );
 
         $this->assertSame(200, $respuesta['status']);
@@ -101,7 +105,7 @@ final class ResultadoAsignaturaTest extends IntegrationTestCase
 
         $respuesta = $this->peticion(
             'GET',
-            "/api/seguimiento_syllabus/resultado_asignatura.php?id_asignatura={$idAsignatura}&id_evaluacion=" . self::ID_EVALUACION
+            "/seguimiento-syllabus/resultado-asignatura?id_asignatura={$idAsignatura}&id_evaluacion=" . self::ID_EVALUACION
         );
         $this->assertSame(200, $respuesta['status']);
 

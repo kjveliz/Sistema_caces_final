@@ -6,13 +6,15 @@ namespace Tests\Unit\SeguimientoSyllabus;
 
 use PHPUnit\Framework\TestCase;
 
-require_once __DIR__ . '/../../../api/seguimiento_syllabus/_encuesta.php';
+use App\Services\EncuestaCalculoService;
 
 /**
- * Tests de las funciones puras (sin mysqli/Drive) de
- * api/seguimiento_syllabus/_encuesta.php: parseCsvString, buscarColumnasPregunta,
- * textoPregunta y calcularEfDesdeFilas (extraída de calcularEfDesdeCsv en la
- * Fase 5 específicamente para poder testear esto sin infraestructura externa).
+ * Tests de las funciones puras (estáticas, sin mysqli/Drive) de
+ * EncuestaCalculoService: parseCsvString, buscarColumnasPregunta,
+ * textoPregunta y calcularEfDesdeFilas. Migrado en la Fase 3 desde
+ * api/seguimiento_syllabus/_encuesta.php (funciones sueltas, extraídas de
+ * calcularEfDesdeCsv en la Fase 5 específicamente para poder testear esto
+ * sin infraestructura externa) -- misma lógica, mismos asserts.
  *
  * Esta clase existe sobre todo para blindar contra la reaparición del bug
  * real que ya ocurrió acá (ver MEMORIA, 20 jul 2026): el código asumía 3
@@ -30,7 +32,7 @@ final class EncuestaCalculoTest extends TestCase
     {
         $contenido = "Marca temporal,[P1. Pregunta uno]\n2026-07-20 10:00:00,Siempre\n";
 
-        $filas = parseCsvString($contenido);
+        $filas = EncuestaCalculoService::parseCsvString($contenido);
 
         $this->assertSame(
             [
@@ -46,7 +48,7 @@ final class EncuestaCalculoTest extends TestCase
         // Un valor con coma adentro, entre comillas, no debe partirse en dos columnas.
         $contenido = "Marca temporal,[P1. Pregunta uno]\n2026-07-20,\"Algunas veces, casi siempre\"\n";
 
-        $filas = parseCsvString($contenido);
+        $filas = EncuestaCalculoService::parseCsvString($contenido);
 
         $this->assertCount(2, $filas[1]);
         $this->assertSame('Algunas veces, casi siempre', $filas[1][1]);
@@ -54,7 +56,7 @@ final class EncuestaCalculoTest extends TestCase
 
     public function testParseCsvStringVacioDevuelveArrayVacio(): void
     {
-        $this->assertSame([], parseCsvString(''));
+        $this->assertSame([], EncuestaCalculoService::parseCsvString(''));
     }
 
     // ── buscarColumnasPregunta ───────────────────────────────────────────
@@ -65,21 +67,21 @@ final class EncuestaCalculoTest extends TestCase
         // ser un prefijo -- el patrón exige que después de "P1" venga "." o "]".
         $preguntas = ['[P1. Primera pregunta]', '[P10. Décima pregunta]', '[P11. Onceava]'];
 
-        $this->assertSame(['[P1. Primera pregunta]'], buscarColumnasPregunta($preguntas, 1));
-        $this->assertSame(['[P10. Décima pregunta]'], buscarColumnasPregunta($preguntas, 10));
+        $this->assertSame(['[P1. Primera pregunta]'], EncuestaCalculoService::buscarColumnasPregunta($preguntas, 1));
+        $this->assertSame(['[P10. Décima pregunta]'], EncuestaCalculoService::buscarColumnasPregunta($preguntas, 10));
     }
 
     public function testBuscarColumnasPreguntaSoportaFormatoSinTexto(): void
     {
         $preguntas = ['[P5]', '[P6. Con texto]'];
 
-        $this->assertSame(['[P5]'], buscarColumnasPregunta($preguntas, 5));
-        $this->assertSame(['[P6. Con texto]'], buscarColumnasPregunta($preguntas, 6));
+        $this->assertSame(['[P5]'], EncuestaCalculoService::buscarColumnasPregunta($preguntas, 5));
+        $this->assertSame(['[P6. Con texto]'], EncuestaCalculoService::buscarColumnasPregunta($preguntas, 6));
     }
 
     public function testBuscarColumnasPreguntaSinCoincidenciaDevuelveVacio(): void
     {
-        $this->assertSame([], buscarColumnasPregunta(['[P1. Primera]'], 99));
+        $this->assertSame([], EncuestaCalculoService::buscarColumnasPregunta(['[P1. Primera]'], 99));
     }
 
     // ── textoPregunta ────────────────────────────────────────────────────
@@ -88,13 +90,13 @@ final class EncuestaCalculoTest extends TestCase
     {
         $this->assertSame(
             'Se cumplió el syllabus en los tiempos previstos',
-            textoPregunta('[P5. Se cumplió el syllabus en los tiempos previstos]', 5),
+            EncuestaCalculoService::textoPregunta('[P5. Se cumplió el syllabus en los tiempos previstos]', 5),
         );
     }
 
     public function testTextoPreguntaSinTextoDevuelveElHeaderCompleto(): void
     {
-        $this->assertSame('[P5]', textoPregunta('[P5]', 5));
+        $this->assertSame('[P5]', EncuestaCalculoService::textoPregunta('[P5]', 5));
     }
 
     // ── calcularEfDesdeFilas: el cálculo real de EF1/EF4 ────────────────
@@ -129,7 +131,7 @@ final class EncuestaCalculoTest extends TestCase
 
         $filas = [$headers, $fila1, $fila2];
 
-        $resultado = calcularEfDesdeFilas($filas, false);
+        $resultado = EncuestaCalculoService::calcularEfDesdeFilas($filas, false);
 
         // EF1 = promedio(P5, P8, P13) = promedio(90.0, 80.0, 70.0) / 100 = 0.8
         $this->assertSame(0.8, $resultado['ef1']);
@@ -147,14 +149,14 @@ final class EncuestaCalculoTest extends TestCase
             ['2026-07-20', 'Siempre', 'Siempre', 'Siempre', 'Siempre'],
         ];
 
-        $resultado = calcularEfDesdeFilas($filas, true);
+        $resultado = EncuestaCalculoService::calcularEfDesdeFilas($filas, true);
 
         $this->assertTrue($resultado['degradado']);
     }
 
     public function testCalcularEfDesdeFilasVacioDevuelveNull(): void
     {
-        $this->assertNull(calcularEfDesdeFilas([], false));
+        $this->assertNull(EncuestaCalculoService::calcularEfDesdeFilas([], false));
     }
 
     public function testCalcularEfDesdeFilasSinFilasDeDatosDevuelveCeros(): void
@@ -162,7 +164,7 @@ final class EncuestaCalculoTest extends TestCase
         // Solo el header, ninguna respuesta -- no debe romper, EF1/EF4 en 0.
         $filas = [['Marca temporal', '[P5]', '[P6]', '[P8]', '[P13]']];
 
-        $resultado = calcularEfDesdeFilas($filas, false);
+        $resultado = EncuestaCalculoService::calcularEfDesdeFilas($filas, false);
 
         $this->assertSame(0.0, $resultado['ef1']);
         $this->assertSame(0.0, $resultado['ef4']);
@@ -179,7 +181,7 @@ final class EncuestaCalculoTest extends TestCase
             ['2026-07-20', 'texto-invalido', 'Siempre', 'Siempre', 'Siempre'],
         ];
 
-        $resultado = calcularEfDesdeFilas($filas, false);
+        $resultado = EncuestaCalculoService::calcularEfDesdeFilas($filas, false);
 
         // P5 solo tuvo 1 respuesta válida (Siempre=5) -> 100.0; P6/P8/P13 tuvieron 2 -> 100.0.
         // EF1 = promedio(100, 100, 100)/100 = 1.0

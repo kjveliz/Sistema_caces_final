@@ -2,14 +2,18 @@
 
 declare(strict_types=1);
 
+use App\Controllers\SeguimientoSyllabusController;
 use App\Controllers\TitulacionController;
 use App\Controllers\TutoriasAcademicasController;
 use App\Infra\Database;
 use App\Middleware\CorsMiddleware;
 use App\Middleware\SessionAuthMiddleware;
+use App\Repositories\SeguimientoSyllabusRepository;
 use App\Repositories\TitulacionRepository;
 use App\Repositories\TutoriasRepository;
+use App\Services\EncuestaEvidenciaService;
 use App\Services\GoogleDriveService;
+use App\Services\SeguimientoSyllabusCalculoService;
 use App\Services\TutoriasCalculoService;
 use App\Services\TutoriasValidacionPdfService;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -29,7 +33,16 @@ $app = AppFactory::create();
 // Slim necesita conocer la base path cuando se sirve desde una subcarpeta
 // (ej. XAMPP con htdocs/sistemacaces/public), para que el enrutamiento no
 // se confunda con el prefijo real de la URL.
-$app->setBasePath('/sistemacaces/public');
+//
+// Configurable vía APP_BASE_PATH (pendiente que había quedado abierto en
+// la migración de I3 -- ver MEMORIA v64/§41.1): el valor por defecto sigue
+// siendo '/sistemacaces/public' para no cambiar nada en la máquina real del
+// usuario (XAMPP, htdocs/sistemacaces). Los tests de integración fijan
+// APP_BASE_PATH='' (ver tests/Integration/IntegrationTestCase.php +
+// public/router-testing.php), porque ahí Slim se sirve desde la raíz del
+// servidor embebido de PHP, sin el prefijo de carpeta de XAMPP.
+$basePath = $_ENV['APP_BASE_PATH'] ?? '/sistemacaces/public';
+$app->setBasePath($basePath);
 
 $app->addBodyParsingMiddleware();
 
@@ -55,26 +68,51 @@ $errorMiddleware->setDefaultErrorHandler(function (
 });
 
 // --- Composición manual de dependencias (sin contenedor DI: el proyecto no
-// lo tiene, y agregar uno para un solo controlador sería sobre-ingeniería
-// para este POC). Cuando se migren más indicadores en las próximas
-// sesiones, este bloque es el primer candidato a mover a un contenedor
-// (ej. PHP-DI) si el copy-paste entre indicadores empieza a doler.
+// lo tiene, y agregar uno sería sobre-ingeniería para este POC). Con 2
+// indicadores ya migrados (I3, I2), este bloque es el primer candidato a
+// mover a un contenedor (ej. PHP-DI) si el copy-paste entre indicadores
+// empieza a doler al migrar I1/I4/I5.
 $conexion = Database::conectar();
-$repositorio = new TutoriasRepository($conexion);
-$calculoService = new TutoriasCalculoService($repositorio);
-$validacionService = new TutoriasValidacionPdfService();
 $driveService = new GoogleDriveService();
-$controller = new TutoriasAcademicasController($repositorio, $calculoService, $validacionService, $driveService);
+
+// --- I3 (Tutorías Académicas) -------------------------------------------
+$tutoriasRepositorio = new TutoriasRepository($conexion);
+$tutoriasCalculoService = new TutoriasCalculoService($tutoriasRepositorio);
+$tutoriasValidacionService = new TutoriasValidacionPdfService();
+$tutoriasController = new TutoriasAcademicasController($tutoriasRepositorio, $tutoriasCalculoService, $tutoriasValidacionService, $driveService);
+
+// --- I2 (Seguimiento Syllabus) -------------------------------------------
+$seguimientoRepositorio = new SeguimientoSyllabusRepository($conexion);
+$encuestaService = new EncuestaEvidenciaService($seguimientoRepositorio, $driveService);
+$seguimientoCalculoService = new SeguimientoSyllabusCalculoService($seguimientoRepositorio, $encuestaService);
+$seguimientoController = new SeguimientoSyllabusController($seguimientoRepositorio, $seguimientoCalculoService, $encuestaService, $driveService);
 
 // --- Rutas de I3 (Tutorías Académicas) ---------------------------------
 // Mismos 4 endpoints que consumía frontend/src/services/tutoriasAcademicas.ts
 // contra los archivos sueltos originales; ver INSTRUCCIONES_fase3_i3.md
 // para el cambio de URL base que requiere el frontend.
-$app->group('/tutorias-academicas', function ($grupo) use ($controller) {
-    $grupo->get('/evidencia-listar', [$controller, 'evidenciaListar']);
-    $grupo->get('/resultado-asignatura', [$controller, 'resultadoAsignatura']);
-    $grupo->get('/resultado-cohorte', [$controller, 'resultadoCohorte']);
-    $grupo->post('/evidencia-subir', [$controller, 'evidenciaSubir'])->add(new SessionAuthMiddleware());
+$app->group('/tutorias-academicas', function ($grupo) use ($tutoriasController) {
+    $grupo->get('/evidencia-listar', [$tutoriasController, 'evidenciaListar']);
+    $grupo->get('/resultado-asignatura', [$tutoriasController, 'resultadoAsignatura']);
+    $grupo->get('/resultado-cohorte', [$tutoriasController, 'resultadoCohorte']);
+    $grupo->post('/evidencia-subir', [$tutoriasController, 'evidenciaSubir'])->add(new SessionAuthMiddleware());
+});
+
+// --- Rutas de I2 (Seguimiento Syllabus) ---------------------------------
+// Mismos 7 endpoints reales que consumía frontend/src/services/seguimientoSyllabus.ts
+// contra los 8 archivos sueltos originales (el 8vo, materias_encuesta.php,
+// era un endpoint deprecado sin llamadores reales -- ver MEMORIA e
+// INSTRUCCIONES_fase3_i2.md); ver ese mismo documento para el cambio de URL
+// base que requiere el frontend.
+$app->group('/seguimiento-syllabus', function ($grupo) use ($seguimientoController) {
+    $grupo->get('/periodos', [$seguimientoController, 'periodos']);
+    $grupo->get('/asignaturas', [$seguimientoController, 'asignaturasListar']);
+    $grupo->post('/asignaturas', [$seguimientoController, 'asignaturaCrear']);
+    $grupo->get('/resultado-asignatura', [$seguimientoController, 'resultadoAsignatura']);
+    $grupo->get('/resultado-cohorte', [$seguimientoController, 'resultadoCohorte']);
+    $grupo->get('/evidencia-listar', [$seguimientoController, 'evidenciaListar']);
+    $grupo->get('/encuesta-detalle', [$seguimientoController, 'encuestaDetalle']);
+    $grupo->post('/evidencia-subir', [$seguimientoController, 'evidenciaSubir'])->add(new SessionAuthMiddleware());
 });
 
 // --- Composición de dependencias de I5 (Tasa de Titulación) ------------

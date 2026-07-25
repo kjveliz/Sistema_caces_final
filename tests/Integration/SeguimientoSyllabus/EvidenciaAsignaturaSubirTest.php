@@ -10,16 +10,21 @@ use Tests\Integration\IntegrationTestCase;
 require_once __DIR__ . '/../IntegrationTestCase.php';
 
 /**
- * Tests de integración de api/seguimiento_syllabus/evidencia_asignatura_subir.php.
+ * Tests de integración de POST /seguimiento-syllabus/evidencia-subir.
+ *
+ * Migrado a Slim en la Fase 3 (ver SeguimientoSyllabusController) -- antes
+ * le pegaba directo a api/seguimiento_syllabus/evidencia_asignatura_subir.php,
+ * ahora archivo eliminado.
  *
  * La subida real a Google Drive queda reemplazada por el seam de testing en
- * _google_drive.php (activo porque IntegrationTestCase levanta el servidor
- * con APP_ENV=testing) -- estos tests verifican el contrato HTTP y el
- * efecto en la base de datos, no la integración real con Drive.
+ * GoogleDriveService::subirArchivo() (activo porque IntegrationTestCase
+ * levanta el servidor con APP_ENV=testing) -- estos tests verifican el
+ * contrato HTTP y el efecto en la base de datos, no la integración real con
+ * Drive.
  */
 final class EvidenciaAsignaturaSubirTest extends IntegrationTestCase
 {
-    private const RUTA = '/api/seguimiento_syllabus/evidencia_asignatura_subir.php';
+    private const RUTA = '/seguimiento-syllabus/evidencia-subir';
 
     private function crearPdfDePrueba(): string
     {

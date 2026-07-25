@@ -1,4 +1,7 @@
-const BASE = 'http://localhost/sistemacaces/api/seguimiento_syllabus';
+// Fase 3 del Plan de Mejora: I2 ya no se sirve como archivos .php sueltos
+// (api/seguimiento_syllabus/*.php) sino a través del router de Slim en
+// public/index.php — ver src/Controllers/SeguimientoSyllabusController.php.
+const BASE = 'http://localhost/sistemacaces/public/seguimiento-syllabus';
 
 async function getJson<T>(url: string): Promise<T> {
   const respuesta = await fetch(url, {
@@ -22,7 +25,7 @@ export interface PeriodoAcademico {
 }
 
 export function obtenerPeriodos(idCohorte: number): Promise<PeriodoAcademico[]> {
-  return getJson(`${BASE}/periodos.php?id_cohorte=${idCohorte}`);
+  return getJson(`${BASE}/periodos?id_cohorte=${idCohorte}`);
 }
 
 // ── Asignaturas ──────────────────────────────────────────────────────────
@@ -33,7 +36,7 @@ export interface AsignaturaReal {
 }
 
 export function obtenerAsignaturas(idPeriodo: number): Promise<AsignaturaReal[]> {
-  return getJson(`${BASE}/asignaturas.php?id_periodo=${idPeriodo}`);
+  return getJson(`${BASE}/asignaturas?id_periodo=${idPeriodo}`);
 }
 
 // ── Resultado EF1-EF5 ────────────────────────────────────────────────────
@@ -76,7 +79,7 @@ export function obtenerResultadoAsignatura(
   idEvaluacion: number,
 ): Promise<ResultadoAsignatura> {
   return getJson(
-    `${BASE}/resultado_asignatura.php?id_asignatura=${idAsignatura}&id_evaluacion=${idEvaluacion}`,
+    `${BASE}/resultado-asignatura?id_asignatura=${idAsignatura}&id_evaluacion=${idEvaluacion}`,
   );
 }
 
@@ -90,7 +93,7 @@ export function obtenerResultadoCohorte(
     id_evaluacion: String(idEvaluacion),
   });
   if (idPeriodo) params.set('id_periodo', String(idPeriodo));
-  return getJson(`${BASE}/resultado_cohorte.php?${params.toString()}`);
+  return getJson(`${BASE}/resultado-cohorte?${params.toString()}`);
 }
 
 // ── Evidencia por asignatura (syllabus, actas, difusión, encuesta) ──────
@@ -117,7 +120,7 @@ export interface EvidenciaAsignaturaItem {
 export function obtenerEvidenciaAsignatura(
   idAsignatura: number,
 ): Promise<EvidenciaAsignaturaItem[]> {
-  return getJson(`${BASE}/evidencia_asignatura_listar.php?id_asignatura=${idAsignatura}`);
+  return getJson(`${BASE}/evidencia-listar?id_asignatura=${idAsignatura}`);
 }
 
 // ── Detalle de encuesta de heteroevaluación (23 preguntas) ──────────────
@@ -145,7 +148,7 @@ export function obtenerEncuestaDetalle(
   idEvaluacion: number,
 ): Promise<EncuestaDetalle> {
   return getJson(
-    `${BASE}/encuesta_detalle.php?id_asignatura=${idAsignatura}&id_evaluacion=${idEvaluacion}`,
+    `${BASE}/encuesta-detalle?id_asignatura=${idAsignatura}&id_evaluacion=${idEvaluacion}`,
   );
 }
 
@@ -159,7 +162,7 @@ export async function subirEvidenciaAsignatura(params: {
   formulario.append('tipo', params.tipo);
   formulario.append('archivo', params.archivo);
 
-  const respuesta = await fetch(`${BASE}/evidencia_asignatura_subir.php`, {
+  const respuesta = await fetch(`${BASE}/evidencia-subir`, {
     method: 'POST',
     credentials: 'include',
     body: formulario,

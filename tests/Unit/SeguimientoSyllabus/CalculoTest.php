@@ -4,24 +4,25 @@ declare(strict_types=1);
 
 namespace Tests\Unit\SeguimientoSyllabus;
 
+use App\Services\SeguimientoSyllabusCalculoService;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-require_once __DIR__ . '/../../../api/seguimiento_syllabus/_calculo.php';
-
 /**
- * Tests de las funciones puras (sin mysqli) de api/seguimiento_syllabus/_calculo.php.
- * El resto de las funciones del archivo (calcularResultadoAsignatura,
- * calcularResultadoGeneral, tiposCarreraVigentes, etc.) dependen de mysqli
- * y quedan fuera del alcance de esta primera pasada de la Fase 5 -- ver
- * MEMORIA para el detalle de qué falta.
+ * Tests de las funciones puras (estáticas, sin mysqli) de
+ * SeguimientoSyllabusCalculoService. Migrado en la Fase 3 desde
+ * api/seguimiento_syllabus/_calculo.php (funciones sueltas
+ * calcularEscala()/etiquetasEvidencia()) -- mismas fórmulas, mismos
+ * asserts, ahora contra la clase. calcularResultadoAsignatura() y
+ * calcularResultadoGeneral() (que sí dependen de mysqli/Drive) se cubren en
+ * tests/Integration/SeguimientoSyllabus, no acá.
  */
 final class CalculoTest extends TestCase
 {
     #[DataProvider('proveedorEscalas')]
     public function testCalcularEscala(?float $valoracion, ?string $escalaEsperada, ?string $colorEsperado): void
     {
-        [$escala, $color] = calcularEscala($valoracion);
+        [$escala, $color] = SeguimientoSyllabusCalculoService::calcularEscala($valoracion);
 
         $this->assertSame($escalaEsperada, $escala);
         $this->assertSame($colorEsperado, $color);
@@ -44,7 +45,7 @@ final class CalculoTest extends TestCase
 
     public function testEtiquetasEvidenciaIncluyeLosOchoTipos(): void
     {
-        $etiquetas = etiquetasEvidencia();
+        $etiquetas = SeguimientoSyllabusCalculoService::etiquetasEvidencia();
 
         $this->assertCount(8, $etiquetas);
         $this->assertSame(
