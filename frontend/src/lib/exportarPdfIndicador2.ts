@@ -55,7 +55,11 @@ type FontRole =
   | 'mono'
   | 'monoMedium';
 
-function hexToRgb(hex: string): RGB {
+// Exportadas únicamente para poder testearlas de forma aislada (Fase 5 del
+// Plan de Mejora) -- sin cambio de comportamiento ni de firma, solo se agrega
+// la palabra "export". Siguen siendo funciones internas de este módulo; nada
+// más del proyecto las importa.
+export function hexToRgb(hex: string): RGB {
   const clean = hex.replace('#', '');
   const bigint = parseInt(clean, 16);
   return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255];
@@ -90,7 +94,7 @@ const STATUS_LABEL: Record<StatusKey, string> = {
 const STATUS_ORDER: StatusKey[] = ['ok', 'cuasi', 'poco', 'def', 'nodata'];
 
 // Cortes oficiales de CACES (≥75 / ≥50 / ≥25 / <25) — igual que el diseño anterior.
-function statusKeyDeValor(valor: number | null): StatusKey {
+export function statusKeyDeValor(valor: number | null): StatusKey {
   if (valor === null) return 'nodata';
   if (valor >= 75) return 'ok';
   if (valor >= 50) return 'cuasi';
@@ -143,7 +147,7 @@ const EF_INFO: Record<
   },
 };
 
-function opcionDominante(
+export function opcionDominante(
   conteos: Record<string, number>,
   total: number,
 ): { label: string; pct: number } | null {
