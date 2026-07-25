@@ -547,7 +547,7 @@ export async function leerPdfDesercion(
   formulario.append('archivo', archivo);
   formulario.append('tipo_dato', tipoDato);
 
-  const respuesta = await fetch('http://localhost/sistemacaces/api/tasa_desercion/leer_pdf.php', {
+  const respuesta = await fetch('http://localhost/sistemacaces/public/tasa-desercion/leer-pdf', {
     method: 'POST',
     credentials: 'include',
     body: formulario,
@@ -610,7 +610,7 @@ export async function guardarDatoDesercion({
     cuerpo.no_continuaron = noContinuaron;
   }
 
-  const respuesta = await fetch('http://localhost/sistemacaces/api/tasa_desercion/guardar.php', {
+  const respuesta = await fetch('http://localhost/sistemacaces/public/tasa-desercion/guardar', {
     method: 'POST',
     credentials: 'include',
     headers: {
@@ -645,7 +645,7 @@ interface ObtenerDatosDesercionResponse {
 
 export async function obtenerDatosDesercion(idEvaluacion: number): Promise<CohorteDesercion[]> {
   const respuesta = await fetch(
-    `http://localhost/sistemacaces/api/tasa_desercion/obtener.php?id_evaluacion=${idEvaluacion}`,
+    `http://localhost/sistemacaces/public/tasa-desercion/obtener?id_evaluacion=${idEvaluacion}`,
     {
       method: 'GET',
       credentials: 'include',

@@ -3,11 +3,13 @@
 declare(strict_types=1);
 
 use App\Controllers\SeguimientoSyllabusController;
+use App\Controllers\TasaDesercionController;
 use App\Controllers\TitulacionController;
 use App\Controllers\TutoriasAcademicasController;
 use App\Infra\Database;
 use App\Middleware\CorsMiddleware;
 use App\Middleware\SessionAuthMiddleware;
+use App\Repositories\DesercionRepository;
 use App\Repositories\SeguimientoSyllabusRepository;
 use App\Repositories\TitulacionRepository;
 use App\Repositories\TutoriasRepository;
@@ -140,6 +142,22 @@ $app->group('/tasa-titulacion', function ($grupo) use ($titulacionController) {
     $grupo->get('/obtener', [$titulacionController, 'obtener']);
     $grupo->post('/leer-pdf', [$titulacionController, 'leerPdf']);
     $grupo->post('/guardar', [$titulacionController, 'guardar'])->add(new SessionAuthMiddleware());
+});
+
+// --- Composición de dependencias de I4 (Tasa de Deserción) --------------
+// Misma conexión mysqli reusada del bloque inicial, igual que I5.
+$desercionRepositorio = new DesercionRepository($conexion);
+$desercionController = new TasaDesercionController($desercionRepositorio);
+
+// --- Rutas de I4 (Tasa de Deserción) ------------------------------------
+// Mismos 3 endpoints que consumían obtenerDatosDesercion/leerPdfDesercion/
+// guardarDatoDesercion en frontend/src/services/evidencias.ts contra los
+// archivos sueltos originales. Igual que I5, I4 no maneja subida de
+// evidencia a Drive en sus propios endpoints, por eso son solo 3 rutas.
+$app->group('/tasa-desercion', function ($grupo) use ($desercionController) {
+    $grupo->get('/obtener', [$desercionController, 'obtener']);
+    $grupo->post('/leer-pdf', [$desercionController, 'leerPdf']);
+    $grupo->post('/guardar', [$desercionController, 'guardar'])->add(new SessionAuthMiddleware());
 });
 
 $app->run();
