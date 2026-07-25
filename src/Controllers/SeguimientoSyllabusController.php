@@ -9,6 +9,7 @@ use App\Repositories\SeguimientoSyllabusRepository;
 use App\Services\EncuestaEvidenciaService;
 use App\Services\GoogleDriveService;
 use App\Services\SeguimientoSyllabusCalculoService;
+use OpenApi\Attributes as OA;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Throwable;
@@ -26,7 +27,14 @@ use Throwable;
  * devolvía una lista vacía sin lógica real y, confirmado contra
  * frontend/src/services/seguimientoSyllabus.ts, ningún llamador del
  * frontend lo usa.
+ *
+ * Las anotaciones OpenAPI de cada método (Fase 3, hallazgo 1.2.7) se
+ * generan a openapi.json con `composer generate-openapi` — ver
+ * src/OpenApi/Definition.php para la info general del documento. Único
+ * endpoint protegido: evidencia-subir (SessionAuthMiddleware, 401), igual
+ * chequeo que evidencia-subir de I3 y guardar de I4/I5.
  */
+#[OA\Tag(name: 'I2 - Seguimiento Syllabus')]
 final class SeguimientoSyllabusController
 {
     public function __construct(
@@ -48,6 +56,30 @@ final class SeguimientoSyllabusController
     }
 
     /** GET /seguimiento-syllabus/periodos?id_cohorte= */
+    #[OA\Get(
+        path: '/seguimiento-syllabus/periodos',
+        summary: 'Lista los períodos académicos de una cohorte.',
+        tags: ['I2 - Seguimiento Syllabus'],
+        parameters: [
+            new OA\QueryParameter(
+                name: 'id_cohorte',
+                description: 'ID de la cohorte.',
+                required: true,
+                schema: new OA\Schema(type: 'integer'),
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Períodos académicos de la cohorte.',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'datos', type: 'array', items: new OA\Items(type: 'object')),
+                ]),
+            ),
+            new OA\Response(response: 400, description: 'Parámetro id_cohorte es requerido.'),
+        ],
+    )]
     public function periodos(Request $request, Response $response): Response
     {
         $params = $request->getQueryParams();
@@ -63,6 +95,30 @@ final class SeguimientoSyllabusController
     }
 
     /** GET /seguimiento-syllabus/asignaturas?id_periodo= */
+    #[OA\Get(
+        path: '/seguimiento-syllabus/asignaturas',
+        summary: 'Lista las asignaturas de un período académico.',
+        tags: ['I2 - Seguimiento Syllabus'],
+        parameters: [
+            new OA\QueryParameter(
+                name: 'id_periodo',
+                description: 'ID del período académico.',
+                required: true,
+                schema: new OA\Schema(type: 'integer'),
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Asignaturas del período académico.',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'datos', type: 'array', items: new OA\Items(type: 'object')),
+                ]),
+            ),
+            new OA\Response(response: 400, description: 'Parámetro id_periodo es requerido.'),
+        ],
+    )]
     public function asignaturasListar(Request $request, Response $response): Response
     {
         $params = $request->getQueryParams();
@@ -78,6 +134,35 @@ final class SeguimientoSyllabusController
     }
 
     /** POST /seguimiento-syllabus/asignaturas (json: id_periodo, nombre, docente) — crear o devolver existente. */
+    #[OA\Post(
+        path: '/seguimiento-syllabus/asignaturas',
+        summary: 'Crea una asignatura en un período, o devuelve la existente si ya hay una con el mismo nombre.',
+        tags: ['I2 - Seguimiento Syllabus'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['id_periodo', 'nombre'],
+                properties: [
+                    new OA\Property(property: 'id_periodo', type: 'integer'),
+                    new OA\Property(property: 'nombre', type: 'string'),
+                    new OA\Property(property: 'docente', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'ID de la asignatura (creada, o ya existente con el mismo nombre en el período).',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'datos', properties: [
+                        new OA\Property(property: 'id_asignatura', type: 'integer'),
+                    ], type: 'object'),
+                ]),
+            ),
+            new OA\Response(response: 400, description: 'id_periodo y nombre son requeridos.'),
+        ],
+    )]
     public function asignaturaCrear(Request $request, Response $response): Response
     {
         $body = (array) ($request->getParsedBody() ?? []);
@@ -101,6 +186,37 @@ final class SeguimientoSyllabusController
     }
 
     /** GET /seguimiento-syllabus/resultado-asignatura?id_asignatura=&id_evaluacion= */
+    #[OA\Get(
+        path: '/seguimiento-syllabus/resultado-asignatura',
+        summary: 'Calcula el resultado de seguimiento de syllabus de una asignatura y guarda un snapshot.',
+        tags: ['I2 - Seguimiento Syllabus'],
+        parameters: [
+            new OA\QueryParameter(
+                name: 'id_asignatura',
+                description: 'ID de la asignatura.',
+                required: true,
+                schema: new OA\Schema(type: 'integer'),
+            ),
+            new OA\QueryParameter(
+                name: 'id_evaluacion',
+                description: 'ID de la evaluación.',
+                required: true,
+                schema: new OA\Schema(type: 'integer'),
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Resultado calculado (ver ResultadoAsignaturaSeguimientoDTO).',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'datos', type: 'object'),
+                ]),
+            ),
+            new OA\Response(response: 400, description: 'Parámetros id_asignatura e id_evaluacion son requeridos.'),
+            new OA\Response(response: 404, description: 'Asignatura no encontrada.'),
+        ],
+    )]
     public function resultadoAsignatura(Request $request, Response $response): Response
     {
         $params = $request->getQueryParams();
@@ -123,6 +239,43 @@ final class SeguimientoSyllabusController
     }
 
     /** GET /seguimiento-syllabus/resultado-cohorte?id_cohorte=&id_evaluacion=&id_periodo= */
+    #[OA\Get(
+        path: '/seguimiento-syllabus/resultado-cohorte',
+        summary: 'Calcula el resultado general de seguimiento de syllabus de una cohorte (todas sus asignaturas).',
+        description: 'id_periodo es opcional: si se envía, filtra el cálculo a un único período de la cohorte.',
+        tags: ['I2 - Seguimiento Syllabus'],
+        parameters: [
+            new OA\QueryParameter(
+                name: 'id_cohorte',
+                description: 'ID de la cohorte.',
+                required: true,
+                schema: new OA\Schema(type: 'integer'),
+            ),
+            new OA\QueryParameter(
+                name: 'id_evaluacion',
+                description: 'ID de la evaluación.',
+                required: true,
+                schema: new OA\Schema(type: 'integer'),
+            ),
+            new OA\QueryParameter(
+                name: 'id_periodo',
+                description: 'ID de un período específico dentro de la cohorte (opcional).',
+                required: false,
+                schema: new OA\Schema(type: 'integer', nullable: true),
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Resultado general y detalle por asignatura (ver ResultadoCohorteSeguimientoDTO).',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'datos', type: 'object'),
+                ]),
+            ),
+            new OA\Response(response: 400, description: 'Parámetros id_cohorte e id_evaluacion son requeridos.'),
+        ],
+    )]
     public function resultadoCohorte(Request $request, Response $response): Response
     {
         $params = $request->getQueryParams();
@@ -144,6 +297,32 @@ final class SeguimientoSyllabusController
     }
 
     /** GET /seguimiento-syllabus/evidencia-listar?id_asignatura= */
+    #[OA\Get(
+        path: '/seguimiento-syllabus/evidencia-listar',
+        summary: 'Lista el estado de evidencia (subida o no) de los 4 tipos por-asignatura de I2.',
+        description: 'Siempre devuelve los 4 tipos (syllabus, acta_ajuste_curricular, evidencia_difusion, '
+            . 'encuesta_csv), marcando subida=false y archivo=null en los que todavía no tienen archivo vigente.',
+        tags: ['I2 - Seguimiento Syllabus'],
+        parameters: [
+            new OA\QueryParameter(
+                name: 'id_asignatura',
+                description: 'ID de la asignatura.',
+                required: true,
+                schema: new OA\Schema(type: 'integer'),
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Un ítem por cada tipo de evidencia (ver EvidenciaSeguimientoItemDTO).',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'datos', type: 'array', items: new OA\Items(type: 'object')),
+                ]),
+            ),
+            new OA\Response(response: 400, description: 'Parámetro id_asignatura es requerido.'),
+        ],
+    )]
     public function evidenciaListar(Request $request, Response $response): Response
     {
         $params = $request->getQueryParams();
@@ -181,6 +360,40 @@ final class SeguimientoSyllabusController
     }
 
     /** GET /seguimiento-syllabus/encuesta-detalle?id_asignatura=&id_evaluacion= */
+    #[OA\Get(
+        path: '/seguimiento-syllabus/encuesta-detalle',
+        summary: 'Devuelve el detalle de la encuesta (parseada del CSV subido) de una asignatura.',
+        description: 'id_evaluacion se acepta por compatibilidad con el frontend, pero ya no se usa para '
+            . 'buscar el CSV (ver MEMORIA v18).',
+        tags: ['I2 - Seguimiento Syllabus'],
+        parameters: [
+            new OA\QueryParameter(
+                name: 'id_asignatura',
+                description: 'ID de la asignatura.',
+                required: true,
+                schema: new OA\Schema(type: 'integer'),
+            ),
+            new OA\QueryParameter(
+                name: 'id_evaluacion',
+                description: 'Aceptado por compatibilidad; no se usa para buscar el CSV.',
+                required: false,
+                schema: new OA\Schema(type: 'integer', nullable: true),
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Detalle de la encuesta parseada.',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'datos', type: 'object'),
+                ]),
+            ),
+            new OA\Response(response: 400, description: 'Parámetro id_asignatura es requerido.'),
+            new OA\Response(response: 404, description: 'Asignatura no encontrada.'),
+            new OA\Response(response: 502, description: 'La asignatura todavía no tiene un CSV de encuesta subido.'),
+        ],
+    )]
     public function encuestaDetalle(Request $request, Response $response): Response
     {
         $params = $request->getQueryParams();
@@ -206,6 +419,50 @@ final class SeguimientoSyllabusController
     }
 
     /** POST /seguimiento-syllabus/evidencia-subir (multipart: id_asignatura, tipo, archivo) — requiere sesión. */
+    #[OA\Post(
+        path: '/seguimiento-syllabus/evidencia-subir',
+        summary: 'Sube un archivo de evidencia (PDF, o CSV para encuesta_csv) a Google Drive y lo registra.',
+        description: 'La evidencia anterior del mismo tipo para la asignatura queda marcada como no '
+            . 'vigente; la nueva pasa a ser la evidencia vigente.',
+        security: [['sesionPhp' => []]],
+        tags: ['I2 - Seguimiento Syllabus'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: 'multipart/form-data',
+                schema: new OA\Schema(
+                    required: ['id_asignatura', 'tipo', 'archivo'],
+                    properties: [
+                        new OA\Property(property: 'id_asignatura', type: 'integer'),
+                        new OA\Property(
+                            property: 'tipo',
+                            type: 'string',
+                            enum: ['syllabus', 'acta_ajuste_curricular', 'evidencia_difusion', 'encuesta_csv'],
+                        ),
+                        new OA\Property(property: 'archivo', type: 'string', format: 'binary'),
+                    ],
+                ),
+            ),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Evidencia subida y registrada.',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'datos', properties: [
+                        new OA\Property(property: 'id_evidencia_asig', type: 'integer'),
+                        new OA\Property(property: 'url_archivo', type: 'string', format: 'uri'),
+                    ], type: 'object'),
+                ]),
+            ),
+            new OA\Response(response: 400, description: 'Faltan datos, el tipo no es válido, o el archivo no pasó la validación.'),
+            new OA\Response(response: 401, description: 'La sesión no está activa.'),
+            new OA\Response(response: 404, description: 'Asignatura no encontrada.'),
+            new OA\Response(response: 500, description: 'No se pudo guardar la evidencia.'),
+            new OA\Response(response: 502, description: 'No se pudo subir el archivo a Google Drive.'),
+        ],
+    )]
     public function evidenciaSubir(Request $request, Response $response): Response
     {
         $body = $request->getParsedBody();

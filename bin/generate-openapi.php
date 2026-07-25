@@ -10,10 +10,11 @@ declare(strict_types=1);
  * zircote/swagger-php sobre Slim, sin mantener la documentación aparte a
  * mano).
  *
- * Cubre únicamente los Controllers que ya existen bajo src/ (hoy: I3 y I5,
- * los dos indicadores migrados a Slim). Cuando se migren I1, I2 o I4, sus
- * Controllers nuevos se recogen automáticamente la próxima vez que se
- * corra este script, sin tocarlo.
+ * Cubre todos los Controllers que existen bajo src/Controllers/ — con la
+ * Fase 3 completa (v69) son los 5 indicadores (I1-I5), cada uno con sus
+ * propias anotaciones OpenAPI. Cualquier Controller nuevo que se agregue
+ * a futuro se recoge automáticamente la próxima vez que se corra este
+ * script, sin tocarlo.
  *
  * Uso: composer generate-openapi
  *   (o directamente: php bin/generate-openapi.php)

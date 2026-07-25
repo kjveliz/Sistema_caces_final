@@ -15,17 +15,18 @@ use OpenApi\Attributes as OA;
  * seguridad) que el generador necesita para armar el documento completo
  * junto con las anotaciones de cada Controller migrado.
  *
- * Cubre únicamente los indicadores ya migrados a Slim (I3, I5). I1, I2 e
- * I4 siguen como archivos .php sueltos y no aparecen en el
- * openapi.json generado hasta que se migren con el mismo patrón.
+ * Con la migración de los 5 indicadores completa (Fase 3, v69) y las
+ * anotaciones OpenAPI de I1/I2/I4 agregadas a sus Controllers, este
+ * documento pasa a cubrir los 5 indicadores (I1-I5) la próxima vez que se
+ * corra `composer generate-openapi` — ver openapi.json.
  */
 #[OA\Info(
     version: '1.0.0',
     title: 'Sistema CACES — API (indicadores migrados a Slim)',
     description: 'Documentación generada automáticamente con zircote/swagger-php a partir de las '
-        . 'anotaciones en src/Controllers/. Cubre I3 (Tutorías Académicas) e I5 (Tasa de Titulación); '
-        . 'I1, I2 e I4 todavía son archivos .php sueltos (api/*) sin migrar a esta arquitectura y no '
-        . 'aparecen en este documento.',
+        . 'anotaciones en src/Controllers/. Cubre los 5 indicadores del sistema: I1 (Malla Curricular), '
+        . 'I2 (Seguimiento Syllabus), I3 (Tutorías Académicas), I4 (Tasa de Deserción) e I5 (Tasa de '
+        . 'Titulación) — los 5 ya migrados a esta arquitectura en capas detrás de Slim.',
 )]
 #[OA\Server(
     url: 'http://localhost/sistemacaces/public',
@@ -37,7 +38,8 @@ use OpenApi\Attributes as OA;
     name: 'PHPSESSID',
     in: 'cookie',
     description: 'Sesión de PHP iniciada vía api/auth/Login.php (no migrado todavía). Requerida por los '
-        . 'endpoints protegidos con SessionAuthMiddleware: evidencia-subir de I3 y guardar de I5.',
+        . 'endpoints protegidos con SessionAuthMiddleware: evidencia-subir de I2/I3, guardar de I4/I5, y '
+        . 'guardar de I1 (que además exige rol administrador, 403 si no lo es).',
 )]
 final class Definition
 {
