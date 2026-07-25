@@ -1,3 +1,6 @@
+import { AREAS } from '../data/careers';
+import type { Career } from '../types';
+
 export interface CarreraBD {
   id_carrera: number;
   codigo: string;
@@ -271,4 +274,39 @@ export async function subirMallaCurricular({
   }
 
   return guardado.datos;
+}
+
+/**
+ * Reconstruye un `Career` completo a partir de solo su código, consultando
+ * la base real de carreras. Necesario para que las rutas de react-router
+ * (`/carreras/:code/...`) funcionen con una entrada directa por URL o un
+ * refresh de página, sin depender de que el usuario haya pasado antes por
+ * el listado de CareersView (que ya tiene el objeto Career en memoria).
+ *
+ * Replica la misma regla de merge que `organizarCarrerasPorArea` en
+ * CareersView.tsx: `criterionNum` se conserva del AREAS estático si la
+ * carrera ya existía ahí (por defecto 4), y `clickable` siempre es `true`
+ * para cualquier carrera activa que venga de MySQL.
+ */
+export async function resolverCarreraPorCodigo(codigo: string): Promise<Career | null> {
+  const carrerasBD = await obtenerCarreras();
+
+  const carrera = carrerasBD.find(
+    (item) => item.codigo.trim().toUpperCase() === codigo.trim().toUpperCase(),
+  );
+
+  if (!carrera) {
+    return null;
+  }
+
+  const careerEstatico = AREAS.flatMap((area) => area.careers).find(
+    (item) => item.code === carrera.codigo,
+  );
+
+  return {
+    name: carrera.nombre,
+    code: carrera.codigo,
+    criterionNum: careerEstatico?.criterionNum ?? 4,
+    clickable: true,
+  };
 }

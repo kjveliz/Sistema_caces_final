@@ -1,5 +1,3 @@
-export type View = 'login' | 'careers' | 'criteria' | 'dashboard' | 'evidUpload' | 'indicator';
-
 export type TabId = 'cohorts' | 'evidences' | 'ficha' | 'results';
 
 export type EvidStep = 'selectIndicator' | 'configSyllabus' | 'configTitDes' | 'upload';
