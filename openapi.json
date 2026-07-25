@@ -2,7 +2,7 @@
     "openapi": "3.0.0",
     "info": {
         "title": "Sistema CACES — API (indicadores migrados a Slim)",
-        "description": "Documentación generada automáticamente con zircote/swagger-php a partir de las anotaciones en src/Controllers/. Cubre I3 (Tutorías Académicas) e I5 (Tasa de Titulación); I1, I2 e I4 todavía son archivos .php sueltos (api/*) sin migrar a esta arquitectura y no aparecen en este documento.",
+        "description": "Documentación generada automáticamente con zircote/swagger-php a partir de las anotaciones en src/Controllers/. Cubre los 5 indicadores del sistema: I1 (Malla Curricular), I2 (Seguimiento Syllabus), I3 (Tutorías Académicas), I4 (Tasa de Deserción) e I5 (Tasa de Titulación) — los 5 ya migrados a esta arquitectura en capas detrás de Slim.",
         "version": "1.0.0"
     },
     "servers": [
@@ -12,6 +12,806 @@
         }
     ],
     "paths": {
+        "/malla-curricular/obtener": {
+            "get": {
+                "tags": [
+                    "I1 - Malla Curricular"
+                ],
+                "summary": "Consulta la malla curricular activa registrada para una carrera, por código.",
+                "description": "GET /malla-curricular/obtener?codigo_carrera=",
+                "operationId": "fcff4e376e8960f569da62a7d969e2db",
+                "parameters": [
+                    {
+                        "name": "codigo_carrera",
+                        "in": "query",
+                        "description": "Código de la carrera (se compara en mayúsculas).",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "La malla curricular más reciente de la carrera, o null si no tiene ninguna registrada.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "object",
+                                            "nullable": true
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Debe enviar el código de la carrera."
+                    },
+                    "500": {
+                        "description": "No se pudo preparar la consulta de la malla curricular."
+                    }
+                }
+            }
+        },
+        "/malla-curricular/guardar": {
+            "post": {
+                "tags": [
+                    "I1 - Malla Curricular"
+                ],
+                "summary": "Registra (crea o actualiza) la malla curricular de una carrera, ya subida previamente a Google Drive.",
+                "description": "POST /malla-curricular/guardar (JSON: id_carrera, nombre_archivo, id_drive, url_drive) — requiere sesión + rol administrador.",
+                "operationId": "8c9e7648624e3abee124f3277bbc0862",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id_carrera",
+                                    "nombre_archivo",
+                                    "id_drive",
+                                    "url_drive"
+                                ],
+                                "properties": {
+                                    "id_carrera": {
+                                        "type": "integer"
+                                    },
+                                    "nombre_archivo": {
+                                        "type": "string"
+                                    },
+                                    "id_drive": {
+                                        "type": "string"
+                                    },
+                                    "url_drive": {
+                                        "type": "string",
+                                        "format": "uri"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Malla curricular registrada (ver MallaCurricularGuardadaDTO).",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "No se recibieron datos JSON válidos, faltan datos, o la URL de Drive no es válida."
+                    },
+                    "401": {
+                        "description": "La sesión no está activa."
+                    },
+                    "403": {
+                        "description": "No tiene permisos para registrar mallas curriculares."
+                    },
+                    "404": {
+                        "description": "La carrera no existe o está desactivada."
+                    },
+                    "500": {
+                        "description": "No se pudo verificar la carrera o registrar la malla."
+                    }
+                },
+                "security": [
+                    {
+                        "sesionPhp": []
+                    }
+                ]
+            }
+        },
+        "/seguimiento-syllabus/periodos": {
+            "get": {
+                "tags": [
+                    "I2 - Seguimiento Syllabus"
+                ],
+                "summary": "Lista los períodos académicos de una cohorte.",
+                "description": "GET /seguimiento-syllabus/periodos?id_cohorte=",
+                "operationId": "ac7134a10c0efd7bcef8968ae4d9970c",
+                "parameters": [
+                    {
+                        "name": "id_cohorte",
+                        "in": "query",
+                        "description": "ID de la cohorte.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Períodos académicos de la cohorte.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Parámetro id_cohorte es requerido."
+                    }
+                }
+            }
+        },
+        "/seguimiento-syllabus/asignaturas": {
+            "get": {
+                "tags": [
+                    "I2 - Seguimiento Syllabus"
+                ],
+                "summary": "Lista las asignaturas de un período académico.",
+                "description": "GET /seguimiento-syllabus/asignaturas?id_periodo=",
+                "operationId": "39338f3871e07a44327a3da0fa966d5d",
+                "parameters": [
+                    {
+                        "name": "id_periodo",
+                        "in": "query",
+                        "description": "ID del período académico.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Asignaturas del período académico.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Parámetro id_periodo es requerido."
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "I2 - Seguimiento Syllabus"
+                ],
+                "summary": "Crea una asignatura en un período, o devuelve la existente si ya hay una con el mismo nombre.",
+                "description": "POST /seguimiento-syllabus/asignaturas (json: id_periodo, nombre, docente) — crear o devolver existente.",
+                "operationId": "6c01aa65ea50093cb78b140c8f02aaa1",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id_periodo",
+                                    "nombre"
+                                ],
+                                "properties": {
+                                    "id_periodo": {
+                                        "type": "integer"
+                                    },
+                                    "nombre": {
+                                        "type": "string"
+                                    },
+                                    "docente": {
+                                        "type": "string",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "ID de la asignatura (creada, o ya existente con el mismo nombre en el período).",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "properties": {
+                                                "id_asignatura": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "id_periodo y nombre son requeridos."
+                    }
+                }
+            }
+        },
+        "/seguimiento-syllabus/resultado-asignatura": {
+            "get": {
+                "tags": [
+                    "I2 - Seguimiento Syllabus"
+                ],
+                "summary": "Calcula el resultado de seguimiento de syllabus de una asignatura y guarda un snapshot.",
+                "description": "GET /seguimiento-syllabus/resultado-asignatura?id_asignatura=&id_evaluacion=",
+                "operationId": "7b8b33ffcb2df3976981ccdefd826c6c",
+                "parameters": [
+                    {
+                        "name": "id_asignatura",
+                        "in": "query",
+                        "description": "ID de la asignatura.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "id_evaluacion",
+                        "in": "query",
+                        "description": "ID de la evaluación.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Resultado calculado (ver ResultadoAsignaturaSeguimientoDTO).",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Parámetros id_asignatura e id_evaluacion son requeridos."
+                    },
+                    "404": {
+                        "description": "Asignatura no encontrada."
+                    }
+                }
+            }
+        },
+        "/seguimiento-syllabus/resultado-cohorte": {
+            "get": {
+                "tags": [
+                    "I2 - Seguimiento Syllabus"
+                ],
+                "summary": "Calcula el resultado general de seguimiento de syllabus de una cohorte (todas sus asignaturas).",
+                "description": "id_periodo es opcional: si se envía, filtra el cálculo a un único período de la cohorte.",
+                "operationId": "0e5b89a48095872fdc96fcbd5a271b9a",
+                "parameters": [
+                    {
+                        "name": "id_cohorte",
+                        "in": "query",
+                        "description": "ID de la cohorte.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "id_evaluacion",
+                        "in": "query",
+                        "description": "ID de la evaluación.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "id_periodo",
+                        "in": "query",
+                        "description": "ID de un período específico dentro de la cohorte (opcional).",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "nullable": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Resultado general y detalle por asignatura (ver ResultadoCohorteSeguimientoDTO).",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Parámetros id_cohorte e id_evaluacion son requeridos."
+                    }
+                }
+            }
+        },
+        "/seguimiento-syllabus/evidencia-listar": {
+            "get": {
+                "tags": [
+                    "I2 - Seguimiento Syllabus"
+                ],
+                "summary": "Lista el estado de evidencia (subida o no) de los 4 tipos por-asignatura de I2.",
+                "description": "Siempre devuelve los 4 tipos (syllabus, acta_ajuste_curricular, evidencia_difusion, encuesta_csv), marcando subida=false y archivo=null en los que todavía no tienen archivo vigente.",
+                "operationId": "169f0ecced50b076cdce4096cc0c1907",
+                "parameters": [
+                    {
+                        "name": "id_asignatura",
+                        "in": "query",
+                        "description": "ID de la asignatura.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Un ítem por cada tipo de evidencia (ver EvidenciaSeguimientoItemDTO).",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Parámetro id_asignatura es requerido."
+                    }
+                }
+            }
+        },
+        "/seguimiento-syllabus/encuesta-detalle": {
+            "get": {
+                "tags": [
+                    "I2 - Seguimiento Syllabus"
+                ],
+                "summary": "Devuelve el detalle de la encuesta (parseada del CSV subido) de una asignatura.",
+                "description": "id_evaluacion se acepta por compatibilidad con el frontend, pero ya no se usa para buscar el CSV (ver MEMORIA v18).",
+                "operationId": "f2dceda1d0dd15b09b2fa2df20a13425",
+                "parameters": [
+                    {
+                        "name": "id_asignatura",
+                        "in": "query",
+                        "description": "ID de la asignatura.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "id_evaluacion",
+                        "in": "query",
+                        "description": "Aceptado por compatibilidad; no se usa para buscar el CSV.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "nullable": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Detalle de la encuesta parseada.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Parámetro id_asignatura es requerido."
+                    },
+                    "404": {
+                        "description": "Asignatura no encontrada."
+                    },
+                    "502": {
+                        "description": "La asignatura todavía no tiene un CSV de encuesta subido."
+                    }
+                }
+            }
+        },
+        "/seguimiento-syllabus/evidencia-subir": {
+            "post": {
+                "tags": [
+                    "I2 - Seguimiento Syllabus"
+                ],
+                "summary": "Sube un archivo de evidencia (PDF, o CSV para encuesta_csv) a Google Drive y lo registra.",
+                "description": "La evidencia anterior del mismo tipo para la asignatura queda marcada como no vigente; la nueva pasa a ser la evidencia vigente.",
+                "operationId": "fb34669369f6c7b416a36d679a7b359e",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "id_asignatura",
+                                    "tipo",
+                                    "archivo"
+                                ],
+                                "properties": {
+                                    "id_asignatura": {
+                                        "type": "integer"
+                                    },
+                                    "tipo": {
+                                        "type": "string",
+                                        "enum": [
+                                            "syllabus",
+                                            "acta_ajuste_curricular",
+                                            "evidencia_difusion",
+                                            "encuesta_csv"
+                                        ]
+                                    },
+                                    "archivo": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Evidencia subida y registrada.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "properties": {
+                                                "id_evidencia_asig": {
+                                                    "type": "integer"
+                                                },
+                                                "url_archivo": {
+                                                    "type": "string",
+                                                    "format": "uri"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Faltan datos, el tipo no es válido, o el archivo no pasó la validación."
+                    },
+                    "401": {
+                        "description": "La sesión no está activa."
+                    },
+                    "404": {
+                        "description": "Asignatura no encontrada."
+                    },
+                    "500": {
+                        "description": "No se pudo guardar la evidencia."
+                    },
+                    "502": {
+                        "description": "No se pudo subir el archivo a Google Drive."
+                    }
+                },
+                "security": [
+                    {
+                        "sesionPhp": []
+                    }
+                ]
+            }
+        },
+        "/tasa-desercion/obtener": {
+            "get": {
+                "tags": [
+                    "I4 - Tasa de Deserción"
+                ],
+                "summary": "Lista los datos de deserción (primer nivel/segundo año/no continuaron/tasa) de una evaluación, por cohorte.",
+                "description": "GET /tasa-desercion/obtener?id_evaluacion=",
+                "operationId": "783652eab8e3049ce27a6be916633dc4",
+                "parameters": [
+                    {
+                        "name": "id_evaluacion",
+                        "in": "query",
+                        "description": "ID de la evaluación.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Filas de datos_tasa_desercion para la evaluación, más recientes primero.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "El identificador de la evaluación no es válido."
+                    },
+                    "500": {
+                        "description": "No se pudieron consultar los datos."
+                    }
+                }
+            }
+        },
+        "/tasa-desercion/leer-pdf": {
+            "post": {
+                "tags": [
+                    "I4 - Tasa de Deserción"
+                ],
+                "summary": "Extrae de un PDF el total de estudiantes de primer nivel, segundo año o que no continuaron.",
+                "description": "POST /tasa-desercion/leer-pdf (multipart: archivo, tipo_dato)",
+                "operationId": "d83e8c0830b99a863d54b217d03ef49f",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "archivo",
+                                    "tipo_dato"
+                                ],
+                                "properties": {
+                                    "archivo": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    },
+                                    "tipo_dato": {
+                                        "type": "string",
+                                        "enum": [
+                                            "primer_nivel",
+                                            "segundo_anio",
+                                            "no_continuaron"
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Total detectado, método usado (total_reportado / identificaciones_unicas) y cohorte/período si se pudieron inferir del texto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Falta el archivo o tipo_dato no es válido."
+                    },
+                    "500": {
+                        "description": "No se pudo leer la información del PDF."
+                    }
+                }
+            }
+        },
+        "/tasa-desercion/guardar": {
+            "post": {
+                "tags": [
+                    "I4 - Tasa de Deserción"
+                ],
+                "summary": "Crea/actualiza uno de los 3 datos de una cohorte y recalcula la tasa de deserción.",
+                "description": "Solo se envía uno de los 3 campos por llamada (no varios a la vez); la tasa solo se recalcula cuando ya existen iniciaron_primer_nivel y no_continuaron. Devuelve una advertencia si, con los 3 valores ya cargados, primer nivel menos no continuaron no coincide con matriculados de segundo año.",
+                "operationId": "604ca703aac9cb4cc59f251ad145e060",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id_evaluacion",
+                                    "cohorte"
+                                ],
+                                "properties": {
+                                    "id_evaluacion": {
+                                        "type": "integer"
+                                    },
+                                    "cohorte": {
+                                        "type": "string",
+                                        "example": "B2025"
+                                    },
+                                    "iniciaron_primer_nivel": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    },
+                                    "matriculados_segundo_anio": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    },
+                                    "no_continuaron": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Dato guardado, tasa recalculada y advertencia opcional (ver DatoDesercionGuardadoDTO).",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "advertencia": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "datos": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Faltan datos o las cantidades recibidas no son válidas."
+                    },
+                    "401": {
+                        "description": "La sesión no está activa."
+                    },
+                    "500": {
+                        "description": "No se pudieron actualizar los datos de deserción."
+                    }
+                },
+                "security": [
+                    {
+                        "sesionPhp": []
+                    }
+                ]
+            }
+        },
         "/tasa-titulacion/obtener": {
             "get": {
                 "tags": [
@@ -457,13 +1257,25 @@
         "securitySchemes": {
             "sesionPhp": {
                 "type": "apiKey",
-                "description": "Sesión de PHP iniciada vía api/auth/Login.php (no migrado todavía). Requerida por los endpoints protegidos con SessionAuthMiddleware: evidencia-subir de I3 y guardar de I5.",
+                "description": "Sesión de PHP iniciada vía api/auth/Login.php (no migrado todavía). Requerida por los endpoints protegidos con SessionAuthMiddleware: evidencia-subir de I2/I3, guardar de I4/I5, y guardar de I1 (que además exige rol administrador, 403 si no lo es).",
                 "name": "PHPSESSID",
                 "in": "cookie"
             }
         }
     },
     "tags": [
+        {
+            "name": "I1 - Malla Curricular",
+            "description": "uardar).\r\n\r\nLos otros 4 endpoints de api/carreras/ (listar/crear/actualizar/\r\neliminar) son administración genérica de la entidad Carrera, no del\r\nindicador I1 en sí, y quedan fuera del alcance de esta migración -- ver\r\nMallaCurricularRepository.\r\n\r\nA diferencia de todos los indicadores ya migrados, guardar() exige rol\r\n\"administrador\" además de sesión activa (403 si no lo es), tal como\r\nhacía guardar_malla.php original. SessionAuthMiddleware solo cubre el\r\n401 (sesión no activa); el chequeo de rol se hace acá porque ningún\r\notro indicador lo necesita y agregarlo al middleware compartido\r\nsignificaría una condición que solo aplicaría a esta única ruta.\r\n\r\nLas anotaciones OpenAPI de cada método (Fase 3, hallazgo 1.2.7) se\r\ngeneran a openapi.json con `composer generate-openapi` -- ver\r\nsrc/OpenApi/Definition.php para la info general del documento. Igual\r\nque con I2/I4, la regeneración de openapi.json en sí queda pendiente de\r\nesta sesión (requiere Composer con acceso a packagist.org, no\r\ndisponible en el sandbox de Claude)."
+        },
+        {
+            "name": "I2 - Seguimiento Syllabus",
+            "description": " I3).\r\n\r\n'materias_encuesta.php' (deprecado, ver MEMORIA v18) NO se migra: ya\r\ndevolvía una lista vacía sin lógica real y, confirmado contra\r\nfrontend/src/services/seguimientoSyllabus.ts, ningún llamador del\r\nfrontend lo usa.\r\n\r\nLas anotaciones OpenAPI de cada método (Fase 3, hallazgo 1.2.7) se\r\ngeneran a openapi.json con `composer generate-openapi` — ver\r\nsrc/OpenApi/Definition.php para la info general del documento. Único\r\nendpoint protegido: evidencia-subir (SessionAuthMiddleware, 401), igual\r\nchequeo que evidencia-subir de I3 y guardar de I4/I5."
+        },
+        {
+            "name": "I4 - Tasa de Deserción",
+            "description": "/v64).\r\n\r\nIgual que I5, I4 no maneja subida de evidencia PDF a Google Drive en sus\r\npropios endpoints: eso lo hacen los endpoints genéricos api/evidencias/*\r\n+ api/google_drive/*, que no se tocan en esta migración. Por eso no hay\r\ndependencia de GoogleDriveService aquí.\r\n\r\nLa escritura cruzada I5→I4 (subir el PDF de matriculados de primer nivel\r\nde I5 también registra el dato inicial de I4) vive en el frontend\r\n(EvidenceUploadView.tsx, procesarPdf()), no en este controlador -- ver\r\nMEMORIA §14.3. No se toca en esta migración; solo cambia la URL base que\r\nese código ya llama (guardarDatoDesercion() en\r\nfrontend/src/services/evidencias.ts), actualizada junto con este\r\ncontrolador.\r\n\r\nLas anotaciones OpenAPI de cada método (Fase 3, hallazgo 1.2.7) se\r\ngeneran a openapi.json con `composer generate-openapi` -- ver\r\nsrc/OpenApi/Definition.php para la info general del documento. Nota:\r\nigual que con I2 (ver MEMORIA v67 §44.7 punto 1), la regeneración de\r\nopenapi.json en sí queda pendiente de esta sesión (requiere Composer con\r\nacceso a packagist.org, no disponible en el sandbox de Claude)."
+        },
         {
             "name": "I5 - Tasa de Titulación",
             "description": "ora).\r\n\r\nA diferencia de I3, I5 no maneja subida de evidencia PDF a Google Drive\r\nen sus propios endpoints: eso lo hacen los endpoints genéricos\r\napi/evidencias/* + api/google_drive/*, que no se tocan en esta\r\nmigración. Por eso no hay dependencia de GoogleDriveService aquí.\r\n\r\nLas anotaciones OpenAPI de cada método (Fase 3, hallazgo 1.2.7) se\r\ngeneran a openapi.json con `composer generate-openapi` — ver\r\nsrc/OpenApi/Definition.php para la info general del documento."
