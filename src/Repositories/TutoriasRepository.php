@@ -114,19 +114,32 @@ final class TutoriasRepository
     }
 
     /**
-     * Evidencias vigentes (una por tipo, como máximo) de una asignatura.
-     * Misma consulta que evidencia_listar.php original.
+     * Evidencias vigentes (una por tipo, como máximo) de una asignatura,
+     * SOLO de los 4 tipos que pertenecen a I3.
+     *
+     * Fix respecto al original (evidencia_listar.php): `evidencia_asignatura`
+     * es una tabla compartida entre indicadores (ej. I2 guarda ahí filas con
+     * tipo='syllabus'). El original no filtraba por tipo y ya tenía un bug
+     * latente con eso (el array resultante quedaba mal formado para tipos
+     * ajenos a I3, sin tirar error). Acá se filtra explícitamente por los
+     * tipos de TutoriasCalculoService::TIPOS_TUTORIAS para no arrastrar
+     * filas de otros indicadores — encontrado al probar este endpoint
+     * contra datos reales tras la migración a Slim.
      *
      * @return array<int, array{id_evidencia_asig: int, tipo: string, nombre_archivo: string, url_archivo: string, subido_por: string|null, fecha_subida: string}>
      */
     public function evidenciasVigentesPorAsignatura(int $idAsignatura): array
     {
+        $tipos = \App\Services\TutoriasCalculoService::TIPOS_TUTORIAS;
+        $placeholders = implode(',', array_fill(0, count($tipos), '?'));
+
         $stmt = $this->conexion->prepare(
-            'SELECT id_evidencia_asig, tipo, nombre_archivo, url_archivo, subido_por, fecha_subida
+            "SELECT id_evidencia_asig, tipo, nombre_archivo, url_archivo, subido_por, fecha_subida
              FROM evidencia_asignatura
-             WHERE id_asignatura = ? AND vigente = 1'
+             WHERE id_asignatura = ? AND vigente = 1 AND tipo IN ($placeholders)"
         );
-        $stmt->bind_param('i', $idAsignatura);
+        $tipoParams = array_fill(0, count($tipos), 's');
+        $stmt->bind_param('i' . implode('', $tipoParams), $idAsignatura, ...$tipos);
         $stmt->execute();
 
         return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
