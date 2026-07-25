@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Controllers\MallaCurricularController;
 use App\Controllers\SeguimientoSyllabusController;
 use App\Controllers\TasaDesercionController;
 use App\Controllers\TitulacionController;
@@ -10,6 +11,7 @@ use App\Infra\Database;
 use App\Middleware\CorsMiddleware;
 use App\Middleware\SessionAuthMiddleware;
 use App\Repositories\DesercionRepository;
+use App\Repositories\MallaCurricularRepository;
 use App\Repositories\SeguimientoSyllabusRepository;
 use App\Repositories\TitulacionRepository;
 use App\Repositories\TutoriasRepository;
@@ -158,6 +160,25 @@ $app->group('/tasa-desercion', function ($grupo) use ($desercionController) {
     $grupo->get('/obtener', [$desercionController, 'obtener']);
     $grupo->post('/leer-pdf', [$desercionController, 'leerPdf']);
     $grupo->post('/guardar', [$desercionController, 'guardar'])->add(new SessionAuthMiddleware());
+});
+
+// --- Composición de dependencias de I1 (Malla Curricular) ---------------
+// Misma conexión mysqli reusada del bloque inicial, igual que I4/I5.
+$mallaCurricularRepositorio = new MallaCurricularRepository($conexion);
+$mallaCurricularController = new MallaCurricularController($mallaCurricularRepositorio);
+
+// --- Rutas de I1 (Malla Curricular) -------------------------------------
+// Mismos 2 endpoints que consumían obtenerMallaCurricular/subirMallaCurricular
+// en frontend/src/services/{evidencias,carreras}.ts contra los archivos
+// sueltos originales (api/carreras/{obtener_malla,guardar_malla}.php). Los
+// otros 4 endpoints de api/carreras/ (listar/crear/actualizar/eliminar) son
+// administración genérica de Carreras, no del indicador I1, y quedan sin
+// tocar -- ver MallaCurricularRepository. `guardar` exige sesión
+// (SessionAuthMiddleware, 401) y además rol administrador (403, chequeado
+// dentro del controlador -- ver MallaCurricularController).
+$app->group('/malla-curricular', function ($grupo) use ($mallaCurricularController) {
+    $grupo->get('/obtener', [$mallaCurricularController, 'obtener']);
+    $grupo->post('/guardar', [$mallaCurricularController, 'guardar'])->add(new SessionAuthMiddleware());
 });
 
 $app->run();

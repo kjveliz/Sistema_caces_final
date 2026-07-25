@@ -242,7 +242,7 @@ export async function subirMallaCurricular({
     throw new Error(drive.mensaje ?? drive.detalle ?? 'No se pudo subir la malla a Google Drive.');
   }
 
-  const respuestaGuardar = await fetch(`${API_BASE}/guardar_malla.php`, {
+  const respuestaGuardar = await fetch('http://localhost/sistemacaces/public/malla-curricular/guardar', {
     method: 'POST',
     credentials: 'include',
     headers: {

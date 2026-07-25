@@ -689,7 +689,7 @@ export async function obtenerMallaCurricular(
   });
 
   const respuesta = await fetch(
-    `http://localhost/sistemacaces/api/carreras/obtener_malla.php?${parametros.toString()}`,
+    `http://localhost/sistemacaces/public/malla-curricular/obtener?${parametros.toString()}`,
     {
       method: 'GET',
       credentials: 'include',
