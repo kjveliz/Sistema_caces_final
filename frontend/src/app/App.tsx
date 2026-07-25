@@ -81,7 +81,7 @@ function CriteriaRoute() {
     <CriteriaView
       career={career}
       onSelectDocencia={() => navigate(`/carreras/${career.code}/dashboard`)}
-      onBack={() => navigate('/carreras')}
+      onBack={() => navigate('/carreras', { replace: true })}
       onLogout={() => {
         logout();
         navigate('/login', { replace: true });
@@ -224,7 +224,7 @@ function DashboardRoute() {
 
         navigate(`/carreras/${career.code}/evidencias`);
       }}
-      onBackToCareers={() => navigate('/carreras')}
+      onBackToCareers={() => navigate('/carreras', { replace: true })}
       usuario={usuario!}
       puedeCargar={Boolean(puedeCargar)}
     />
@@ -246,7 +246,7 @@ function IndicatorRoute() {
   return (
     <IndicatorView
       indicator={selected}
-      onBack={() => navigate(`/carreras/${career.code}/dashboard`)}
+      onBack={() => navigate(`/carreras/${career.code}/dashboard`, { replace: true })}
       career={career}
       cohort={selectedCohort}
       pao={selectedPAO}
@@ -282,6 +282,7 @@ function EvidenceUploadRoute() {
           codigo
             ? `/carreras/${career.code}/indicadores/${codigo}`
             : `/carreras/${career.code}/dashboard`,
+          { replace: true },
         )
       }
       preselectedCohort={selectedCohort}
