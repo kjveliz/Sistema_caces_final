@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Controllers\TitulacionController;
 use App\Controllers\TutoriasAcademicasController;
 use App\Infra\Database;
 use App\Middleware\CorsMiddleware;
 use App\Middleware\SessionAuthMiddleware;
+use App\Repositories\TitulacionRepository;
 use App\Repositories\TutoriasRepository;
 use App\Services\GoogleDriveService;
 use App\Services\TutoriasCalculoService;
@@ -73,6 +75,25 @@ $app->group('/tutorias-academicas', function ($grupo) use ($controller) {
     $grupo->get('/resultado-asignatura', [$controller, 'resultadoAsignatura']);
     $grupo->get('/resultado-cohorte', [$controller, 'resultadoCohorte']);
     $grupo->post('/evidencia-subir', [$controller, 'evidenciaSubir'])->add(new SessionAuthMiddleware());
+});
+
+// --- Composición de dependencias de I5 (Tasa de Titulación) ------------
+// Reusa la misma conexión mysqli ya abierta arriba para I3 (una sola
+// conexión por request, igual de barato que abrir una nueva y evita
+// duplicar Database::conectar()).
+$titulacionRepositorio = new TitulacionRepository($conexion);
+$titulacionController = new TitulacionController($titulacionRepositorio);
+
+// --- Rutas de I5 (Tasa de Titulación) -----------------------------------
+// Mismos 3 endpoints que consumían obtenerDatosTasa/leerPdfTitulacion/
+// guardarDatoTitulacion en frontend/src/services/evidencias.ts contra los
+// archivos sueltos originales. I5 no maneja subida de evidencia a Drive en
+// sus propios endpoints (eso sigue en api/evidencias/*, sin tocar), por eso
+// son solo 3 rutas y no 4 como I3.
+$app->group('/tasa-titulacion', function ($grupo) use ($titulacionController) {
+    $grupo->get('/obtener', [$titulacionController, 'obtener']);
+    $grupo->post('/leer-pdf', [$titulacionController, 'leerPdf']);
+    $grupo->post('/guardar', [$titulacionController, 'guardar'])->add(new SessionAuthMiddleware());
 });
 
 $app->run();

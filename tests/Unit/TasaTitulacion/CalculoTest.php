@@ -4,27 +4,30 @@ declare(strict_types=1);
 
 namespace Tests\Unit\TasaTitulacion;
 
+use App\Services\TitulacionCalculoService;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
-require_once __DIR__ . '/../../../api/tasa_titulacion/_calculo.php';
-
 /**
- * Tests de extraerDatosTitulacion() (api/tasa_titulacion/_calculo.php),
- * extraída de leer_pdf.php en la Fase 5. Los patrones de "total" son
- * distintos según $tipoDato ("matriculados" vs "graduados") -- ver el
- * propio archivo.
+ * Tests de TitulacionCalculoService::extraerDatosTitulacion(), migrada en
+ * la Fase 3 (I5) desde la función suelta homónima de
+ * api/tasa_titulacion/_calculo.php (que existía desde la Fase 5, extraída
+ * de leer_pdf.php para hacerla testeable). Mismos 24 asserts que antes,
+ * ahora contra la clase real vía el autoload PSR-4 de Composer (sin
+ * require_once manual, igual que se hizo con TutoriasCalculoService/I3 en
+ * v64). Los patrones de "total" son distintos según $tipoDato
+ * ("matriculados" vs "graduados") -- ver el propio servicio.
  */
 final class CalculoTest extends TestCase
 {
     #[DataProvider('proveedorFrasesMatriculados')]
     public function testReconoceFrasesDeTotalParaMatriculados(string $frase, int $totalEsperado): void
     {
-        $resultado = extraerDatosTitulacion("Encabezado\n{$frase}\nPie", 'matriculados');
+        $resultado = TitulacionCalculoService::extraerDatosTitulacion("Encabezado\n{$frase}\nPie", 'matriculados');
 
-        $this->assertSame($totalEsperado, $resultado['total']);
-        $this->assertSame('total_reportado', $resultado['metodo']);
+        $this->assertSame($totalEsperado, $resultado->total);
+        $this->assertSame('total_reportado', $resultado->metodo);
     }
 
     public static function proveedorFrasesMatriculados(): array
@@ -40,10 +43,10 @@ final class CalculoTest extends TestCase
     #[DataProvider('proveedorFrasesGraduados')]
     public function testReconoceFrasesDeTotalParaGraduados(string $frase, int $totalEsperado): void
     {
-        $resultado = extraerDatosTitulacion("Encabezado\n{$frase}\nPie", 'graduados');
+        $resultado = TitulacionCalculoService::extraerDatosTitulacion("Encabezado\n{$frase}\nPie", 'graduados');
 
-        $this->assertSame($totalEsperado, $resultado['total']);
-        $this->assertSame('total_reportado', $resultado['metodo']);
+        $this->assertSame($totalEsperado, $resultado->total);
+        $this->assertSame('total_reportado', $resultado->metodo);
     }
 
     public static function proveedorFrasesGraduados(): array
@@ -65,17 +68,17 @@ final class CalculoTest extends TestCase
         // -- debe caer al respaldo de cédulas (0 en este caso, por lo tanto excepción).
         $this->expectException(RuntimeException::class);
 
-        extraerDatosTitulacion("Total de graduados: 30\nsin cedulas.", 'matriculados');
+        TitulacionCalculoService::extraerDatosTitulacion("Total de graduados: 30\nsin cedulas.", 'matriculados');
     }
 
     public function testRespaldoCuentaCedulasUnicasDe10Digitos(): void
     {
         $texto = "1712345678 Ana\n0912345678 Luis\n1712345678 Ana\n";
 
-        $resultado = extraerDatosTitulacion($texto, 'graduados');
+        $resultado = TitulacionCalculoService::extraerDatosTitulacion($texto, 'graduados');
 
-        $this->assertSame(2, $resultado['total']);
-        $this->assertSame('identificaciones_unicas', $resultado['metodo']);
+        $this->assertSame(2, $resultado->total);
+        $this->assertSame('identificaciones_unicas', $resultado->metodo);
     }
 
     public function testSinEstudiantesDetectadosLanzaExcepcion(): void
@@ -83,17 +86,17 @@ final class CalculoTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('No se pudo detectar ningún estudiante en el PDF.');
 
-        extraerDatosTitulacion('Documento vacío de datos.', 'matriculados');
+        TitulacionCalculoService::extraerDatosTitulacion('Documento vacío de datos.', 'matriculados');
     }
 
     public function testDetectaCohorteYPeriodo(): void
     {
-        $resultado = extraerDatosTitulacion(
+        $resultado = TitulacionCalculoService::extraerDatosTitulacion(
             "Total graduados: 3\nCohorte A2026\nPeriodo: PAO 3 2025 Fecha: 01/01/2026",
             'graduados',
         );
 
-        $this->assertSame('A2026', $resultado['cohorte_detectada']);
-        $this->assertSame('PAO 3 2025', $resultado['periodo_detectado']);
+        $this->assertSame('A2026', $resultado->cohorteDetectada);
+        $this->assertSame('PAO 3 2025', $resultado->periodoDetectado);
     }
 }

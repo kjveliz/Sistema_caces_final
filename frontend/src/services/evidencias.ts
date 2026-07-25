@@ -401,7 +401,7 @@ export interface CohorteTitulacion {
 
 export async function obtenerDatosTasa(idEvaluacion: number): Promise<CohorteTitulacion[]> {
   const respuesta = await fetch(
-    `http://localhost/sistemacaces/api/tasa_titulacion/obtener.php?id_evaluacion=${idEvaluacion}`,
+    `http://localhost/sistemacaces/public/tasa-titulacion/obtener?id_evaluacion=${idEvaluacion}`,
     {
       method: 'GET',
       credentials: 'include',
@@ -446,7 +446,7 @@ export async function leerPdfTitulacion(
   formulario.append('archivo', archivo);
   formulario.append('tipo_dato', tipoDato);
 
-  const respuesta = await fetch('http://localhost/sistemacaces/api/tasa_titulacion/leer_pdf.php', {
+  const respuesta = await fetch('http://localhost/sistemacaces/public/tasa-titulacion/leer-pdf', {
     method: 'POST',
     credentials: 'include',
     body: formulario,
@@ -501,7 +501,7 @@ export async function guardarDatoTitulacion({
     cuerpo.graduados = graduados;
   }
 
-  const respuesta = await fetch('http://localhost/sistemacaces/api/tasa_titulacion/guardar.php', {
+  const respuesta = await fetch('http://localhost/sistemacaces/public/tasa-titulacion/guardar', {
     method: 'POST',
     credentials: 'include',
     headers: {
