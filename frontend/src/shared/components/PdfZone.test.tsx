@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { fireEvent } from '@testing-library/react';
 
 import PdfZone from './PdfZone';
-import type { EvidenceSlot } from '../../types';
+import type { EvidenceSlot } from '../../types/index';
 
 /**
  * Primera pasada de tests de componentes con React Testing Library (Fase 5

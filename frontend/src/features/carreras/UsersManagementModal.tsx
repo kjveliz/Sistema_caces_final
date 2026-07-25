@@ -17,7 +17,7 @@ import {
   crearUsuario,
   listarUsuarios,
   type UsuarioSistema,
-} from '../services/usuarios';
+} from '../../shared/services/usuarios';
 
 interface UsersManagementModalProps {
   open: boolean;

@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 
 import PaoGroupCard from './PaoGroupCard';
 
-import type { IndicatorDef } from '../../types';
+import type { IndicatorDef } from '../../types/index';
 
 /**
  * PaoGroupCard es la tarjeta con 3 PAOs (usada en I1/I2/I3) que compone

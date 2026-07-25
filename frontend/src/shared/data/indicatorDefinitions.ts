@@ -1,4 +1,4 @@
-import type { Career, IndicatorDef } from '../types';
+import type { Career, IndicatorDef } from '../../types/index';
 
 // ── Indicator factory ────────────────────────────────────────
 // Movido desde app/App.tsx (Fase 4 del Plan de Mejora, activación de

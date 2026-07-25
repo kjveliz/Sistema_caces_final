@@ -1,9 +1,9 @@
 import Ring from './Ring';
 import SemLight from './SemLight';
 
-import { calcRate, getStatus } from '../../utils/evaluation';
+import { calcRate, getStatus } from '../utils/evaluation';
 
-import type { IndicatorDef } from '../../types';
+import type { IndicatorDef } from '../../types/index';
 
 interface IndCardProps {
   ind: IndicatorDef;

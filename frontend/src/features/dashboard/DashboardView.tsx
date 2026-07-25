@@ -11,16 +11,16 @@ import {
   User,
 } from 'lucide-react';
 
-import IndCard from '../app/components/IndCard';
-import PaoGroupCard from '../app/components/PaoGroupCard';
-import { listarCohortesEvaluaciones, type CohorteEvaluacion } from '../services/cohortes';
+import IndCard from '../../shared/components/IndCard';
+import PaoGroupCard from '../../shared/components/PaoGroupCard';
+import { listarCohortesEvaluaciones, type CohorteEvaluacion } from '../../shared/services/cohortes';
 
-import { obtenerEvaluacion } from '../services/evidencias';
-import { obtenerPeriodos, obtenerResultadoCohorte } from '../services/seguimientoSyllabus';
-import { obtenerResultadoCohorteTutorias } from '../services/tutoriasAcademicas';
+import { obtenerEvaluacion } from '../../shared/services/evidencias';
+import { obtenerPeriodos, obtenerResultadoCohorte } from '../../shared/services/seguimientoSyllabus';
+import { obtenerResultadoCohorteTutorias } from '../../shared/services/tutoriasAcademicas';
 
-import type { UsuarioSesion } from '../services/auth';
-import type { Career, IndicatorDef } from '../types';
+import type { UsuarioSesion } from '../../shared/services/auth';
+import type { Career, IndicatorDef } from '../../types/index';
 
 interface DashboardViewProps {
   indicators: IndicatorDef[];

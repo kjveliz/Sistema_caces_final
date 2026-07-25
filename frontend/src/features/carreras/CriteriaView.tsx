@@ -1,6 +1,6 @@
 import { ArrowLeft, LogOut, ShieldCheck, User } from 'lucide-react';
 
-import type { Career } from '../types';
+import type { Career } from '../../types/index';
 
 interface CriteriaViewProps {
   career: Career;

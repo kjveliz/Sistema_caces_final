@@ -1,5 +1,5 @@
 import { AREAS } from '../data/careers';
-import type { Career } from '../types';
+import type { Career } from '../../types/index';
 
 export interface CarreraBD {
   id_carrera: number;

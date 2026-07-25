@@ -1,4 +1,4 @@
-import type { CohortRow } from '../types';
+import type { CohortRow } from '../../types/index';
 
 export interface StatusResult {
   label: string;

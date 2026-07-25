@@ -8,7 +8,7 @@ import {
   crearCarrera,
   eliminarCarrera,
   subirMallaCurricular,
-} from '../services/carreras';
+} from '../../shared/services/carreras';
 import {
   AlertCircle,
   CalendarDays,
@@ -26,11 +26,11 @@ import {
 
 import { toast } from 'sonner';
 
-import CompassIcon from '../app/components/CompassIcon';
-import { AREAS } from '../data/careers';
+import CompassIcon from '../../shared/components/CompassIcon';
+import { AREAS } from '../../shared/data/careers';
 
-import type { Career, CareerArea } from '../types';
-import type { UsuarioSesion } from '../services/auth';
+import type { Career, CareerArea } from '../../types/index';
+import type { UsuarioSesion } from '../../shared/services/auth';
 
 interface CareersViewProps {
   onSelect: (career: Career) => void;

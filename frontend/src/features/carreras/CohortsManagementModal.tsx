@@ -7,7 +7,7 @@ import {
   crearCohorteEvaluacion,
   listarCohortesEvaluaciones,
   type CohorteEvaluacion,
-} from '../services/cohortes';
+} from '../../shared/services/cohortes';
 
 interface CohortsManagementModalProps {
   open: boolean;

@@ -1,8 +1,8 @@
 import { useRef } from 'react';
 import { CheckCircle2, XCircle, FileText, Upload, Loader2 } from 'lucide-react';
 
-import type { EvidenceSlot } from '../../types';
-import { validatePDF, validateCSV } from '../../utils/pdf';
+import type { EvidenceSlot } from '../../types/index';
+import { validatePDF, validateCSV } from '../utils/pdf';
 
 interface PdfZoneProps {
   slot: EvidenceSlot;

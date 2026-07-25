@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
-import type { UsuarioSesion } from '../services/auth';
+import type { UsuarioSesion } from '../shared/services/auth';
 
 interface AuthContextValue {
   usuario: UsuarioSesion | null;

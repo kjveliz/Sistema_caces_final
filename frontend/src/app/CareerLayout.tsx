@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation, useParams } from 'react-router';
 
-import { resolverCarreraPorCodigo } from '../services/carreras';
-import { makeIndicators } from '../data/indicatorDefinitions';
+import { resolverCarreraPorCodigo } from '../shared/services/carreras';
+import { makeIndicators } from '../shared/data/indicatorDefinitions';
 import { CareerContext } from '../contexts/CareerContext';
 
-import type { Career, IndicatorDef } from '../types';
+import type { Career, IndicatorDef } from '../types/index';
 
 /**
  * Layout de las rutas anidadas bajo `/carreras/:code/...`. Resuelve el

@@ -1,4 +1,4 @@
-import type { CareerArea } from '../types';
+import type { CareerArea } from '../../types/index';
 
 export const AREAS: CareerArea[] = [
   {

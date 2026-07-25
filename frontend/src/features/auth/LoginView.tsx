@@ -1,4 +1,4 @@
-import { iniciarSesion, type UsuarioSesion } from '../services/auth';
+import { iniciarSesion, type UsuarioSesion } from '../../shared/services/auth';
 
 import { useState } from 'react';
 import { Eye, EyeOff, User } from 'lucide-react';

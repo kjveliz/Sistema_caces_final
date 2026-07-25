@@ -8,7 +8,7 @@ import {
   obtenerEvidenciasGuardadas,
   type CohorteTitulacion,
   type CohorteDesercion,
-} from '../services/evidencias';
+} from '../../shared/services/evidencias';
 import {
   AlertCircle,
   ArrowLeft,
@@ -27,9 +27,9 @@ import { toast } from 'sonner';
 
 import { PolarAngleAxis, PolarGrid, Radar, RadarChart, ResponsiveContainer } from 'recharts';
 
-import AporteRing from '../app/components/AporteRing';
+import AporteRing from '../../shared/components/AporteRing';
 
-import { calcRate, getStatus } from '../utils/evaluation';
+import { calcRate, getStatus } from '../../shared/utils/evaluation';
 
 import {
   obtenerPeriodos,
@@ -39,7 +39,7 @@ import {
   type ResultadoAsignatura,
   type ResultadoCohorte,
   type EvidenciaAsignaturaItem,
-} from '../services/seguimientoSyllabus';
+} from '../../shared/services/seguimientoSyllabus';
 
 import {
   obtenerResultadoCohorteTutorias,
@@ -48,11 +48,11 @@ import {
   type ResultadoAsignaturaTutorias,
   type EfTutorias,
   type EvidenciaTutoriasItem,
-} from '../services/tutoriasAcademicas';
+} from '../../shared/services/tutoriasAcademicas';
 
-import { exportarPdfIndicador2 } from '../lib/exportarPdfIndicador2';
+import { exportarPdfIndicador2 } from '../../shared/lib/exportarPdfIndicador2';
 
-import type { Career, IndicatorDef, TabId } from '../types';
+import type { Career, IndicatorDef, TabId } from '../../types/index';
 
 export default function IndicatorView({
   indicator,

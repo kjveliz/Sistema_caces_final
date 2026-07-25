@@ -1,22 +1,22 @@
 import { Toaster } from 'sonner';
 import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router';
 
-import { obtenerEvaluacion, obtenerDatosTasa, obtenerDatosDesercion } from '../services/evidencias';
+import { obtenerEvaluacion, obtenerDatosTasa, obtenerDatosDesercion } from '../shared/services/evidencias';
 import { useEffect } from 'react';
 import type { ReactNode } from 'react';
 
-import EvidenceUploadView from '../pages/EvidenceUploadView';
-import DashboardView from '../pages/DashboardView';
-import IndicatorView from '../pages/IndicatorView';
-import CriteriaView from '../pages/CriteriaView';
-import CareersView from '../pages/CareersView';
-import LoginView from '../pages/LoginView';
+import EvidenceUploadView from '../features/indicadores/EvidenceUploadView';
+import DashboardView from '../features/dashboard/DashboardView';
+import IndicatorView from '../features/indicadores/IndicatorView';
+import CriteriaView from '../features/carreras/CriteriaView';
+import CareersView from '../features/carreras/CareersView';
+import LoginView from '../features/auth/LoginView';
 
 import { useAuth } from '../contexts/AuthContext';
 import { useCareerContext } from '../contexts/CareerContext';
 import CareerLayout from './CareerLayout';
 
-import type { Career } from '../types';
+import type { Career } from '../types/index';
 
 // ── Rutas de nivel raíz (auth) ────────────────────────────────
 

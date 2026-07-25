@@ -4,9 +4,9 @@ import { ArrowLeft, CheckCircle2, ChevronDown, FileText, Loader2 } from 'lucide-
 
 import { toast } from 'sonner';
 
-import PdfZone from '../app/components/PdfZone';
-import EvidenceHeader from '../app/components/EvidenceHeader';
-import Breadcrumb from '../app/components/Breadcrumb';
+import PdfZone from '../../shared/components/PdfZone';
+import EvidenceHeader from '../../shared/components/EvidenceHeader';
+import Breadcrumb from '../../shared/components/Breadcrumb';
 
 import {
   prepararPdf,
@@ -21,22 +21,22 @@ import {
   guardarDatoTitulacion,
   leerPdfDesercion,
   guardarDatoDesercion,
-} from '../services/evidencias';
+} from '../../shared/services/evidencias';
 
-import { COHORT_OPTIONS, MATERIAS_BY_PAO_MODULE } from '../data/academic';
+import { COHORT_OPTIONS, MATERIAS_BY_PAO_MODULE } from '../../shared/data/academic';
 
-import { resolverAsignaturaPorNombre } from '../utils/asignaturas';
+import { resolverAsignaturaPorNombre } from '../../shared/utils/asignaturas';
 
 import {
   subirEvidenciaAsignatura,
   obtenerEvidenciaAsignatura,
   obtenerAsignaturas,
   obtenerPeriodos,
-} from '../services/seguimientoSyllabus';
+} from '../../shared/services/seguimientoSyllabus';
 
-import { subirEvidenciaTutorias, obtenerEvidenciaTutorias } from '../services/tutoriasAcademicas';
+import { subirEvidenciaTutorias, obtenerEvidenciaTutorias } from '../../shared/services/tutoriasAcademicas';
 
-import type { Career, EvidStep, EvidenceSlot, IndicatorDef } from '../types';
+import type { Career, EvidStep, EvidenceSlot, IndicatorDef } from '../../types/index';
 
 export default function EvidenceUploadView({
   career,

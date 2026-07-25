@@ -1,10 +1,10 @@
 import Ring from './Ring';
 import SemLight from './SemLight';
 
-import { getStatus } from '../../utils/evaluation';
-import { PAO_SCORES } from '../../data/evaluation';
+import { getStatus } from '../utils/evaluation';
+import { PAO_SCORES } from '../data/evaluation';
 
-import type { IndicatorDef } from '../../types';
+import type { IndicatorDef } from '../../types/index';
 
 interface PaoGroupCardProps {
   ind: IndicatorDef;

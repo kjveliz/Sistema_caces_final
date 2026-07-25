@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 
-import type { Career, IndicatorDef } from '../types';
+import type { Career, IndicatorDef } from '../types/index';
 
 export interface CareerContextValue {
   career: Career;

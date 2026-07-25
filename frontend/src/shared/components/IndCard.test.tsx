@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 
 import IndCard from './IndCard';
 
-import type { CohortRow, IndicatorDef } from '../../types';
+import type { CohortRow, IndicatorDef } from '../../types/index';
 
 /**
  * IndCard es la tarjeta de indicador del dashboard general (I1-I5): calcula
