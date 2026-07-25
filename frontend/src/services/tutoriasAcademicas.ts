@@ -1,4 +1,7 @@
-const BASE = 'http://localhost/sistemacaces/api/tutorias_academicas';
+// Fase 3 del Plan de Mejora: I3 ya no se sirve como archivos .php sueltos
+// (api/tutorias_academicas/*.php) sino a través del router de Slim en
+// public/index.php — ver src/Controllers/TutoriasAcademicasController.php.
+const BASE = 'http://localhost/sistemacaces/public/tutorias-academicas';
 
 async function getJson<T>(url: string): Promise<T> {
   const respuesta = await fetch(url, {
@@ -52,7 +55,7 @@ export interface EvidenciaTutoriasItem {
 }
 
 export function obtenerEvidenciaTutorias(idAsignatura: number): Promise<EvidenciaTutoriasItem[]> {
-  return getJson(`${BASE}/evidencia_listar.php?id_asignatura=${idAsignatura}`);
+  return getJson(`${BASE}/evidencia-listar?id_asignatura=${idAsignatura}`);
 }
 
 export async function subirEvidenciaTutorias(params: {
@@ -72,7 +75,7 @@ export async function subirEvidenciaTutorias(params: {
   formulario.append('tipo', params.tipo);
   formulario.append('archivo', params.archivo);
 
-  const respuesta = await fetch(`${BASE}/evidencia_subir.php`, {
+  const respuesta = await fetch(`${BASE}/evidencia-subir`, {
     method: 'POST',
     credentials: 'include',
     body: formulario,
@@ -122,7 +125,7 @@ export function obtenerResultadoAsignaturaTutorias(
   idEvaluacion: number,
 ): Promise<ResultadoAsignaturaTutorias> {
   return getJson(
-    `${BASE}/resultado_asignatura.php?id_asignatura=${idAsignatura}&id_evaluacion=${idEvaluacion}`,
+    `${BASE}/resultado-asignatura?id_asignatura=${idAsignatura}&id_evaluacion=${idEvaluacion}`,
   );
 }
 
@@ -136,5 +139,5 @@ export function obtenerResultadoCohorteTutorias(
     id_evaluacion: String(idEvaluacion),
   });
   if (idPeriodo) params.set('id_periodo', String(idPeriodo));
-  return getJson(`${BASE}/resultado_cohorte.php?${params.toString()}`);
+  return getJson(`${BASE}/resultado-cohorte?${params.toString()}`);
 }
