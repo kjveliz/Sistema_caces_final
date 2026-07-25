@@ -30,18 +30,26 @@ $dotenv->safeLoad();
 
 $app = AppFactory::create();
 
-// Slim necesita conocer la base path cuando se sirve desde una subcarpeta
-// (ej. XAMPP con htdocs/sistemacaces/public), para que el enrutamiento no
-// se confunda con el prefijo real de la URL.
-//
 // Configurable vía APP_BASE_PATH (pendiente que había quedado abierto en
 // la migración de I3 -- ver MEMORIA v64/§41.1): el valor por defecto sigue
 // siendo '/sistemacaces/public' para no cambiar nada en la máquina real del
-// usuario (XAMPP, htdocs/sistemacaces). Los tests de integración fijan
-// APP_BASE_PATH='' (ver tests/Integration/IntegrationTestCase.php +
-// public/router-testing.php), porque ahí Slim se sirve desde la raíz del
-// servidor embebido de PHP, sin el prefijo de carpeta de XAMPP.
-$basePath = $_ENV['APP_BASE_PATH'] ?? '/sistemacaces/public';
+// usuario (XAMPP, htdocs/sistemacaces). Los tests de integración necesitan
+// basePath='' (ver tests/Integration/IntegrationTestCase.php +
+// tests/Integration/router-testing.php), porque ahí Slim se sirve desde la
+// raíz del servidor embebido de PHP, sin el prefijo de carpeta de XAMPP.
+//
+// A propósito NO se decide con `$_ENV['APP_BASE_PATH'] ?? '...'`: en
+// Windows, una variable de entorno con valor vacío ('') se pierde al pasar
+// por CreateProcess/proc_open (el bloque de entorno de Windows no
+// distingue "vacía" de "no seteada"), así que ese valor nunca le llegaba
+// al proceso hijo -- confirmado en vivo con logging temporal en
+// router-testing.php: `APP_BASE_PATH=(unset)` tanto en `php -S` manual
+// como dentro de IntegrationTestCase::setUpBeforeClass(), lo que hacía que
+// Slim intentara descontar '/sistemacaces/public' de rutas que no lo
+// tenían y devolviera 404 (HttpNotFoundException) en TODOS los tests de
+// integración migrados a Slim (I2). Se decide en base a APP_ENV en su
+// lugar, que sí es un valor no vacío y viaja bien en Windows.
+$basePath = ($_ENV['APP_ENV'] ?? 'production') === 'testing' ? '' : ($_ENV['APP_BASE_PATH'] ?? '/sistemacaces/public');
 $app->setBasePath($basePath);
 
 $app->addBodyParsingMiddleware();
