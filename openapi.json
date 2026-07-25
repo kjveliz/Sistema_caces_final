@@ -1,0 +1,476 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Sistema CACES — API (indicadores migrados a Slim)",
+        "description": "Documentación generada automáticamente con zircote/swagger-php a partir de las anotaciones en src/Controllers/. Cubre I3 (Tutorías Académicas) e I5 (Tasa de Titulación); I1, I2 e I4 todavía son archivos .php sueltos (api/*) sin migrar a esta arquitectura y no aparecen en este documento.",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://localhost/sistemacaces/public",
+            "description": "Entorno de desarrollo local (XAMPP), sirviendo el nuevo punto de entrada de Slim."
+        }
+    ],
+    "paths": {
+        "/tasa-titulacion/obtener": {
+            "get": {
+                "tags": [
+                    "I5 - Tasa de Titulación"
+                ],
+                "summary": "Lista los datos de titulación (matriculados/graduados/tasa) de una evaluación, por cohorte.",
+                "description": "GET /tasa-titulacion/obtener?id_evaluacion=",
+                "operationId": "10a59acd0c221aea62eaaaa77cfb1dd1",
+                "parameters": [
+                    {
+                        "name": "id_evaluacion",
+                        "in": "query",
+                        "description": "ID de la evaluación.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Filas de datos_tasa_titulacion para la evaluación, más recientes primero.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "El identificador de la evaluación no es válido."
+                    },
+                    "500": {
+                        "description": "No se pudieron consultar los datos."
+                    }
+                }
+            }
+        },
+        "/tasa-titulacion/leer-pdf": {
+            "post": {
+                "tags": [
+                    "I5 - Tasa de Titulación"
+                ],
+                "summary": "Extrae de un PDF el total de matriculados o graduados (y cohorte/período si se detectan).",
+                "description": "POST /tasa-titulacion/leer-pdf (multipart: archivo, tipo_dato)",
+                "operationId": "74b8ca128cb4c2586637787726e54b33",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "archivo",
+                                    "tipo_dato"
+                                ],
+                                "properties": {
+                                    "archivo": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    },
+                                    "tipo_dato": {
+                                        "type": "string",
+                                        "enum": [
+                                            "matriculados",
+                                            "graduados"
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Total detectado, método usado (total_reportado / identificaciones_unicas) y cohorte/período si se pudieron inferir del texto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Falta el archivo o tipo_dato no es válido."
+                    },
+                    "500": {
+                        "description": "No se pudo leer la información del PDF."
+                    }
+                }
+            }
+        },
+        "/tasa-titulacion/guardar": {
+            "post": {
+                "tags": [
+                    "I5 - Tasa de Titulación"
+                ],
+                "summary": "Crea/actualiza matriculados o graduados de una cohorte y recalcula la tasa.",
+                "description": "Solo se envía matriculados o graduados (no ambos a la vez); la tasa solo se recalcula cuando ya existen los dos valores.",
+                "operationId": "b8d7cb81d3b558d19b1a125b9ae30fc0",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id_evaluacion",
+                                    "cohorte"
+                                ],
+                                "properties": {
+                                    "id_evaluacion": {
+                                        "type": "integer"
+                                    },
+                                    "cohorte": {
+                                        "type": "string",
+                                        "example": "B2025"
+                                    },
+                                    "matriculados": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    },
+                                    "graduados": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Dato guardado y tasa recalculada (ver DatoTitulacionGuardadoDTO).",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Faltan datos o las cantidades recibidas no son válidas."
+                    },
+                    "401": {
+                        "description": "La sesión no está activa."
+                    },
+                    "500": {
+                        "description": "No se pudieron actualizar los datos de titulación."
+                    }
+                },
+                "security": [
+                    {
+                        "sesionPhp": []
+                    }
+                ]
+            }
+        },
+        "/tutorias-academicas/evidencia-listar": {
+            "get": {
+                "tags": [
+                    "I3 - Tutorías Académicas"
+                ],
+                "summary": "Lista el estado de evidencias de tutorías (EF1/EF2/EF3) de una asignatura.",
+                "description": "GET /tutorias-academicas/evidencia-listar?id_asignatura=",
+                "operationId": "844467b1597dcab1c7567e62af743016",
+                "parameters": [
+                    {
+                        "name": "id_asignatura",
+                        "in": "query",
+                        "description": "ID de la asignatura.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Un elemento por cada tipo de tutoría (EF1/EF2/EF3), con su evidencia vigente (si fue subida) y su validación (si ya se corrió).",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "mensaje": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "datos": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Falta o es inválido el parámetro id_asignatura."
+                    }
+                }
+            }
+        },
+        "/tutorias-academicas/resultado-asignatura": {
+            "get": {
+                "tags": [
+                    "I3 - Tutorías Académicas"
+                ],
+                "summary": "Calcula (y guarda snapshot de) el resultado de I3 para una asignatura.",
+                "description": "Se recalcula en cada consulta, no se cachea: el snapshot solo queda como historial de auditoría, la respuesta siempre refleja el estado actual de las evidencias.",
+                "operationId": "6b29b6ad4faef8513524aa8398a227e0",
+                "parameters": [
+                    {
+                        "name": "id_asignatura",
+                        "in": "query",
+                        "description": "ID de la asignatura.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "id_evaluacion",
+                        "in": "query",
+                        "description": "ID de la evaluación a la que se asocia el snapshot guardado.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Resultado de la asignatura (ver ResultadoAsignaturaTutoriasDTO).",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Faltan id_asignatura o id_evaluacion."
+                    },
+                    "404": {
+                        "description": "Asignatura no encontrada."
+                    }
+                }
+            }
+        },
+        "/tutorias-academicas/resultado-cohorte": {
+            "get": {
+                "tags": [
+                    "I3 - Tutorías Académicas"
+                ],
+                "summary": "Calcula el resultado general de I3 para una cohorte (todas sus asignaturas).",
+                "description": "GET /tutorias-academicas/resultado-cohorte?id_cohorte=&id_evaluacion=&id_periodo=",
+                "operationId": "0d62b4ce2af376ad938561385d3d6e3f",
+                "parameters": [
+                    {
+                        "name": "id_cohorte",
+                        "in": "query",
+                        "description": "ID de la cohorte.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "id_evaluacion",
+                        "in": "query",
+                        "description": "ID de la evaluación a la que se asocian los snapshots guardados.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "id_periodo",
+                        "in": "query",
+                        "description": "ID de período para filtrar asignaturas (opcional).",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "nullable": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Resultado general de la cohorte, con el detalle por asignatura (ver ResultadoCohorteTutoriasDTO).",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Faltan id_cohorte o id_evaluacion."
+                    }
+                }
+            }
+        },
+        "/tutorias-academicas/evidencia-subir": {
+            "post": {
+                "tags": [
+                    "I3 - Tutorías Académicas"
+                ],
+                "summary": "Sube el PDF de evidencia de un tipo de tutoría (EF1/EF2/EF3), lo valida y lo sube a Drive.",
+                "description": "POST /tutorias-academicas/evidencia-subir (multipart: id_asignatura, tipo, archivo) — requiere sesión.",
+                "operationId": "cd379565343f7b04afedb632ef544a81",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "id_asignatura",
+                                    "tipo",
+                                    "archivo"
+                                ],
+                                "properties": {
+                                    "id_asignatura": {
+                                        "type": "integer"
+                                    },
+                                    "tipo": {
+                                        "type": "string",
+                                        "enum": [
+                                            "EF1",
+                                            "EF2",
+                                            "EF3"
+                                        ]
+                                    },
+                                    "archivo": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Evidencia subida, validada contra el PDF y guardada (con sus puntos de validación).",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Faltan/son inválidos id_asignatura, tipo o el archivo."
+                    },
+                    "401": {
+                        "description": "La sesión no está activa."
+                    },
+                    "404": {
+                        "description": "Asignatura no encontrada."
+                    },
+                    "422": {
+                        "description": "No se pudo leer o validar el contenido del PDF."
+                    },
+                    "502": {
+                        "description": "No se pudo subir el PDF a Google Drive."
+                    }
+                },
+                "security": [
+                    {
+                        "sesionPhp": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "sesionPhp": {
+                "type": "apiKey",
+                "description": "Sesión de PHP iniciada vía api/auth/Login.php (no migrado todavía). Requerida por los endpoints protegidos con SessionAuthMiddleware: evidencia-subir de I3 y guardar de I5.",
+                "name": "PHPSESSID",
+                "in": "cookie"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "I5 - Tasa de Titulación",
+            "description": "ora).\r\n\r\nA diferencia de I3, I5 no maneja subida de evidencia PDF a Google Drive\r\nen sus propios endpoints: eso lo hacen los endpoints genéricos\r\napi/evidencias/* + api/google_drive/*, que no se tocan en esta\r\nmigración. Por eso no hay dependencia de GoogleDriveService aquí.\r\n\r\nLas anotaciones OpenAPI de cada método (Fase 3, hallazgo 1.2.7) se\r\ngeneran a openapi.json con `composer generate-openapi` — ver\r\nsrc/OpenApi/Definition.php para la info general del documento."
+        },
+        {
+            "name": "I3 - Tutorías Académicas",
+            "description": "2.1).\r\n\r\nLas anotaciones OpenAPI de cada método (Fase 3, hallazgo 1.2.7) se\r\ngeneran a openapi.json con `composer generate-openapi` — ver\r\nsrc/OpenApi/Definition.php para la info general del documento."
+        }
+    ]
+}
