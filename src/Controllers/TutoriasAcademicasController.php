@@ -9,6 +9,7 @@ use App\Repositories\TutoriasRepository;
 use App\Services\GoogleDriveService;
 use App\Services\TutoriasCalculoService;
 use App\Services\TutoriasValidacionPdfService;
+use OpenApi\Attributes as OA;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Throwable;
@@ -20,7 +21,12 @@ use Throwable;
  * mismas validaciones de parámetros, misma forma de respuesta JSON
  * ({ok, mensaje, datos}), ahora detrás del router de Slim en vez de ser
  * cada uno un archivo PHP accesible directo por URL (hallazgo 1.2.1).
+ *
+ * Las anotaciones OpenAPI de cada método (Fase 3, hallazgo 1.2.7) se
+ * generan a openapi.json con `composer generate-openapi` — ver
+ * src/OpenApi/Definition.php para la info general del documento.
  */
+#[OA\Tag(name: 'I3 - Tutorías Académicas')]
 final class TutoriasAcademicasController
 {
     public function __construct(
@@ -42,6 +48,32 @@ final class TutoriasAcademicasController
     }
 
     /** GET /tutorias-academicas/evidencia-listar?id_asignatura= */
+    #[OA\Get(
+        path: '/tutorias-academicas/evidencia-listar',
+        summary: 'Lista el estado de evidencias de tutorías (EF1/EF2/EF3) de una asignatura.',
+        tags: ['I3 - Tutorías Académicas'],
+        parameters: [
+            new OA\QueryParameter(
+                name: 'id_asignatura',
+                description: 'ID de la asignatura.',
+                required: true,
+                schema: new OA\Schema(type: 'integer'),
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Un elemento por cada tipo de tutoría (EF1/EF2/EF3), con su evidencia vigente '
+                    . '(si fue subida) y su validación (si ya se corrió).',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'mensaje', type: 'string', nullable: true),
+                    new OA\Property(property: 'datos', type: 'array', items: new OA\Items(type: 'object')),
+                ]),
+            ),
+            new OA\Response(response: 400, description: 'Falta o es inválido el parámetro id_asignatura.'),
+        ],
+    )]
     public function evidenciaListar(Request $request, Response $response): Response
     {
         $params = $request->getQueryParams();
@@ -89,6 +121,39 @@ final class TutoriasAcademicasController
     }
 
     /** GET /tutorias-academicas/resultado-asignatura?id_asignatura=&id_evaluacion= */
+    #[OA\Get(
+        path: '/tutorias-academicas/resultado-asignatura',
+        summary: 'Calcula (y guarda snapshot de) el resultado de I3 para una asignatura.',
+        description: 'Se recalcula en cada consulta, no se cachea: el snapshot solo queda como historial '
+            . 'de auditoría, la respuesta siempre refleja el estado actual de las evidencias.',
+        tags: ['I3 - Tutorías Académicas'],
+        parameters: [
+            new OA\QueryParameter(
+                name: 'id_asignatura',
+                description: 'ID de la asignatura.',
+                required: true,
+                schema: new OA\Schema(type: 'integer'),
+            ),
+            new OA\QueryParameter(
+                name: 'id_evaluacion',
+                description: 'ID de la evaluación a la que se asocia el snapshot guardado.',
+                required: true,
+                schema: new OA\Schema(type: 'integer'),
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Resultado de la asignatura (ver ResultadoAsignaturaTutoriasDTO).',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'datos', type: 'object'),
+                ]),
+            ),
+            new OA\Response(response: 400, description: 'Faltan id_asignatura o id_evaluacion.'),
+            new OA\Response(response: 404, description: 'Asignatura no encontrada.'),
+        ],
+    )]
     public function resultadoAsignatura(Request $request, Response $response): Response
     {
         $params = $request->getQueryParams();
@@ -113,6 +178,43 @@ final class TutoriasAcademicasController
     }
 
     /** GET /tutorias-academicas/resultado-cohorte?id_cohorte=&id_evaluacion=&id_periodo= */
+    #[OA\Get(
+        path: '/tutorias-academicas/resultado-cohorte',
+        summary: 'Calcula el resultado general de I3 para una cohorte (todas sus asignaturas).',
+        tags: ['I3 - Tutorías Académicas'],
+        parameters: [
+            new OA\QueryParameter(
+                name: 'id_cohorte',
+                description: 'ID de la cohorte.',
+                required: true,
+                schema: new OA\Schema(type: 'integer'),
+            ),
+            new OA\QueryParameter(
+                name: 'id_evaluacion',
+                description: 'ID de la evaluación a la que se asocian los snapshots guardados.',
+                required: true,
+                schema: new OA\Schema(type: 'integer'),
+            ),
+            new OA\QueryParameter(
+                name: 'id_periodo',
+                description: 'ID de período para filtrar asignaturas (opcional).',
+                required: false,
+                schema: new OA\Schema(type: 'integer', nullable: true),
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Resultado general de la cohorte, con el detalle por asignatura '
+                    . '(ver ResultadoCohorteTutoriasDTO).',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'datos', type: 'object'),
+                ]),
+            ),
+            new OA\Response(response: 400, description: 'Faltan id_cohorte o id_evaluacion.'),
+        ],
+    )]
     public function resultadoCohorte(Request $request, Response $response): Response
     {
         $params = $request->getQueryParams();
@@ -134,6 +236,41 @@ final class TutoriasAcademicasController
     }
 
     /** POST /tutorias-academicas/evidencia-subir (multipart: id_asignatura, tipo, archivo) — requiere sesión. */
+    #[OA\Post(
+        path: '/tutorias-academicas/evidencia-subir',
+        summary: 'Sube el PDF de evidencia de un tipo de tutoría (EF1/EF2/EF3), lo valida y lo sube a Drive.',
+        security: [['sesionPhp' => []]],
+        tags: ['I3 - Tutorías Académicas'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: 'multipart/form-data',
+                schema: new OA\Schema(
+                    required: ['id_asignatura', 'tipo', 'archivo'],
+                    properties: [
+                        new OA\Property(property: 'id_asignatura', type: 'integer'),
+                        new OA\Property(property: 'tipo', type: 'string', enum: ['EF1', 'EF2', 'EF3']),
+                        new OA\Property(property: 'archivo', type: 'string', format: 'binary'),
+                    ],
+                ),
+            ),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Evidencia subida, validada contra el PDF y guardada (con sus puntos de validación).',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'datos', type: 'object'),
+                ]),
+            ),
+            new OA\Response(response: 400, description: 'Faltan/son inválidos id_asignatura, tipo o el archivo.'),
+            new OA\Response(response: 401, description: 'La sesión no está activa.'),
+            new OA\Response(response: 404, description: 'Asignatura no encontrada.'),
+            new OA\Response(response: 422, description: 'No se pudo leer o validar el contenido del PDF.'),
+            new OA\Response(response: 502, description: 'No se pudo subir el PDF a Google Drive.'),
+        ],
+    )]
     public function evidenciaSubir(Request $request, Response $response): Response
     {
         $body = $request->getParsedBody();

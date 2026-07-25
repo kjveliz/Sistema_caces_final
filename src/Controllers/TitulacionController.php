@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Repositories\TitulacionRepository;
 use App\Services\TitulacionCalculoService;
+use OpenApi\Attributes as OA;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Smalot\PdfParser\Parser;
@@ -23,7 +24,12 @@ use Throwable;
  * en sus propios endpoints: eso lo hacen los endpoints genéricos
  * api/evidencias/* + api/google_drive/*, que no se tocan en esta
  * migración. Por eso no hay dependencia de GoogleDriveService aquí.
+ *
+ * Las anotaciones OpenAPI de cada método (Fase 3, hallazgo 1.2.7) se
+ * generan a openapi.json con `composer generate-openapi` — ver
+ * src/OpenApi/Definition.php para la info general del documento.
  */
+#[OA\Tag(name: 'I5 - Tasa de Titulación')]
 final class TitulacionController
 {
     public function __construct(
@@ -42,6 +48,31 @@ final class TitulacionController
     }
 
     /** GET /tasa-titulacion/obtener?id_evaluacion= */
+    #[OA\Get(
+        path: '/tasa-titulacion/obtener',
+        summary: 'Lista los datos de titulación (matriculados/graduados/tasa) de una evaluación, por cohorte.',
+        tags: ['I5 - Tasa de Titulación'],
+        parameters: [
+            new OA\QueryParameter(
+                name: 'id_evaluacion',
+                description: 'ID de la evaluación.',
+                required: true,
+                schema: new OA\Schema(type: 'integer'),
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Filas de datos_tasa_titulacion para la evaluación, más recientes primero.',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'datos', type: 'array', items: new OA\Items(type: 'object')),
+                ]),
+            ),
+            new OA\Response(response: 400, description: 'El identificador de la evaluación no es válido.'),
+            new OA\Response(response: 500, description: 'No se pudieron consultar los datos.'),
+        ],
+    )]
     public function obtener(Request $request, Response $response): Response
     {
         $params = $request->getQueryParams();
@@ -63,6 +94,37 @@ final class TitulacionController
     }
 
     /** POST /tasa-titulacion/leer-pdf (multipart: archivo, tipo_dato) */
+    #[OA\Post(
+        path: '/tasa-titulacion/leer-pdf',
+        summary: 'Extrae de un PDF el total de matriculados o graduados (y cohorte/período si se detectan).',
+        tags: ['I5 - Tasa de Titulación'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: 'multipart/form-data',
+                schema: new OA\Schema(
+                    required: ['archivo', 'tipo_dato'],
+                    properties: [
+                        new OA\Property(property: 'archivo', type: 'string', format: 'binary'),
+                        new OA\Property(property: 'tipo_dato', type: 'string', enum: ['matriculados', 'graduados']),
+                    ],
+                ),
+            ),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Total detectado, método usado (total_reportado / identificaciones_unicas) y '
+                    . 'cohorte/período si se pudieron inferir del texto.',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'datos', type: 'object'),
+                ]),
+            ),
+            new OA\Response(response: 400, description: 'Falta el archivo o tipo_dato no es válido.'),
+            new OA\Response(response: 500, description: 'No se pudo leer la información del PDF.'),
+        ],
+    )]
     public function leerPdf(Request $request, Response $response): Response
     {
         $body = $request->getParsedBody();
@@ -104,6 +166,39 @@ final class TitulacionController
     }
 
     /** POST /tasa-titulacion/guardar (JSON: id_evaluacion, cohorte, matriculados?, graduados?) — requiere sesión. */
+    #[OA\Post(
+        path: '/tasa-titulacion/guardar',
+        summary: 'Crea/actualiza matriculados o graduados de una cohorte y recalcula la tasa.',
+        description: 'Solo se envía matriculados o graduados (no ambos a la vez); la tasa solo se '
+            . 'recalcula cuando ya existen los dos valores.',
+        security: [['sesionPhp' => []]],
+        tags: ['I5 - Tasa de Titulación'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['id_evaluacion', 'cohorte'],
+                properties: [
+                    new OA\Property(property: 'id_evaluacion', type: 'integer'),
+                    new OA\Property(property: 'cohorte', type: 'string', example: 'B2025'),
+                    new OA\Property(property: 'matriculados', type: 'integer', nullable: true),
+                    new OA\Property(property: 'graduados', type: 'integer', nullable: true),
+                ],
+            ),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Dato guardado y tasa recalculada (ver DatoTitulacionGuardadoDTO).',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'datos', type: 'object'),
+                ]),
+            ),
+            new OA\Response(response: 400, description: 'Faltan datos o las cantidades recibidas no son válidas.'),
+            new OA\Response(response: 401, description: 'La sesión no está activa.'),
+            new OA\Response(response: 500, description: 'No se pudieron actualizar los datos de titulación.'),
+        ],
+    )]
     public function guardar(Request $request, Response $response): Response
     {
         $body = $request->getParsedBody();

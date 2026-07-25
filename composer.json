@@ -1,7 +1,8 @@
 {
     "scripts": {
         "test": "phpunit",
-        "test:integration": "phpunit --testsuite=integration"
+        "test:integration": "phpunit --testsuite=integration",
+        "generate-openapi": "php bin/generate-openapi.php"
     },
     "require": {
         "smalot/pdfparser": "^2.12",
@@ -12,7 +13,8 @@
     },
     "require-dev": {
         "robmorgan/phinx": "^0.16.12",
-        "phpunit/phpunit": "^11.5"
+        "phpunit/phpunit": "^11.5",
+        "zircote/swagger-php": "^6.4"
     },
     "autoload": {
         "psr-4": {
@@ -20,3 +22,4 @@
         }
     }
 }
+
