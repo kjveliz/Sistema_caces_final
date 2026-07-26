@@ -38,7 +38,7 @@ export default function TabResultsI3({
   if (cargando) {
     return (
       <div className="h-full flex items-center justify-center gap-2" style={{ color: '#5A7295' }}>
-        <Loader2 size={16} className="animate-spin" /> Cargando resultados reales…
+        <Loader2 size={16} className="animate-spin" /> Cargando resultados…
       </div>
     );
   }
