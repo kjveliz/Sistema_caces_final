@@ -15,7 +15,12 @@ import { obtenerEvidenciaAsignatura } from '../../../shared/services/seguimiento
 
 import { obtenerEvidenciaTutorias } from '../../../shared/services/tutoriasAcademicas';
 
-import { I2_SOURCE_NUM_TO_TIPO, I3_SOURCE_NUM_TO_TIPO } from '../constants/evidenciasMapping';
+import {
+  I2_SOURCE_NUM_TO_TIPO,
+  I3_SOURCE_NUM_TO_TIPO,
+  resolverArchivoPorTipo,
+  type ItemEvidenciaPorTipo,
+} from '../constants/evidenciasMapping';
 
 import type { Career, EvidStep, EvidenceSlot, IndicatorDef } from '../../../types/index';
 
@@ -26,6 +31,40 @@ const ID_INDICADOR_NUM: Record<string, number> = {
   I4: 4,
   I5: 5,
 };
+
+/**
+ * I2 (slots 1-5, vía evidencia_asignatura) e I3 (los 4 slots, vía su propio
+ * endpoint de tutorías) construyen el mismo objeto de slot a partir del
+ * catálogo + un item resuelto por tipo: la metadata (label/idCatalogo/
+ * codigoEvidencia/nombreArchivoBase/descripcionCompleta) sale siempre del
+ * catálogo, `idEvidencia` queda undefined (ese campo solo lo llena el
+ * mecanismo viejo evaluation-wide de la tabla `evidencias`, no el de
+ * evidencia_asignatura) y el archivo se resuelve con resolverArchivoPorTipo(),
+ * ya compartido entre I2/I3 desde v79 (Fase 4).
+ */
+function construirSlotPorAsignatura(
+  slot: EvidenceSlot,
+  evidencia: {
+    titulo_corto: string;
+    id_catalogo: number;
+    codigo_evidencia: string;
+    nombre_archivo_base: string;
+    descripcion: string;
+  },
+  items: ItemEvidenciaPorTipo[] | null | undefined,
+  tipo: string,
+): EvidenceSlot {
+  return {
+    ...slot,
+    label: evidencia.titulo_corto || slot.label,
+    idCatalogo: evidencia.id_catalogo,
+    codigoEvidencia: evidencia.codigo_evidencia,
+    nombreArchivoBase: evidencia.nombre_archivo_base,
+    descripcionCompleta: evidencia.descripcion,
+    idEvidencia: undefined,
+    file: resolverArchivoPorTipo(items, tipo),
+  };
+}
 
 export function useCatalogoEvidencias({
   career,
@@ -540,29 +579,7 @@ export function useCatalogoEvidencias({
                     };
                   }
 
-                  const item = evidenciaAsignatura?.find((e: any) => e.tipo === slotTipo);
-
-                  return {
-                    ...slot,
-                    label: evidencia.titulo_corto || slot.label,
-                    idCatalogo: evidencia.id_catalogo,
-                    codigoEvidencia: evidencia.codigo_evidencia,
-                    nombreArchivoBase: evidencia.nombre_archivo_base,
-                    descripcionCompleta: evidencia.descripcion,
-
-                    idEvidencia: undefined,
-
-                    file:
-                      item && item.subida && item.archivo
-                        ? {
-                            fileName: item.archivo.nombre_archivo,
-                            originalName: item.archivo.nombre_archivo,
-                            url: item.archivo.url_archivo,
-                            serverUrl: item.archivo.url_archivo,
-                            size: 0,
-                          }
-                        : undefined,
-                  };
+                  return construirSlotPorAsignatura(slot, evidencia, evidenciaAsignatura, slotTipo);
                 }),
               };
             }),
@@ -610,29 +627,8 @@ export function useCatalogoEvidencias({
                   }
 
                   const tipo = I3_SOURCE_NUM_TO_TIPO[slot.sourceNum];
-                  const item = evidenciaTutorias?.find((e) => e.tipo === tipo);
 
-                  return {
-                    ...slot,
-                    label: evidencia.titulo_corto || slot.label,
-                    idCatalogo: evidencia.id_catalogo,
-                    codigoEvidencia: evidencia.codigo_evidencia,
-                    nombreArchivoBase: evidencia.nombre_archivo_base,
-                    descripcionCompleta: evidencia.descripcion,
-
-                    idEvidencia: undefined,
-
-                    file:
-                      item && item.subida && item.archivo
-                        ? {
-                            fileName: item.archivo.nombre_archivo,
-                            originalName: item.archivo.nombre_archivo,
-                            url: item.archivo.url_archivo,
-                            serverUrl: item.archivo.url_archivo,
-                            size: 0,
-                          }
-                        : undefined,
-                  };
+                  return construirSlotPorAsignatura(slot, evidencia, evidenciaTutorias, tipo);
                 }),
               };
             }),
