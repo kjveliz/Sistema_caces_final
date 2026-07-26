@@ -106,13 +106,13 @@ export function makeIndicators(career: Career): IndicatorDef[] {
           // IndicatorView.tsx) -- 6 y 7 ya están tomados por
           // Normativa/Malla.
           sourceNum: 8,
-          label: 'REPORTE DE CONTROL DE SEGUIMIENTO DE CONTENIDOS POR MATERIA INGRESADOS EN EL SIU',
+          label: 'Reporte de Control de Seguimiento de Contenidos por Materia Ingresados en el SIU',
         },
         {
           // Reporte de Avances del Syllabus (DOC.SEG.07, orden=9). Mismo
           // patrón que el slot anterior.
           sourceNum: 9,
-          label: 'REPORTE DE CONTENIDOS Y AVANCES DICTADOS DEL SYLLABUS',
+          label: 'Reporte de Contenidos y Avances Dictados del Syllabus',
         },
       ],
     },
