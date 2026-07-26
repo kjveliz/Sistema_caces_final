@@ -23,6 +23,73 @@ import { I2_SOURCE_NUM_TO_TIPO, I3_SOURCE_NUM_TO_TIPO } from '../constants/evide
 
 import type { Career, EvidenceSlot, IndicatorDef } from '../../../types/index';
 
+/**
+ * Sube un archivo al endpoint real de evidencia_asignatura (I2 o su equivalente
+ * de tutorías académicas para I3) y actualiza el slot con el resultado. Extrae
+ * el patrón que compartían los dos bloques `if (indicator.id === 'I2'/'I3' ...)`
+ * de `procesarPdf`: solo cambia qué función de subida se usa y cómo se arma el
+ * mensaje de éxito (I3 incluye el resultado de la validación cualitativa por
+ * puntos, I2 no). Ver MEMORIA §57 para el detalle completo.
+ */
+async function subirYActualizarSlot<T extends { url_archivo: string }>({
+  indicatorId,
+  slot,
+  archivo,
+  idAsignatura,
+  tipo,
+  subirFn,
+  mensajeSubiendo,
+  construirMensajeExito,
+  updateSlot,
+  setSubiendoEvidencia,
+  setMensajeSubida,
+}: {
+  indicatorId: string;
+  slot: EvidenceSlot;
+  archivo: File;
+  idAsignatura: number;
+  tipo: string;
+  subirFn: (params: { idAsignatura: number; tipo: any; archivo: File }) => Promise<T>;
+  mensajeSubiendo: string;
+  construirMensajeExito: (resultado: T) => { titulo: string; descripcion: string };
+  updateSlot: (indId: string, updated: EvidenceSlot) => void;
+  setSubiendoEvidencia: (valor: boolean) => void;
+  setMensajeSubida: (mensaje: string) => void;
+}) {
+  setSubiendoEvidencia(true);
+  setMensajeSubida(mensajeSubiendo);
+
+  try {
+    const resultado = await subirFn({ idAsignatura, tipo, archivo });
+
+    updateSlot(indicatorId, {
+      ...slot,
+      error: undefined,
+      file: {
+        fileName: archivo.name,
+        originalName: archivo.name,
+        url: resultado.url_archivo,
+        serverUrl: resultado.url_archivo,
+        size: archivo.size,
+      },
+    });
+
+    const { titulo, descripcion } = construirMensajeExito(resultado);
+    toast.success(titulo, { description: descripcion });
+  } catch (error) {
+    updateSlot(indicatorId, {
+      ...slot,
+      error: error instanceof Error ? error.message : 'No se pudo procesar el archivo.',
+    });
+    toast.error('No se pudo guardar el archivo', {
+      description: error instanceof Error ? error.message : 'Ocurrió un error inesperado.',
+    });
+  } finally {
+    setSubiendoEvidencia(false);
+    setMensajeSubida('Preparando evidencia...');
+  }
+}
+
 export function useSubidaEvidencia({
   career,
   cohort,
@@ -71,51 +138,24 @@ export function useSubidaEvidencia({
         return;
       }
 
-      const tipo = I2_SOURCE_NUM_TO_TIPO[slot.sourceNum];
-      const activoSubida = true;
-
-      setSubiendoEvidencia(true);
-      setMensajeSubida(
-        esCsv ? 'Validando y subiendo el archivo CSV...' : 'Validando y subiendo el archivo PDF...',
-      );
-
-      try {
-        const resultado = await subirEvidenciaAsignatura({
-          idAsignatura: asignaturaId,
-          tipo: tipo as any,
-          archivo,
-        });
-
-        if (!activoSubida) return;
-
-        updateSlot(indicator.id, {
-          ...slot,
-          error: undefined,
-          file: {
-            fileName: archivo.name,
-            originalName: archivo.name,
-            url: resultado.url_archivo,
-            serverUrl: resultado.url_archivo,
-            size: archivo.size,
-          },
-        });
-
-        toast.success(esCsv ? 'CSV guardado correctamente' : 'PDF guardado correctamente', {
-          description: 'La evidencia se subió a Google Drive y se registró en la asignatura.',
-        });
-      } catch (error) {
-        if (!activoSubida) return;
-        updateSlot(indicator.id, {
-          ...slot,
-          error: error instanceof Error ? error.message : 'No se pudo procesar el archivo.',
-        });
-        toast.error('No se pudo guardar el archivo', {
-          description: error instanceof Error ? error.message : 'Ocurrió un error inesperado.',
-        });
-      } finally {
-        setSubiendoEvidencia(false);
-        setMensajeSubida('Preparando evidencia...');
-      }
+      await subirYActualizarSlot({
+        indicatorId: indicator.id,
+        slot,
+        archivo,
+        idAsignatura: asignaturaId,
+        tipo: I2_SOURCE_NUM_TO_TIPO[slot.sourceNum],
+        subirFn: subirEvidenciaAsignatura,
+        mensajeSubiendo: esCsv
+          ? 'Validando y subiendo el archivo CSV...'
+          : 'Validando y subiendo el archivo PDF...',
+        construirMensajeExito: () => ({
+          titulo: esCsv ? 'CSV guardado correctamente' : 'PDF guardado correctamente',
+          descripcion: 'La evidencia se subió a Google Drive y se registró en la asignatura.',
+        }),
+        updateSlot,
+        setSubiendoEvidencia,
+        setMensajeSubida,
+      });
       return;
     }
 
@@ -131,55 +171,25 @@ export function useSubidaEvidencia({
         return;
       }
 
-      const tipo = I3_SOURCE_NUM_TO_TIPO[slot.sourceNum];
-      const activoSubida = true;
-
-      setSubiendoEvidencia(true);
-      setMensajeSubida('Validando y subiendo el archivo PDF...');
-
-      try {
-        const resultado = await subirEvidenciaTutorias({
-          idAsignatura: asignaturaId,
-          tipo: tipo as any,
-          archivo,
-        });
-
-        if (!activoSubida) return;
-
-        updateSlot(indicator.id, {
-          ...slot,
-          error: undefined,
-          file: {
-            fileName: archivo.name,
-            originalName: archivo.name,
-            url: resultado.url_archivo,
-            serverUrl: resultado.url_archivo,
-            size: archivo.size,
-          },
-        });
-
-        toast.success(
-          `PDF guardado y validado (${resultado.cumplidos}/${resultado.total_puntos} puntos cumplidos)`,
-          {
-            description:
-              'La evidencia se subió a Google Drive y se validó automáticamente para ' +
-              resultado.ef +
-              '.',
-          },
-        );
-      } catch (error) {
-        if (!activoSubida) return;
-        updateSlot(indicator.id, {
-          ...slot,
-          error: error instanceof Error ? error.message : 'No se pudo procesar el archivo.',
-        });
-        toast.error('No se pudo guardar el archivo', {
-          description: error instanceof Error ? error.message : 'Ocurrió un error inesperado.',
-        });
-      } finally {
-        setSubiendoEvidencia(false);
-        setMensajeSubida('Preparando evidencia...');
-      }
+      await subirYActualizarSlot({
+        indicatorId: indicator.id,
+        slot,
+        archivo,
+        idAsignatura: asignaturaId,
+        tipo: I3_SOURCE_NUM_TO_TIPO[slot.sourceNum],
+        subirFn: subirEvidenciaTutorias,
+        mensajeSubiendo: 'Validando y subiendo el archivo PDF...',
+        construirMensajeExito: (resultado) => ({
+          titulo: `PDF guardado y validado (${resultado.cumplidos}/${resultado.total_puntos} puntos cumplidos)`,
+          descripcion:
+            'La evidencia se subió a Google Drive y se validó automáticamente para ' +
+            resultado.ef +
+            '.',
+        }),
+        updateSlot,
+        setSubiendoEvidencia,
+        setMensajeSubida,
+      });
       return;
     }
 
