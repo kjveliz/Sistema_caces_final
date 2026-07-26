@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { obtenerEvaluacion } from '../../../shared/services/evidencias';
 import {
-  obtenerPeriodos,
   obtenerResultadoCohorte,
   obtenerEncuestaDetalle,
   type ResultadoAsignatura,
@@ -11,12 +10,15 @@ import {
 } from '../../../shared/services/seguimientoSyllabus';
 import { exportarPdfIndicador2 } from '../../../shared/lib/exportarPdfIndicador2';
 import { EF_META } from '../constants/efMetaI2';
+import { useResultadoCohortePorAsignatura } from './useResultadoCohortePorAsignatura';
 import type { Career } from '../../../types/index';
 
 // Resuelve evaluación (id_evaluacion, id_cohorte), el PAO real, y trae de una
 // sola llamada el resultado EF1-EF5 de todas las asignaturas de ese PAO, más
 // la lógica de exportación de PDF -- separado del JSX de TabResultsI2, que
-// solo pinta la UI.
+// solo pinta la UI. La resolución evaluación→período→resultado de cohorte es
+// común con useResultadosI3 y vive en useResultadoCohortePorAsignatura.ts
+// (Fase 4, extracción a shared).
 export function useResultadosI2({
   career,
   cohort,
@@ -28,55 +30,23 @@ export function useResultadosI2({
   pao: number;
   onAsignaturaChange?: (idAsignatura: number | null, nombreAsignatura?: string | null) => void;
 }) {
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [resultadoCohorte, setResultadoCohorte] = useState<ResultadoCohorte | null>(null);
-  const [selectedAsig, setSelectedAsig] = useState(0);
   const [exportando, setExportando] = useState(false);
 
-  const detalle = resultadoCohorte?.detalle_asignaturas ?? [];
-  const asig: ResultadoAsignatura | undefined = detalle[Math.min(selectedAsig, detalle.length - 1)];
-
-  // Notificar al padre cuando cambie la asignatura seleccionada
-  useEffect(() => {
-    const id = asig?.id_asignatura ?? null;
-    onAsignaturaChange?.(id, asig?.nombre_asignatura ?? null);
-  }, [selectedAsig, resultadoCohorte]);
-
-  useEffect(() => {
-    if (!career) return;
-    let cancelado = false;
-    setCargando(true);
-    setError(null);
-
-    (async () => {
-      try {
-        const evaluacion = await obtenerEvaluacion(career.code, cohort);
-        const periodos = await obtenerPeriodos(evaluacion.id_cohorte);
-        const periodo = periodos.find((p) => p.orden === pao);
-        if (!periodo) {
-          throw new Error(`No existe el PAO ${pao} para esta cohorte.`);
-        }
-        const rc = await obtenerResultadoCohorte(
-          evaluacion.id_cohorte,
-          evaluacion.id_evaluacion,
-          periodo.id_periodoacademico,
-        );
-        if (cancelado) return;
-        setResultadoCohorte(rc);
-        setSelectedAsig(0);
-      } catch (e) {
-        if (!cancelado)
-          setError(e instanceof Error ? e.message : 'No se pudo cargar la información.');
-      } finally {
-        if (!cancelado) setCargando(false);
-      }
-    })();
-
-    return () => {
-      cancelado = true;
-    };
-  }, [career, cohort, pao]);
+  const {
+    cargando,
+    error,
+    resultadoCohorte,
+    detalle,
+    seleccionado: asig,
+    selectedIdx: selectedAsig,
+    setSelectedIdx: setSelectedAsig,
+  } = useResultadoCohortePorAsignatura<ResultadoAsignatura, ResultadoCohorte>({
+    career,
+    cohort,
+    pao,
+    onAsignaturaChange,
+    fetchResultadoCohorte: obtenerResultadoCohorte,
+  });
 
   const efScores = EF_META.map((ef) => ({
     ...ef,
