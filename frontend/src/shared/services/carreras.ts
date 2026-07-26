@@ -19,7 +19,7 @@ interface RespuestaCarreras {
   detalle?: string;
 }
 
-const API_BASE = 'http://localhost/sistemacaces/api/carreras';
+const API_BASE = 'http://localhost/sistemacaces/public/carreras';
 
 async function leerRespuestaJson<T>(respuesta: Response, mensajeInvalido: string): Promise<T> {
   try {
@@ -30,7 +30,7 @@ async function leerRespuestaJson<T>(respuesta: Response, mensajeInvalido: string
 }
 
 export async function obtenerCarreras(): Promise<CarreraBD[]> {
-  const respuesta = await fetch(`${API_BASE}/listar.php`, {
+  const respuesta = await fetch(`${API_BASE}/listar`, {
     method: 'GET',
     credentials: 'include',
     cache: 'no-store',
@@ -66,7 +66,7 @@ interface RespuestaCrearCarrera {
 }
 
 export async function crearCarrera(carrera: NuevaCarrera): Promise<CarreraBD> {
-  const respuesta = await fetch(`${API_BASE}/crear.php`, {
+  const respuesta = await fetch(`${API_BASE}/crear`, {
     method: 'POST',
     credentials: 'include',
     headers: {
@@ -103,7 +103,7 @@ export async function eliminarCarrera(idCarrera: number): Promise<void> {
     throw new Error('El identificador de la carrera no es válido.');
   }
 
-  const respuesta = await fetch(`${API_BASE}/eliminar.php`, {
+  const respuesta = await fetch(`${API_BASE}/eliminar`, {
     method: 'POST',
     credentials: 'include',
     headers: {
@@ -147,7 +147,7 @@ export async function actualizarCarrera(carrera: CarreraActualizada): Promise<Ca
     throw new Error('El identificador de la carrera no es válido.');
   }
 
-  const respuesta = await fetch(`${API_BASE}/actualizar.php`, {
+  const respuesta = await fetch(`${API_BASE}/actualizar`, {
     method: 'POST',
     credentials: 'include',
     headers: {

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Controllers\CarrerasController;
 use App\Controllers\MallaCurricularController;
 use App\Controllers\SeguimientoSyllabusController;
 use App\Controllers\TasaDesercionController;
@@ -10,6 +11,7 @@ use App\Controllers\TutoriasAcademicasController;
 use App\Infra\Database;
 use App\Middleware\CorsMiddleware;
 use App\Middleware\SessionAuthMiddleware;
+use App\Repositories\CarrerasRepository;
 use App\Repositories\DesercionRepository;
 use App\Repositories\MallaCurricularRepository;
 use App\Repositories\SeguimientoSyllabusRepository;
@@ -179,6 +181,32 @@ $mallaCurricularController = new MallaCurricularController($mallaCurricularRepos
 $app->group('/malla-curricular', function ($grupo) use ($mallaCurricularController) {
     $grupo->get('/obtener', [$mallaCurricularController, 'obtener']);
     $grupo->post('/guardar', [$mallaCurricularController, 'guardar'])->add(new SessionAuthMiddleware());
+});
+
+// --- Composición de dependencias de Carreras (administración genérica) --
+// Misma conexión mysqli reusada del bloque inicial, igual que I1/I4/I5.
+$carrerasRepositorio = new CarrerasRepository($conexion);
+$carrerasController = new CarrerasController($carrerasRepositorio);
+
+// --- Rutas de Carreras (administración genérica) -------------------------
+// Reemplaza a api/carreras/{listar,crear,actualizar,eliminar}.php, los 4
+// endpoints que quedaban fuera de la migración de I1 (ver
+// MallaCurricularController) por ser administración genérica de la
+// entidad Carrera, no del indicador en sí. Cierra el pendiente de
+// middleware de CORS compartido abierto desde v69 (hallazgo 1.2.2 del
+// Plan de Mejora): estos 4 archivos eran los últimos que seguían
+// repitiendo el bloque de headers CORS a mano en vez de pasar por
+// CorsMiddleware. Mismos 4 endpoints que consumía
+// frontend/src/shared/services/carreras.ts contra los archivos sueltos
+// originales; ver INSTRUCCIONES_cors_carreras.md para el cambio de URL
+// base que requiere el frontend. crear() no exige sesión ni rol (igual
+// que el original); actualizar()/eliminar() sí (401 vía
+// SessionAuthMiddleware, 403 chequeado dentro del controlador).
+$app->group('/carreras', function ($grupo) use ($carrerasController) {
+    $grupo->get('/listar', [$carrerasController, 'listar']);
+    $grupo->post('/crear', [$carrerasController, 'crear']);
+    $grupo->post('/actualizar', [$carrerasController, 'actualizar'])->add(new SessionAuthMiddleware());
+    $grupo->post('/eliminar', [$carrerasController, 'eliminar'])->add(new SessionAuthMiddleware());
 });
 
 $app->run();
