@@ -6,12 +6,13 @@ import {
   obtenerEvidenciasCompartidas,
   obtenerEvidenciasGuardadas,
 } from '../../../shared/services/evidencias';
+import { obtenerEvidenciaAsignatura } from '../../../shared/services/seguimientoSyllabus';
+import { obtenerEvidenciaTutorias } from '../../../shared/services/tutoriasAcademicas';
 import {
-  obtenerEvidenciaAsignatura,
-  type EvidenciaAsignaturaItem,
-} from '../../../shared/services/seguimientoSyllabus';
-import { obtenerEvidenciaTutorias, type EvidenciaTutoriasItem } from '../../../shared/services/tutoriasAcademicas';
-import { I2_SOURCE_NUM_TO_TIPO, I3_SOURCE_NUM_TO_TIPO } from '../constants/evidenciasMapping';
+  I2_SOURCE_NUM_TO_TIPO,
+  I3_SOURCE_NUM_TO_TIPO,
+  resolverArchivoPorTipo,
+} from '../constants/evidenciasMapping';
 import type { Career, IndicatorDef } from '../../../types/index';
 
 export function useEvidenciasIndicador({
@@ -103,25 +104,10 @@ export function useEvidenciasIndicador({
           // evaluacion-wide), que es exactamente el bug que se esta arreglando.
           if (ind.id === 'I2' && I2_SOURCE_NUM_TO_TIPO[slot.sourceNum] !== undefined) {
             const tipo = I2_SOURCE_NUM_TO_TIPO[slot.sourceNum];
-            const item = evidenciaAsignatura?.find((e: EvidenciaAsignaturaItem) => e.tipo === tipo);
 
-            if (item && item.subida && item.archivo) {
-              return {
-                ...slot,
-                file: {
-                  originalName: item.archivo.nombre_archivo,
-                  fileName: item.archivo.nombre_archivo,
-                  url: item.archivo.url_archivo,
-                  serverUrl: item.archivo.url_archivo,
-                  size: 0,
-                } as NonNullable<typeof slot.file>,
-              };
-            }
-
-            // Si no hay evidencia en la tabla real, mostrar como sin archivo
             return {
               ...slot,
-              file: undefined,
+              file: resolverArchivoPorTipo(evidenciaAsignatura, tipo),
             };
           }
 
@@ -130,25 +116,10 @@ export function useEvidenciasIndicador({
           // por puntos). Nunca cae al mecanismo viejo evaluation-wide. ──
           if (ind.id === 'I3' && I3_SOURCE_NUM_TO_TIPO[slot.sourceNum] !== undefined) {
             const tipo = I3_SOURCE_NUM_TO_TIPO[slot.sourceNum];
-            const item = evidenciaTutorias?.find((e: EvidenciaTutoriasItem) => e.tipo === tipo);
 
-            if (item && item.subida && item.archivo) {
-              return {
-                ...slot,
-                file: {
-                  originalName: item.archivo.nombre_archivo,
-                  fileName: item.archivo.nombre_archivo,
-                  url: item.archivo.url_archivo,
-                  serverUrl: item.archivo.url_archivo,
-                  size: 0,
-                } as NonNullable<typeof slot.file>,
-              };
-            }
-
-            // Si no hay evidencia en la tabla real, mostrar como sin archivo
             return {
               ...slot,
-              file: undefined,
+              file: resolverArchivoPorTipo(evidenciaTutorias, tipo),
             };
           }
 
