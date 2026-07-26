@@ -1,12 +1,19 @@
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
-import type { UsuarioSesion } from '../shared/services/auth';
+import { cerrarSesion, verificarSesion, type UsuarioSesion } from '../shared/services/auth';
 
 interface AuthContextValue {
   usuario: UsuarioSesion | null;
   /** Deriva de usuario.rol: administrador y coordinador pueden cargar evidencias. */
   puedeCargar: boolean;
+  /**
+   * true mientras se resuelve, al montar la app, si la cookie de sesión que
+   * ya pueda tener el navegador todavía corresponde a un usuario logueado
+   * (ver verificarSesion()). Mientras es true no se sabe todavía si hay
+   * sesión o no, así que no hay que redirigir a /login todavía.
+   */
+  cargando: boolean;
   login: (usuario: UsuarioSesion) => void;
   logout: () => void;
 }
@@ -15,6 +22,31 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [usuario, setUsuario] = useState<UsuarioSesion | null>(null);
+  const [cargando, setCargando] = useState(true);
+
+  // Al montar la app (primera carga o refresh de página), recupera la
+  // sesión desde el backend en vez de arrancar siempre en null: el usuario
+  // sigue en memoria de React, pero la fuente de verdad de si la sesión
+  // sigue activa es la cookie PHPSESSID que ya maneja el backend (ver
+  // api/auth/Me.php), no localStorage/sessionStorage.
+  useEffect(() => {
+    let cancelado = false;
+
+    async function recuperarSesion() {
+      const usuarioRecuperado = await verificarSesion();
+
+      if (!cancelado) {
+        setUsuario(usuarioRecuperado);
+        setCargando(false);
+      }
+    }
+
+    void recuperarSesion();
+
+    return () => {
+      cancelado = true;
+    };
+  }, []);
 
   const value = useMemo<AuthContextValue>(() => {
     const puedeCargar = usuario?.rol === 'administrador' || usuario?.rol === 'coordinador';
@@ -22,10 +54,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return {
       usuario,
       puedeCargar,
+      cargando,
       login: (usuarioAutenticado: UsuarioSesion) => setUsuario(usuarioAutenticado),
-      logout: () => setUsuario(null),
+      logout: () => {
+        setUsuario(null);
+        void cerrarSesion();
+      },
     };
-  }, [usuario]);
+  }, [usuario, cargando]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

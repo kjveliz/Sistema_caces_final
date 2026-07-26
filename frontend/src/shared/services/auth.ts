@@ -14,6 +14,66 @@ export interface LoginResponse {
   usuario?: UsuarioSesion;
 }
 
+interface MeResponse {
+  ok: boolean;
+  mensaje?: string;
+  usuario?: UsuarioSesion;
+}
+
+/**
+ * Le pregunta al backend, a partir de la cookie de sesión (`PHPSESSID`) que el
+ * navegador ya manda solo, si hay un usuario logueado. Se usa al montar la
+ * app para recuperar la sesión tras un refresh, sin depender de guardar nada
+ * en localStorage/sessionStorage: la fuente de verdad sigue siendo la sesión
+ * real de PHP.
+ *
+ * Devuelve el usuario si la sesión sigue activa, o `null` si no hay sesión
+ * (401) o si no se pudo contactar al servidor — en ambos casos el efecto
+ * práctico es el mismo: mandar al login.
+ */
+export async function verificarSesion(): Promise<UsuarioSesion | null> {
+  try {
+    const respuesta = await fetch('http://localhost/sistemacaces/api/auth/Me.php', {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        Accept: 'application/json',
+      },
+    });
+
+    if (!respuesta.ok) {
+      return null;
+    }
+
+    const datos = (await respuesta.json()) as MeResponse;
+
+    return datos.ok && datos.usuario ? datos.usuario : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Destruye la sesión real del lado del servidor (no solo el estado en
+ * memoria del frontend). Si el pedido falla por lo que sea (servidor caído,
+ * red), no se propaga el error: cerrar sesión en el navegador debe poder
+ * seguir adelante igual, ya que de todos modos el usuario deja de poder usar
+ * la app con esa sesión desde el frontend.
+ */
+export async function cerrarSesion(): Promise<void> {
+  try {
+    await fetch('http://localhost/sistemacaces/api/auth/Logout.php', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        Accept: 'application/json',
+      },
+    });
+  } catch {
+    // Ignorado a propósito: ver comentario de la función.
+  }
+}
+
 export async function iniciarSesion(
   correo: string,
   contrasena: string,

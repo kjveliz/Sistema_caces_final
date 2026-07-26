@@ -1,4 +1,5 @@
 import { Toaster } from 'sonner';
+import { Loader2 } from 'lucide-react';
 import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router';
 
 import { obtenerEvaluacion, obtenerDatosTasa, obtenerDatosDesercion } from '../shared/services/evidencias';
@@ -294,7 +295,20 @@ function EvidenceUploadRoute() {
 // ── App ──────────────────────────────────────────────────────
 
 export default function App() {
-  const { usuario } = useAuth();
+  const { usuario, cargando } = useAuth();
+
+  // Mientras se resuelve si la cookie de sesión existente corresponde a un
+  // usuario logueado (ver AuthContext), no se sabe todavía si mandar a
+  // /carreras o a /login. Esperar acá, en vez de asumir "no hay usuario",
+  // es lo que evita que un refresh de página expulse al login de entrada.
+  if (cargando) {
+    return (
+      <div className="min-h-screen flex items-center justify-center gap-2 text-gray-500">
+        <Loader2 size={20} className="animate-spin" />
+        Cargando sesión…
+      </div>
+    );
+  }
 
   return (
     <>
