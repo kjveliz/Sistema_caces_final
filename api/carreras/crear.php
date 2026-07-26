@@ -92,7 +92,7 @@ if (strlen($codigo) > 15) {
  */
 $sqlCodigo = "
     SELECT id_carrera, activo
-    FROM Carreras
+    FROM carreras
     WHERE codigo = ?
     LIMIT 1
 ";
@@ -135,7 +135,7 @@ if ($carreraCodigo) {
  */
 $sqlNombre = "
     SELECT id_carrera
-    FROM Carreras
+    FROM carreras
     WHERE LOWER(nombre) = LOWER(?)
     LIMIT 1
 ";
@@ -177,7 +177,7 @@ if ($carreraNombre) {
  * Guardar la carrera.
  */
 $sqlInsertar = "
-    INSERT INTO Carreras (
+    INSERT INTO carreras (
         codigo,
         nombre,
         area_conocimiento,

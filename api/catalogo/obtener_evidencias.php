@@ -27,7 +27,7 @@ $sql = "
         descripcion,
         nombre_archivo_base,
         orden
-    FROM Catalogo_Evidencias
+    FROM catalogo_evidencias
     WHERE id_indicador = ?
       AND activo = 1
     ORDER BY orden ASC

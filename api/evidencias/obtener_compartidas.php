@@ -48,16 +48,16 @@ $sql = "
         indicador_origen.nombre
             AS indicador_origen
 
-    FROM Indicador_Evidencia relacion_destino
+    FROM indicador_evidencia relacion_destino
 
-    INNER JOIN Evidencias e
+    INNER JOIN evidencias e
         ON e.id_evidencia =
            relacion_destino.id_evidencia
 
-    INNER JOIN Catalogo_Evidencias ce
+    INNER JOIN catalogo_evidencias ce
         ON ce.id_catalogo = e.id_catalogo
 
-    INNER JOIN Indicadores indicador_origen
+    INNER JOIN indicadores indicador_origen
         ON indicador_origen.id_indicador =
            ce.id_indicador
 

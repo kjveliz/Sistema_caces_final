@@ -80,7 +80,7 @@ try {
         actualiza el registro.
     */
     $sqlEvidencia = "
-        INSERT INTO Evidencias (
+        INSERT INTO evidencias (
             id_catalogo,
             id_evaluacion,
             codigo_evidencia,
@@ -136,17 +136,17 @@ try {
 
     /*
         Relacionar la evidencia con su indicador de origen,
-        obtenido desde Catalogo_Evidencias.
+        obtenido desde catalogo_evidencias.
     */
     $sqlOrigen = "
-        INSERT IGNORE INTO Indicador_Evidencia (
+        INSERT IGNORE INTO indicador_evidencia (
             id_indicador,
             id_evidencia
         )
         SELECT
             id_indicador,
             ?
-        FROM Catalogo_Evidencias
+        FROM catalogo_evidencias
         WHERE id_catalogo = ?
           AND activo = 1
     ";
@@ -178,14 +178,14 @@ try {
         automáticamente la misma evidencia con otros indicadores.
     */
     $sqlCompartidas = "
-        INSERT IGNORE INTO Indicador_Evidencia (
+        INSERT IGNORE INTO indicador_evidencia (
             id_indicador,
             id_evidencia
         )
         SELECT
             id_indicador_destino,
             ?
-        FROM Compartir_Catalogo
+        FROM compartir_catalogo
         WHERE id_catalogo_origen = ?
           AND activo = 1
     ";

@@ -91,7 +91,7 @@ if (strlen($codigo) > 15) {
 
 $sqlExiste = "
     SELECT id_carrera
-    FROM Carreras
+    FROM carreras
     WHERE id_carrera = ?
       AND activo = 1
     LIMIT 1
@@ -126,7 +126,7 @@ if (!$carreraExiste) {
 
 $sqlCodigo = "
     SELECT id_carrera
-    FROM Carreras
+    FROM carreras
     WHERE codigo = ?
       AND id_carrera <> ?
       AND activo = 1
@@ -161,7 +161,7 @@ if ($codigoDuplicado) {
 }
 
 $sqlActualizar = "
-    UPDATE Carreras
+    UPDATE carreras
     SET
         codigo = ?,
         nombre = ?,

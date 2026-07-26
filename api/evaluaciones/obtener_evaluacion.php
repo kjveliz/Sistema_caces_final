@@ -42,10 +42,10 @@ $sql = "
         c.nombre AS carrera,
         co.id_cohorte,
         co.nombre_cohorte
-    FROM Evaluaciones e
-    INNER JOIN Carreras c
+    FROM evaluaciones e
+    INNER JOIN carreras c
         ON c.id_carrera = e.id_carrera
-    INNER JOIN Cohortes co
+    INNER JOIN cohortes co
         ON co.id_cohorte = e.id_cohorte
     WHERE c.codigo = ?
       AND REPLACE(co.nombre_cohorte, ' ', '') = ?

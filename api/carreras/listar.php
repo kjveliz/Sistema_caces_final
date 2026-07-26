@@ -16,8 +16,8 @@ $sql = "
         m.nombre_archivo AS nombre_malla,
         m.id_drive,
         m.url_drive AS url_malla
-    FROM Carreras c
-    LEFT JOIN Mallas_Curriculares m
+    FROM carreras c
+    LEFT JOIN mallas_curriculares m
         ON m.id_carrera = c.id_carrera
        AND m.activo = 1
     WHERE c.activo = 1

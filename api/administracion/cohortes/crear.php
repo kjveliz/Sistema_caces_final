@@ -187,7 +187,7 @@ try {
         SELECT
             nombre_archivo,
             url_drive
-        FROM Mallas_Curriculares
+        FROM mallas_curriculares
         WHERE id_carrera = ?
           AND activo = 1
         ORDER BY id_malla DESC
@@ -224,7 +224,7 @@ try {
                 id_catalogo,
                 codigo_evidencia,
                 descripcion
-            FROM Catalogo_Evidencias
+            FROM catalogo_evidencias
             WHERE codigo_evidencia = ?
               AND activo = 1
             LIMIT 1
@@ -272,7 +272,7 @@ try {
         $tipoMalla = "application/pdf";
 
         $sqlEvidenciaMalla = "
-            INSERT INTO Evidencias (
+            INSERT INTO evidencias (
                 id_catalogo,
                 id_evaluacion,
                 codigo_evidencia,
@@ -334,14 +334,14 @@ try {
          * Relación con el indicador de origen de DOC.SYL.01.
          */
         $sqlOrigenMalla = "
-            INSERT IGNORE INTO Indicador_Evidencia (
+            INSERT IGNORE INTO indicador_evidencia (
                 id_indicador,
                 id_evidencia
             )
             SELECT
                 id_indicador,
                 ?
-            FROM Catalogo_Evidencias
+            FROM catalogo_evidencias
             WHERE id_catalogo = ?
               AND activo = 1
         ";
@@ -372,17 +372,17 @@ try {
 
         /*
          * Compartición con los demás indicadores configurados en
-         * Compartir_Catalogo.
+         * compartir_catalogo.
          */
         $sqlCompartirMalla = "
-            INSERT IGNORE INTO Indicador_Evidencia (
+            INSERT IGNORE INTO indicador_evidencia (
                 id_indicador,
                 id_evidencia
             )
             SELECT
                 id_indicador_destino,
                 ?
-            FROM Compartir_Catalogo
+            FROM compartir_catalogo
             WHERE id_catalogo_origen = ?
               AND activo = 1
         ";

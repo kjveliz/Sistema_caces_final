@@ -117,7 +117,7 @@ $sql = "
         descripcion,
         nombre_archivo_base,
         orden
-    FROM Catalogo_Evidencias
+    FROM catalogo_evidencias
     WHERE id_catalogo = ?
       AND activo = 1
     LIMIT 1

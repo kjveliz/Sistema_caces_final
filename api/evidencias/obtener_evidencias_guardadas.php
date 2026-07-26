@@ -34,8 +34,8 @@ $sql = "
         ce.titulo_corto,
         ce.nombre_archivo_base,
         ce.orden
-    FROM Evidencias e
-    INNER JOIN Catalogo_Evidencias ce
+    FROM evidencias e
+    INNER JOIN catalogo_evidencias ce
         ON ce.id_catalogo = e.id_catalogo
     WHERE e.id_evaluacion = ?
       AND ce.id_indicador = ?

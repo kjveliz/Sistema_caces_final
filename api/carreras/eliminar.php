@@ -70,7 +70,7 @@ if ($idCarrera <= 0) {
 
 $sqlBuscar = "
     SELECT id_carrera, nombre
-    FROM Carreras
+    FROM carreras
     WHERE id_carrera = ?
     LIMIT 1
 ";
@@ -116,7 +116,7 @@ if (!$carrera) {
  */
 $sqlEvaluaciones = "
     SELECT COUNT(*) AS total
-    FROM Evaluaciones
+    FROM evaluaciones
     WHERE id_carrera = ?
 ";
 
@@ -164,7 +164,7 @@ try {
      * Eliminar primero la malla curricular relacionada.
      */
     $sqlMalla = "
-        DELETE FROM Mallas_Curriculares
+        DELETE FROM mallas_curriculares
         WHERE id_carrera = ?
     ";
 
@@ -192,7 +192,7 @@ try {
      * Eliminación física de la carrera.
      */
     $sqlCarrera = "
-        DELETE FROM Carreras
+        DELETE FROM carreras
         WHERE id_carrera = ?
     ";
 

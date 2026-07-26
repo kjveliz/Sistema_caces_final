@@ -26,7 +26,7 @@ $sql = "
         nombre_archivo,
         tipo,
         url_archivo
-    FROM Evidencias
+    FROM evidencias
     WHERE id_evidencia = ?
     LIMIT 1
 ";
