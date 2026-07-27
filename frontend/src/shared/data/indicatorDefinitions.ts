@@ -154,7 +154,7 @@ export function makeIndicators(career: Career): IndicatorDef[] {
           // EF4 (Normativas) sigue siendo PDF -- sin cambios de mecanismo,
           // solo se recortó a 2 puntos en el backend (v86).
           sourceNum: 4,
-          label: 'Evidencias de atención',
+          label: 'Reglamento institucional',
         },
       ],
     },
