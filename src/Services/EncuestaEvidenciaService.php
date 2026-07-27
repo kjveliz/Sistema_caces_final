@@ -13,7 +13,12 @@ use Throwable;
  * EncuestaCalculoService. Puerto 1:1 de la parte con I/O de
  * api/seguimiento_syllabus/_encuesta.php (descargarCsvEncuesta,
  * calcularEfDesdeCsv, obtenerDetalleEncuesta) — misma ruta de caché, mismo
- * TTL, mismo criterio de degradación si Drive falla.
+ * TTL, mismo criterio de degradación si la descarga falla.
+ *
+ * Desde el interruptor de almacenamiento por carrera (ver
+ * plan_interruptor_almacenamiento.txt): la descarga ya no asume Drive
+ * directamente, resuelve vía EvidenciaStorageResolver::resolverParaDescarga()
+ * según la forma de la URL guardada (Drive o local).
  */
 final class EncuestaEvidenciaService
 {
@@ -27,7 +32,7 @@ final class EncuestaEvidenciaService
 
     public function __construct(
         private readonly SeguimientoSyllabusRepository $repositorio,
-        private readonly GoogleDriveService $driveService,
+        private readonly EvidenciaStorageResolver $storageResolver,
     ) {
     }
 
@@ -65,9 +70,9 @@ final class EncuestaEvidenciaService
         }
 
         try {
-            $contenido = $this->driveService->descargarContenidoDrive($urlArchivo);
+            $contenido = $this->storageResolver->resolverParaDescarga($urlArchivo)->descargarContenido($urlArchivo);
         } catch (Throwable $e) {
-            error_log('EncuestaEvidenciaService: no se pudo descargar el CSV de encuesta desde Drive: ' . $e->getMessage());
+            error_log('EncuestaEvidenciaService: no se pudo descargar el CSV de encuesta: ' . $e->getMessage());
             $contenido = null;
         }
 

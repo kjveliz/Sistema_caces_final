@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\DTOs\EvidenciaTutoriasItemDTO;
 use App\Repositories\TutoriasRepository;
+use App\Services\EvidenciaStorageResolver;
 use App\Services\GoogleDriveService;
 use App\Services\TutoriasCalculoService;
 use App\Services\TutoriasCsvParserService;
@@ -35,6 +36,7 @@ final class TutoriasAcademicasController
         private readonly TutoriasCalculoService $calculoService,
         private readonly TutoriasValidacionPdfService $validacionService,
         private readonly GoogleDriveService $driveService,
+        private readonly EvidenciaStorageResolver $storageResolver,
     ) {
     }
 
@@ -274,7 +276,7 @@ final class TutoriasAcademicasController
             new OA\Response(response: 401, description: 'La sesión no está activa.'),
             new OA\Response(response: 404, description: 'Asignatura no encontrada.'),
             new OA\Response(response: 422, description: 'No se pudo leer o validar el contenido del archivo.'),
-            new OA\Response(response: 502, description: 'No se pudo subir el archivo a Google Drive.'),
+            new OA\Response(response: 502, description: 'No se pudo subir el archivo de evidencia (Google Drive o almacenamiento local, según la carrera).'),
         ],
     )]
     public function evidenciaSubir(Request $request, Response $response): Response
@@ -347,8 +349,10 @@ final class TutoriasAcademicasController
             $extension,
         );
 
+        $storage = $this->storageResolver->resolver((int) $contexto['id_carrera']);
+
         try {
-            $subida = $this->driveService->subirArchivo(
+            $subida = $storage->subirArchivo(
                 $archivoLegacy['tmp_name'],
                 $nombreArchivoDrive,
                 $contexto['carrera'],
@@ -358,7 +362,7 @@ final class TutoriasAcademicasController
                 $esCsv ? 'text/csv' : 'application/pdf',
             );
         } catch (Throwable $e) {
-            return $this->json($response, false, 'No se pudo subir el archivo a Google Drive.', ['detalle' => $e->getMessage()], 502);
+            return $this->json($response, false, 'No se pudo subir el archivo de evidencia.', ['detalle' => $e->getMessage()], 502);
         }
 
         $idUsuario = (string) (int) ($_SESSION['id_usuario'] ?? 0);

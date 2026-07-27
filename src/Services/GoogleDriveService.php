@@ -34,9 +34,19 @@ use Throwable;
  * calcular EF1/EF4 -- ver EncuestaEvidenciaService). Los métodos que ya
  * usaba I3 (`subirArchivo`, `validarArchivoSubido`) mantienen exactamente
  * la misma firma y comportamiento.
+ *
+ * Desde el interruptor de almacenamiento por carrera (ver
+ * plan_interruptor_almacenamiento.txt): implementa EvidenciaStorageInterface
+ * para poder intercambiarse con AlmacenamientoLocalService detrás del
+ * mismo resolver. `descargarContenido()` es el método del contrato común;
+ * `descargarContenidoDrive()` se conserva tal cual (mismo nombre, mismo
+ * comportamiento) porque EncuestaEvidenciaService ya lo llama así -- es
+ * un alias, no una segunda implementación.
  */
-final class GoogleDriveService
+final class GoogleDriveService implements EvidenciaStorageInterface
 {
+    use ValidacionArchivoSubidoTrait;
+
     public function __construct()
     {
         require_once __DIR__ . '/../../api/google_drive/drive_helpers.php';
@@ -161,56 +171,13 @@ final class GoogleDriveService
         return $respuesta->getBody()->getContents();
     }
 
-    /** Validación de PDF: extensión + MIME real + 25MB. */
-    public function validarArchivoSubido(array $archivo): ?string
+    /** Alias del método del contrato común (EvidenciaStorageInterface). */
+    public function descargarContenido(string $urlArchivo): ?string
     {
-        return $this->validarPdf($archivo);
+        return $this->descargarContenidoDrive($urlArchivo);
     }
 
-    private function validarPdf(array $archivo): ?string
-    {
-        if ($archivo['error'] !== UPLOAD_ERR_OK) {
-            return 'Ocurrió un error al recibir el archivo.';
-        }
-        $tamanoMaximo = 25 * 1024 * 1024;
-        if ($archivo['size'] > $tamanoMaximo) {
-            return 'El archivo no debe superar los 25 MB.';
-        }
-        $extension = strtolower(pathinfo($archivo['name'], PATHINFO_EXTENSION));
-        $finfo = new \finfo(FILEINFO_MIME_TYPE);
-        $mime = $finfo->file($archivo['tmp_name']);
-        if ($extension !== 'pdf' || $mime !== 'application/pdf') {
-            return 'Solo se aceptan archivos PDF válidos.';
-        }
-
-        return null;
-    }
-
-    /**
-     * Validación de CSV para el slot 'encuesta_csv' de I2 (ver MEMORIA
-     * v18): mismo límite de tamaño que validarPdf, pero exige extensión
-     * .csv y un MIME real de texto plano/csv.
-     */
-    public function validarCsv(array $archivo): ?string
-    {
-        if ($archivo['error'] !== UPLOAD_ERR_OK) {
-            return 'Ocurrió un error al recibir el archivo.';
-        }
-        $tamanoMaximo = 25 * 1024 * 1024;
-        if ($archivo['size'] > $tamanoMaximo) {
-            return 'El archivo no debe superar los 25 MB.';
-        }
-        $extension = strtolower(pathinfo($archivo['name'], PATHINFO_EXTENSION));
-        if ($extension !== 'csv') {
-            return 'Solo se aceptan archivos CSV.';
-        }
-        $finfo = new \finfo(FILEINFO_MIME_TYPE);
-        $mime = $finfo->file($archivo['tmp_name']);
-        $mimesValidos = ['text/plain', 'text/csv', 'application/csv', 'text/x-csv', 'application/vnd.ms-excel'];
-        if (!in_array($mime, $mimesValidos, true)) {
-            return 'Solo se aceptan archivos CSV válidos.';
-        }
-
-        return null;
-    }
+    // validarArchivoSubido() y validarCsv() vienen de ValidacionArchivoSubidoTrait
+    // (extraídas de esta clase al agregar AlmacenamientoLocalService, mismo
+    // comportamiento exacto de antes).
 }

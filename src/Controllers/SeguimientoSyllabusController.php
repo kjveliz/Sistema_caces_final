@@ -7,6 +7,7 @@ namespace App\Controllers;
 use App\DTOs\EvidenciaSeguimientoItemDTO;
 use App\Repositories\SeguimientoSyllabusRepository;
 use App\Services\EncuestaEvidenciaService;
+use App\Services\EvidenciaStorageResolver;
 use App\Services\GoogleDriveService;
 use App\Services\SeguimientoSyllabusCalculoService;
 use OpenApi\Attributes as OA;
@@ -42,6 +43,7 @@ final class SeguimientoSyllabusController
         private readonly SeguimientoSyllabusCalculoService $calculoService,
         private readonly EncuestaEvidenciaService $encuestaService,
         private readonly GoogleDriveService $driveService,
+        private readonly EvidenciaStorageResolver $storageResolver,
     ) {
     }
 
@@ -460,7 +462,7 @@ final class SeguimientoSyllabusController
             new OA\Response(response: 401, description: 'La sesión no está activa.'),
             new OA\Response(response: 404, description: 'Asignatura no encontrada.'),
             new OA\Response(response: 500, description: 'No se pudo guardar la evidencia.'),
-            new OA\Response(response: 502, description: 'No se pudo subir el archivo a Google Drive.'),
+            new OA\Response(response: 502, description: 'No se pudo subir el archivo de evidencia (Google Drive o almacenamiento local, según la carrera).'),
         ],
     )]
     public function evidenciaSubir(Request $request, Response $response): Response
@@ -510,8 +512,10 @@ final class SeguimientoSyllabusController
             $extension,
         );
 
+        $storage = $this->storageResolver->resolver((int) $contexto['id_carrera']);
+
         try {
-            $subida = $this->driveService->subirArchivo(
+            $subida = $storage->subirArchivo(
                 $archivoLegacy['tmp_name'],
                 $nombreArchivoDrive,
                 $contexto['carrera'],
@@ -521,7 +525,7 @@ final class SeguimientoSyllabusController
                 $esCsv ? 'text/csv' : 'application/pdf',
             );
         } catch (Throwable $e) {
-            return $this->json($response, false, 'No se pudo subir el archivo a Google Drive.', ['detalle' => $e->getMessage()], 502);
+            return $this->json($response, false, 'No se pudo subir el archivo de evidencia.', ['detalle' => $e->getMessage()], 502);
         }
 
         $idUsuario = (string) (int) ($_SESSION['id_usuario'] ?? 0);

@@ -258,7 +258,7 @@ final class SeguimientoSyllabusRepository
     public function contextoParaDrive(int $idAsignatura): ?array
     {
         $stmt = $this->conexion->prepare(
-            'SELECT a.nombre AS asignatura, p.nombre AS pao, co.nombre_cohorte AS cohorte, ca.nombre AS carrera
+            'SELECT a.nombre AS asignatura, p.nombre AS pao, co.nombre_cohorte AS cohorte, ca.nombre AS carrera, ca.id_carrera AS id_carrera
              FROM asignatura a
              JOIN periodo_academico p ON p.id_periodoacademico = a.id_periodoacademico
              JOIN cohortes co ON co.id_cohorte = p.id_cohorte

@@ -18,6 +18,7 @@ use App\Repositories\SeguimientoSyllabusRepository;
 use App\Repositories\TitulacionRepository;
 use App\Repositories\TutoriasRepository;
 use App\Services\EncuestaEvidenciaService;
+use App\Services\EvidenciaStorageResolver;
 use App\Services\GoogleDriveService;
 use App\Services\SeguimientoSyllabusCalculoService;
 use App\Services\TutoriasCalculoService;
@@ -88,18 +89,24 @@ $errorMiddleware->setDefaultErrorHandler(function (
 // empieza a doler al migrar I1/I4/I5.
 $conexion = Database::conectar();
 $driveService = new GoogleDriveService();
+// Interruptor de almacenamiento por carrera (ver
+// plan_interruptor_almacenamiento.txt): decide, al subir o descargar
+// evidencia, si el destino real es Drive o el almacenamiento local de la
+// carrera. $driveService se sigue usando tal cual para la validación de
+// archivo (formato, no depende del destino).
+$storageResolver = new EvidenciaStorageResolver($conexion, $driveService);
 
 // --- I3 (Tutorías Académicas) -------------------------------------------
 $tutoriasRepositorio = new TutoriasRepository($conexion);
 $tutoriasCalculoService = new TutoriasCalculoService($tutoriasRepositorio);
 $tutoriasValidacionService = new TutoriasValidacionPdfService();
-$tutoriasController = new TutoriasAcademicasController($tutoriasRepositorio, $tutoriasCalculoService, $tutoriasValidacionService, $driveService);
+$tutoriasController = new TutoriasAcademicasController($tutoriasRepositorio, $tutoriasCalculoService, $tutoriasValidacionService, $driveService, $storageResolver);
 
 // --- I2 (Seguimiento Syllabus) -------------------------------------------
 $seguimientoRepositorio = new SeguimientoSyllabusRepository($conexion);
-$encuestaService = new EncuestaEvidenciaService($seguimientoRepositorio, $driveService);
+$encuestaService = new EncuestaEvidenciaService($seguimientoRepositorio, $storageResolver);
 $seguimientoCalculoService = new SeguimientoSyllabusCalculoService($seguimientoRepositorio, $encuestaService);
-$seguimientoController = new SeguimientoSyllabusController($seguimientoRepositorio, $seguimientoCalculoService, $encuestaService, $driveService);
+$seguimientoController = new SeguimientoSyllabusController($seguimientoRepositorio, $seguimientoCalculoService, $encuestaService, $driveService, $storageResolver);
 
 // --- Rutas de I3 (Tutorías Académicas) ---------------------------------
 // Mismos 4 endpoints que consumía frontend/src/services/tutoriasAcademicas.ts

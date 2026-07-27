@@ -8,6 +8,11 @@ vendor/
 .env
 frontend/.env
 
+# Interruptor de almacenamiento por carrera (modo 'local'): la evidencia
+# real no se versiona, solo la carpeta raíz por defecto (.gitkeep).
+storage/evidencias/*
+!storage/evidencias/.gitkeep
+
 .phpunit.cache/
 
 frontend/playwright-report/
