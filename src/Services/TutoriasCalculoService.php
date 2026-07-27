@@ -54,8 +54,10 @@ final class TutoriasCalculoService
     }
 
     /**
-     * Tabla de % oficial: EF1/EF2/EF3 tienen base 3 puntos; EF4 tiene base 4
-     * puntos. 0 puntos cumplidos siempre es 0%, sin importar la base.
+     * Tabla de % oficial: EF1/EF2/EF3 tienen base 3 puntos (validación por
+     * CSV desde v86). EF4 tiene base 2 puntos desde v86 (encabezado +
+     * firma de director de carrera; se quitaron firma_docente y
+     * normativa). 0 puntos cumplidos siempre es 0%, sin importar la base.
      */
     public static function porcentajePorPuntos(int $cumplidos, int $totalPuntos): float
     {
@@ -70,12 +72,10 @@ final class TutoriasCalculoService
                 default => 0.0,
             };
         }
-        if ($totalPuntos === 4) {
+        if ($totalPuntos === 2) {
             return match ($cumplidos) {
-                4 => 100.0,
-                3 => 75.0,
-                2 => 50.0,
-                1 => 25.0,
+                2 => 100.0,
+                1 => 50.0,
                 default => 0.0,
             };
         }
@@ -123,7 +123,7 @@ final class TutoriasCalculoService
                     'pct' => null,
                     'estado' => 'sin_datos',
                     'cumplidos' => 0,
-                    'total_puntos' => $ef === 'EF4' ? 4 : 3,
+                    'total_puntos' => $ef === 'EF4' ? 2 : 3,
                     'detalle_puntos' => [],
                 ];
                 $todosLosEf = false;

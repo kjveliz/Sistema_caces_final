@@ -8,6 +8,7 @@ use App\DTOs\EvidenciaTutoriasItemDTO;
 use App\Repositories\TutoriasRepository;
 use App\Services\GoogleDriveService;
 use App\Services\TutoriasCalculoService;
+use App\Services\TutoriasCsvParserService;
 use App\Services\TutoriasValidacionPdfService;
 use OpenApi\Attributes as OA;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -238,7 +239,7 @@ final class TutoriasAcademicasController
     /** POST /tutorias-academicas/evidencia-subir (multipart: id_asignatura, tipo, archivo) — requiere sesión. */
     #[OA\Post(
         path: '/tutorias-academicas/evidencia-subir',
-        summary: 'Sube el PDF de evidencia de un tipo de tutoría (EF1/EF2/EF3), lo valida y lo sube a Drive.',
+        summary: 'Sube la evidencia de un tipo de tutoría (EF1/EF2/EF3 en CSV, EF4 en PDF), la valida y la sube a Drive.',
         security: [['sesionPhp' => []]],
         tags: ['I3 - Tutorías Académicas'],
         requestBody: new OA\RequestBody(
@@ -249,7 +250,12 @@ final class TutoriasAcademicasController
                     required: ['id_asignatura', 'tipo', 'archivo'],
                     properties: [
                         new OA\Property(property: 'id_asignatura', type: 'integer'),
-                        new OA\Property(property: 'tipo', type: 'string', enum: ['EF1', 'EF2', 'EF3']),
+                        new OA\Property(
+                            property: 'tipo',
+                            type: 'string',
+                            enum: ['plan_tutorias', 'registro_tutorias', 'informe_tutorias', 'evidencia_atencion'],
+                            description: 'plan_tutorias/registro_tutorias/informe_tutorias son CSV (EF1/EF2/EF3); evidencia_atencion es PDF (EF4).',
+                        ),
                         new OA\Property(property: 'archivo', type: 'string', format: 'binary'),
                     ],
                 ),
@@ -258,7 +264,7 @@ final class TutoriasAcademicasController
         responses: [
             new OA\Response(
                 response: 200,
-                description: 'Evidencia subida, validada contra el PDF y guardada (con sus puntos de validación).',
+                description: 'Evidencia subida, validada (CSV o PDF según el tipo) y guardada (con sus puntos de validación).',
                 content: new OA\JsonContent(properties: [
                     new OA\Property(property: 'ok', type: 'boolean'),
                     new OA\Property(property: 'datos', type: 'object'),
@@ -267,8 +273,8 @@ final class TutoriasAcademicasController
             new OA\Response(response: 400, description: 'Faltan/son inválidos id_asignatura, tipo o el archivo.'),
             new OA\Response(response: 401, description: 'La sesión no está activa.'),
             new OA\Response(response: 404, description: 'Asignatura no encontrada.'),
-            new OA\Response(response: 422, description: 'No se pudo leer o validar el contenido del PDF.'),
-            new OA\Response(response: 502, description: 'No se pudo subir el PDF a Google Drive.'),
+            new OA\Response(response: 422, description: 'No se pudo leer o validar el contenido del archivo.'),
+            new OA\Response(response: 502, description: 'No se pudo subir el archivo a Google Drive.'),
         ],
     )]
     public function evidenciaSubir(Request $request, Response $response): Response
@@ -297,7 +303,13 @@ final class TutoriasAcademicasController
             'size' => $archivoSubido->getSize() ?? 0,
         ];
 
-        $errorValidacion = $this->driveService->validarArchivoSubido($archivoLegacy);
+        // Desde v86: plan_tutorias/registro_tutorias/informe_tutorias (EF1/EF2/EF3)
+        // son CSV; evidencia_atencion (EF4) sigue siendo PDF.
+        $esCsv = $tipo !== 'evidencia_atencion';
+
+        $errorValidacion = $esCsv
+            ? $this->driveService->validarCsv($archivoLegacy)
+            : $this->driveService->validarArchivoSubido($archivoLegacy);
         if ($errorValidacion !== null) {
             return $this->json($response, false, $errorValidacion, [], 400);
         }
@@ -309,20 +321,30 @@ final class TutoriasAcademicasController
             return $this->json($response, false, 'Asignatura no encontrada.', [], 404);
         }
 
-        // EF2 se topa a 100% si las horas evidenciadas >= horas planeadas en EF1.
-        $horasEf1Previas = $ef === 'EF2' ? $this->repositorio->horasEf1Previas($idAsignatura) : null;
-
         try {
-            $resultadoValidacion = $this->validacionService->validarPdfTutorias($archivoLegacy['tmp_name'], $ef, $horasEf1Previas);
+            if ($esCsv) {
+                $contenidoCsv = file_get_contents($archivoLegacy['tmp_name']);
+                if ($contenidoCsv === false) {
+                    throw new \RuntimeException('No se pudo leer el archivo subido.');
+                }
+                $contextoCsv = ['asignatura' => $contexto['asignatura'], 'cohorte' => $contexto['cohorte'], 'pao' => $contexto['pao']];
+                $resultadoValidacion = $ef === 'EF3'
+                    ? TutoriasCsvParserService::validarCsvSeguimientoAcademico($contenidoCsv, $contextoCsv)
+                    : TutoriasCsvParserService::validarCsvPlanificacionOSeguimiento($contenidoCsv, $ef, $contextoCsv);
+            } else {
+                $resultadoValidacion = $this->validacionService->validarPdfTutorias($archivoLegacy['tmp_name'], $ef);
+            }
         } catch (Throwable $e) {
-            return $this->json($response, false, 'No se pudo leer el contenido del PDF.', ['detalle' => $e->getMessage()], 422);
+            return $this->json($response, false, 'No se pudo leer o validar el contenido del archivo.', ['detalle' => $e->getMessage()], 422);
         }
 
+        $extension = $esCsv ? 'csv' : 'pdf';
         $nombreArchivoDrive = sprintf(
-            '%s_%s_%s.pdf',
+            '%s_%s_%s.%s',
             $tipo,
             preg_replace('/[^A-Za-z0-9]+/', '_', $contexto['asignatura']),
             date('Ymd_His'),
+            $extension,
         );
 
         try {
@@ -333,9 +355,10 @@ final class TutoriasAcademicasController
                 $contexto['cohorte'],
                 $contexto['pao'],
                 $contexto['asignatura'],
+                $esCsv ? 'text/csv' : 'application/pdf',
             );
         } catch (Throwable $e) {
-            return $this->json($response, false, 'No se pudo subir el PDF a Google Drive.', ['detalle' => $e->getMessage()], 502);
+            return $this->json($response, false, 'No se pudo subir el archivo a Google Drive.', ['detalle' => $e->getMessage()], 502);
         }
 
         $idUsuario = (string) (int) ($_SESSION['id_usuario'] ?? 0);

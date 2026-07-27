@@ -7,29 +7,27 @@ namespace App\Services;
 use Smalot\PdfParser\Parser;
 
 /**
- * Validación automática de los PDFs de Tutorías Académicas (Indicador 11.3).
- * Migrado 1:1 desde api/tutorias_academicas/_validacion_pdf.php — mismas
- * regex, mismo orden de fallback, mismo comportamiento.
+ * Validación automática del PDF de Tutorías Académicas (Indicador 11.3).
+ * Migrado originalmente 1:1 desde api/tutorias_academicas/_validacion_pdf.php.
  *
- * IMPORTANTE — calibración pendiente (heredado del original): estos
- * patrones son una primera versión razonable, sin haber tenido un PDF real
- * de plan/registro de tutorías a la vista. Cuando llegue un ejemplo real,
- * lo esperable es tener que ajustar las regex de "horas" y "encabezado
- * institucional" acá — el resto de la arquitectura no debería cambiar.
+ * DESDE v86: EF1 (Planeación), EF2 (Cumplimiento) y EF3 (Seguimiento
+ * académico) dejaron de validarse por PDF — ahora leen CSV, ver
+ * TutoriasCsvParserService. Este servicio quedó acotado a EF4
+ * (Normativas institucionales), que sigue siendo PDF pero se redujo de 4
+ * a 2 puntos: ya no valida "normativa" ni "firma_docente", solo
+ * encabezado institucional y firma del director de carrera (confirmado
+ * con el usuario).
  *
  * Regla de negocio: si un punto no se detecta con confianza, se marca como
  * NO cumplido (false) — nunca se asume cumplido por default.
  */
 final class TutoriasValidacionPdfService
 {
-    /** Definición de los puntos de validación por EF, en el orden del plan. */
+    /** Definición de los puntos de validación por EF, en el orden del plan. Solo EF4 sigue vigente (ver arriba). */
     public static function puntosPorEf(): array
     {
         return [
-            'EF1' => ['encabezado_institucional', 'horas', 'firma_docente'],
-            'EF2' => ['encabezado_institucional', 'horas', 'firma_docente'],
-            'EF3' => ['encabezado_institucional', 'reporte_mejora', 'firma_docente'],
-            'EF4' => ['encabezado_institucional', 'normativa', 'firma_docente', 'firma_director'],
+            'EF4' => ['encabezado_institucional', 'firma_director'],
         ];
     }
 
@@ -58,31 +56,7 @@ final class TutoriasValidacionPdfService
         return [false, null];
     }
 
-    /**
-     * Puntos "horas" de EF1/EF2: extrae el primer número seguido de "hora(s)".
-     * Devuelve el valor numérico (float) además del booleano, para poder
-     * comparar EF2 contra EF1 (ver regla de "se topa a 100%" en validarPdf()).
-     */
-    private static function detectarHoras(string $texto): array
-    {
-        $patrones = [
-            '/(\d+(?:[.,]\d+)?)\s*horas?\s+(?:planificadas|estimadas|programadas)/iu',
-            '/(\d+(?:[.,]\d+)?)\s*horas?\s+(?:cumplidas|ejecutadas|evidenciadas|realizadas)/iu',
-            '/Total\s+de\s+horas\s*:\s*(\d+(?:[.,]\d+)?)/iu',
-            '/(\d+(?:[.,]\d+)?)\s*horas?/iu',
-        ];
-        foreach ($patrones as $patron) {
-            if (preg_match($patron, $texto, $m)) {
-                $valor = (float) str_replace(',', '.', $m[1]);
-
-                return [true, $valor, trim($m[0])];
-            }
-        }
-
-        return [false, null, null];
-    }
-
-    /** Puntos "firma_docente" / "firma_director": busca patrones de firma cercanos al pie del documento. */
+    /** Punto "firma_director": busca patrones de firma del director de carrera cerca del pie del documento. */
     private static function detectarFirma(string $texto, string $rol): array
     {
         $etiquetaRol = $rol === 'director' ? '(?:Director(?:a)?\s+de\s+Carrera)' : '(?:Docente|Tutor(?:a)?)';
@@ -100,47 +74,13 @@ final class TutoriasValidacionPdfService
         return [false, null];
     }
 
-    /** Punto "reporte_mejora" (EF3): busca keywords de seguimiento/mejora académica. */
-    private static function detectarReporteMejora(string $texto): array
-    {
-        $patrones = [
-            '/mejora\s+acad[eé]mica/iu',
-            '/rendimiento\s+acad[eé]mico/iu',
-            '/seguimiento\s+acad[eé]mico/iu',
-        ];
-        foreach ($patrones as $patron) {
-            if (preg_match($patron, $texto, $m)) {
-                return [true, trim($m[0])];
-            }
-        }
-
-        return [false, null];
-    }
-
-    /** Punto "normativa" (EF4): busca referencia a reglamento/normativa vigente. */
-    private static function detectarNormativa(string $texto): array
-    {
-        $patrones = [
-            '/Reglamento\s+(?:de\s+)?(?:R[eé]gimen\s+)?Acad[eé]mico/iu',
-            '/normativa\s+(?:institucional\s+)?vigente/iu',
-            '/reglamento\s+institucional/iu',
-        ];
-        foreach ($patrones as $patron) {
-            if (preg_match($patron, $texto, $m)) {
-                return [true, trim($m[0])];
-            }
-        }
-
-        return [false, null];
-    }
-
     /**
-     * Extrae texto del PDF y corre TODOS los puntos de validación de un EF.
-     * $horasEf1Previas: solo se usa para el EF2 (regla de "se topa a 100%").
+     * Extrae texto del PDF y corre los puntos de validación de un EF
+     * (en la práctica, siempre EF4 desde v86 — ver puntosPorEf()).
      *
-     * @return array{puntos: array<int, array{nombre: string, cumplido: bool, valor: string|null}>, horas_detectadas: float|null}
+     * @return array{puntos: array<int, array{nombre: string, cumplido: bool, valor: string|null}>}
      */
-    public function validarPdfTutorias(string $rutaTemporal, string $ef, ?float $horasEf1Previas = null): array
+    public function validarPdfTutorias(string $rutaTemporal, string $ef): array
     {
         $parser = new Parser();
         $pdf = $parser->parseFile($rutaTemporal);
@@ -148,7 +88,6 @@ final class TutoriasValidacionPdfService
 
         $nombresPuntos = self::puntosPorEf()[$ef] ?? [];
         $puntos = [];
-        $horasDetectadas = null;
 
         foreach ($nombresPuntos as $nombre) {
             switch ($nombre) {
@@ -156,31 +95,8 @@ final class TutoriasValidacionPdfService
                     [$cumplido, $valor] = self::detectarEncabezadoInstitucional($texto);
                     break;
 
-                case 'horas':
-                    [$cumplido, $valorNumerico, $valorTexto] = self::detectarHoras($texto);
-                    $horasDetectadas = $valorNumerico;
-                    $valor = $valorTexto;
-                    // Regla: en EF2, si las horas evidenciadas superan (o
-                    // igualan) las de EF1, el punto se topa a cumplido.
-                    if ($ef === 'EF2' && $horasEf1Previas !== null && $valorNumerico !== null) {
-                        $cumplido = $valorNumerico >= $horasEf1Previas;
-                    }
-                    break;
-
-                case 'firma_docente':
-                    [$cumplido, $valor] = self::detectarFirma($texto, 'docente');
-                    break;
-
                 case 'firma_director':
                     [$cumplido, $valor] = self::detectarFirma($texto, 'director');
-                    break;
-
-                case 'reporte_mejora':
-                    [$cumplido, $valor] = self::detectarReporteMejora($texto);
-                    break;
-
-                case 'normativa':
-                    [$cumplido, $valor] = self::detectarNormativa($texto);
                     break;
 
                 default:
@@ -195,6 +111,6 @@ final class TutoriasValidacionPdfService
             ];
         }
 
-        return ['puntos' => $puntos, 'horas_detectadas' => $horasDetectadas];
+        return ['puntos' => $puntos];
     }
 }

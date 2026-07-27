@@ -146,34 +146,6 @@ final class TutoriasRepository
     }
 
     /**
-     * Horas detectadas en el EF1 vigente de una asignatura (para la regla de
-     * "EF2 se topa a 100% si iguala o supera las horas de EF1"). Misma
-     * consulta que la del evidencia_subir.php original.
-     */
-    public function horasEf1Previas(int $idAsignatura): ?float
-    {
-        $stmt = $this->conexion->prepare(
-            "SELECT v.valor_extraido
-             FROM evidencia_validacion_pdf v
-             JOIN evidencia_asignatura e ON e.id_evidencia_asig = v.id_evidencia_asig
-             WHERE e.id_asignatura = ? AND e.vigente = 1 AND v.ef = 'EF1' AND v.punto_nombre = 'horas'
-             ORDER BY v.fecha_validacion DESC LIMIT 1"
-        );
-        $stmt->bind_param('i', $idAsignatura);
-        $stmt->execute();
-        $fila = $stmt->get_result()->fetch_assoc();
-
-        if ($fila === null || $fila['valor_extraido'] === null) {
-            return null;
-        }
-        if (!preg_match('/(\d+(?:[.,]\d+)?)/', $fila['valor_extraido'], $m)) {
-            return null;
-        }
-
-        return (float) str_replace(',', '.', $m[1]);
-    }
-
-    /**
      * Contexto (carrera/cohorte/PAO/asignatura) para la jerarquía de
      * carpetas en Drive. Misma consulta que evidencia_subir.php original.
      *

@@ -39,13 +39,34 @@ final class CalculoTest extends TestCase
         ];
     }
 
-    #[DataProvider('proveedorPorcentajesBase4')]
-    public function testPorcentajePorPuntosBase4(int $cumplidos, float $esperado): void
+    #[DataProvider('proveedorPorcentajesBase2')]
+    public function testPorcentajePorPuntosBase2(int $cumplidos, float $esperado): void
+    {
+        $this->assertSame($esperado, TutoriasCalculoService::porcentajePorPuntos($cumplidos, 2));
+    }
+
+    public static function proveedorPorcentajesBase2(): array
+    {
+        return [
+            '0 de 2 -> 0%' => [0, 0.0],
+            '1 de 2 -> 50%' => [1, 50.0],
+            '2 de 2 -> 100%' => [2, 100.0],
+        ];
+    }
+
+    /**
+     * Base 4 ya NO es una escala oficial desde v86 (EF4 pasó de 4 a 2
+     * puntos) — este test queda para confirmar que ese caso sigue cayendo
+     * en el fallback genérico (regla de tres) y no rompe nada, no porque
+     * sea una escala soportada.
+     */
+    #[DataProvider('proveedorPorcentajesBase4ComoFallback')]
+    public function testPorcentajePorPuntosBase4CaeEnFallbackGenerico(int $cumplidos, float $esperado): void
     {
         $this->assertSame($esperado, TutoriasCalculoService::porcentajePorPuntos($cumplidos, 4));
     }
 
-    public static function proveedorPorcentajesBase4(): array
+    public static function proveedorPorcentajesBase4ComoFallback(): array
     {
         return [
             '0 de 4 -> 0%' => [0, 0.0],
