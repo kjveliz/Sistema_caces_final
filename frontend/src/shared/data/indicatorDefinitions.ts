@@ -130,18 +130,29 @@ export function makeIndicators(career: Career): IndicatorDef[] {
       cohorts: [],
       slots: [
         {
+          // Desde v86 (MEMORIA §63): EF1 (Planeación) se valida por CSV
+          // real (TutoriasCsvParserService), ya no por PDF.
           sourceNum: 1,
           label: 'Plan de tutorías',
+          acceptedType: 'csv',
         },
         {
+          // Desde v86: EF2 (Cumplimiento), ídem EF1.
           sourceNum: 2,
           label: 'Registros de tutorías',
+          acceptedType: 'csv',
         },
         {
+          // Desde v86: EF3 (Seguimiento académico), ídem EF1/EF2 -- por
+          // ahora solo valida credenciales (asignatura/cohorte/PAO), ver
+          // nota de calibración pendiente en TutoriasCsvParserService.
           sourceNum: 3,
           label: 'Informe de tutorías',
+          acceptedType: 'csv',
         },
         {
+          // EF4 (Normativas) sigue siendo PDF -- sin cambios de mecanismo,
+          // solo se recortó a 2 puntos en el backend (v86).
           sourceNum: 4,
           label: 'Evidencias de atención',
         },

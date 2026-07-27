@@ -18,11 +18,14 @@ async function getJson<T>(url: string): Promise<T> {
 // ── Evidencia por asignatura (Indicador 11.3 — Tutorías Académicas) ─────
 // Los 4 documentos de I3 son, igual que I2 desde c4fa5e15, por-asignatura
 // (tabla evidencia_asignatura). A diferencia de I2, cada uno se valida
-// automáticamente al subir (extracción de texto del PDF + puntos de
-// validación por EF, ver api/tutorias_academicas/_validacion_pdf.php) y la
-// evaluación es CUALITATIVA por puntos dentro de cada EF, no cuantitativa
-// vía encuesta como I2. Esta capa de servicio NO cambia esa lógica: solo
-// llama a los endpoints reales ya implementados en el backend.
+// automáticamente al subir y la evaluación es CUALITATIVA por puntos
+// dentro de cada EF, no cuantitativa vía encuesta como I2. Desde v86:
+// EF1/EF2/EF3 (Planeación/Cumplimiento/Seguimiento académico) se validan
+// leyendo un CSV real (TutoriasCsvParserService); solo EF4 (Normativas)
+// sigue leyendo un PDF (TutoriasValidacionPdfService). Esta capa de
+// servicio NO cambia esa lógica: solo llama a los endpoints reales ya
+// implementados en el backend, que decide CSV vs PDF según el campo
+// `tipo` enviado (no según la extensión real del archivo subido).
 export type TipoEvidenciaTutorias =
   'plan_tutorias' | 'registro_tutorias' | 'informe_tutorias' | 'evidencia_atencion';
 

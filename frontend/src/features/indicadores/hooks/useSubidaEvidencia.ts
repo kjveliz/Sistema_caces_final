@@ -178,9 +178,11 @@ export function useSubidaEvidencia({
         idAsignatura: asignaturaId,
         tipo: I3_SOURCE_NUM_TO_TIPO[slot.sourceNum],
         subirFn: subirEvidenciaTutorias,
-        mensajeSubiendo: 'Validando y subiendo el archivo PDF...',
+        mensajeSubiendo: esCsv
+          ? 'Validando y subiendo el archivo CSV...'
+          : 'Validando y subiendo el archivo PDF...',
         construirMensajeExito: (resultado) => ({
-          titulo: `PDF guardado y validado (${resultado.cumplidos}/${resultado.total_puntos} puntos cumplidos)`,
+          titulo: `${esCsv ? 'CSV' : 'PDF'} guardado y validado (${resultado.cumplidos}/${resultado.total_puntos} puntos cumplidos)`,
           descripcion:
             'La evidencia se subió a Google Drive y se validó automáticamente para ' +
             resultado.ef +
