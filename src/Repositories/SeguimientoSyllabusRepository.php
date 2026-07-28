@@ -68,15 +68,36 @@ final class SeguimientoSyllabusRepository
         return $fila !== null ? (int) $fila['id_asignatura'] : null;
     }
 
-    public function crearAsignatura(int $idPeriodo, string $nombre, ?string $docente): int
+    /**
+     * `modulo` (Parte 4 del plan de malla curricular xlsx, ver
+     * plan_malla_curricular_xlsx.txt §7 Parte 4): agrupador visual A/B/C
+     * agregado en la Parte 1 (migración `AgregarModuloAsignatura`) a la
+     * columna `asignatura.modulo`. NO entra en la clave de
+     * get-or-create (sigue siendo id_periodoacademico+nombre, ver
+     * buscarAsignaturaPorPeriodoYNombre) -- solo se guarda/actualiza.
+     */
+    public function crearAsignatura(int $idPeriodo, string $nombre, ?string $docente, ?string $modulo = null): int
     {
         $stmt = $this->conexion->prepare(
-            'INSERT INTO asignatura (id_periodoacademico, nombre, docente, fecha_creacion) VALUES (?, ?, ?, CURDATE())',
+            'INSERT INTO asignatura (id_periodoacademico, nombre, docente, modulo, fecha_creacion) VALUES (?, ?, ?, ?, CURDATE())',
         );
-        $stmt->bind_param('iss', $idPeriodo, $nombre, $docente);
+        $stmt->bind_param('isss', $idPeriodo, $nombre, $docente, $modulo);
         $stmt->execute();
 
         return (int) $stmt->insert_id;
+    }
+
+    /**
+     * Actualiza `modulo` de una asignatura ya existente. Se usa cuando el
+     * get-or-create de asignaturaCrear() encuentra una fila existente y el
+     * body trae `modulo`: se pisa siempre con el valor recibido (decisión
+     * acordada explícitamente -- no se compara contra el valor previo).
+     */
+    public function actualizarModuloAsignatura(int $idAsignatura, string $modulo): void
+    {
+        $stmt = $this->conexion->prepare('UPDATE asignatura SET modulo = ? WHERE id_asignatura = ?');
+        $stmt->bind_param('si', $modulo, $idAsignatura);
+        $stmt->execute();
     }
 
     /** Existencia simple de una carrera (sin exigir `activo = 1`: alcanza para validar el FK antes de insertar). */

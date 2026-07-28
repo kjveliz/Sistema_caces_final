@@ -281,6 +281,12 @@ final class SeguimientoSyllabusController
                     new OA\Property(property: 'id_periodo', type: 'integer'),
                     new OA\Property(property: 'nombre', type: 'string'),
                     new OA\Property(property: 'docente', type: 'string', nullable: true),
+                    new OA\Property(
+                        property: 'modulo',
+                        type: 'string',
+                        nullable: true,
+                        description: 'Agrupador visual A/B/C (no entra en la clave de get-or-create; si la asignatura ya existía, se actualiza con este valor).',
+                    ),
                 ],
             ),
         ),
@@ -295,7 +301,7 @@ final class SeguimientoSyllabusController
                     ], type: 'object'),
                 ]),
             ),
-            new OA\Response(response: 400, description: 'id_periodo y nombre son requeridos.'),
+            new OA\Response(response: 400, description: 'id_periodo y nombre son requeridos, o modulo tiene más de 1 caracter.'),
         ],
     )]
     public function asignaturaCrear(Request $request, Response $response): Response
@@ -304,18 +310,29 @@ final class SeguimientoSyllabusController
         $idPeriodo = (int) ($body['id_periodo'] ?? 0);
         $nombre = trim((string) ($body['nombre'] ?? ''));
         $docente = trim((string) ($body['docente'] ?? ''));
+        $modulo = trim((string) ($body['modulo'] ?? ''));
 
         if ($idPeriodo <= 0 || $nombre === '') {
             return $this->json($response, false, 'id_periodo y nombre son requeridos.', [], 400);
         }
 
+        if (strlen($modulo) > 1) {
+            return $this->json($response, false, 'modulo debe ser un solo caracter (A/B/C).', [], 400);
+        }
+
+        $moduloParam = $modulo !== '' ? $modulo : null;
+
         $idExistente = $this->repositorio->buscarAsignaturaPorPeriodoYNombre($idPeriodo, $nombre);
         if ($idExistente !== null) {
+            if ($moduloParam !== null) {
+                $this->repositorio->actualizarModuloAsignatura($idExistente, $moduloParam);
+            }
+
             return $this->json($response, true, 'La asignatura ya existía.', ['datos' => ['id_asignatura' => $idExistente]]);
         }
 
         $docenteParam = $docente !== '' ? $docente : null;
-        $idAsignatura = $this->repositorio->crearAsignatura($idPeriodo, $nombre, $docenteParam);
+        $idAsignatura = $this->repositorio->crearAsignatura($idPeriodo, $nombre, $docenteParam, $moduloParam);
 
         return $this->json($response, true, 'Asignatura creada.', ['datos' => ['id_asignatura' => $idAsignatura]]);
     }
