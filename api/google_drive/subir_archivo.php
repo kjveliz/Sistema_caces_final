@@ -43,9 +43,18 @@ $tipoEsperado = trim(
     $_POST["tipo_esperado"] ?? "pdf"
 );
 
-if (!in_array($tipoEsperado, ["pdf", "csv"], true)) {
+if (!in_array($tipoEsperado, ["pdf", "csv", "xlsx"], true)) {
     $tipoEsperado = "pdf";
 }
+
+// Etiqueta legible para los mensajes de respuesta (éxito y error) -- se
+// calcula una sola vez acá porque $tipoEsperado ya está definido con su
+// default seguro, y se necesita tanto dentro del try como del catch.
+$etiquetaTipo = match ($tipoEsperado) {
+    "csv" => "CSV",
+    "xlsx" => "Excel",
+    default => "PDF",
+};
 
 try {
     $idCarrera = intval(
@@ -162,6 +171,18 @@ try {
         "text/plain",
     ];
 
+    // MIME types de xlsx (Parte E del plan de malla curricular xlsx): el
+    // real es application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,
+    // pero un .xlsx es un zip por dentro y algunos entornos (sobre todo
+    // finfo en Windows/XAMPP) lo detectan como application/zip u
+    // octet-stream según la versión de libmagic -- se valida siempre junto
+    // con la extensión .xlsx para no depender solo del mime.
+    $mimeXlsxValidos = [
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/zip",
+        "application/octet-stream",
+    ];
+
     if ($tipoEsperado === "csv") {
         if ($extension !== "csv" || !in_array($mime, $mimeCsvValidos, true)) {
             http_response_code(400);
@@ -170,6 +191,18 @@ try {
                 "ok" => false,
                 "mensaje" =>
                     "Solo se aceptan archivos CSV válidos."
+            ], JSON_UNESCAPED_UNICODE);
+
+            exit;
+        }
+    } elseif ($tipoEsperado === "xlsx") {
+        if ($extension !== "xlsx" || !in_array($mime, $mimeXlsxValidos, true)) {
+            http_response_code(400);
+
+            echo json_encode([
+                "ok" => false,
+                "mensaje" =>
+                    "Solo se aceptan archivos Excel (.xlsx) válidos."
             ], JSON_UNESCAPED_UNICODE);
 
             exit;
@@ -188,7 +221,11 @@ try {
         }
     }
 
-    $mimeSubida = $tipoEsperado === "csv" ? "text/csv" : "application/pdf";
+    $mimeSubida = match ($tipoEsperado) {
+        "csv" => "text/csv",
+        "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        default => "application/pdf",
+    };
 
     /*
      * Se resuelve el destino ANTES de tocar Drive para nada -- ni siquiera
@@ -225,7 +262,7 @@ try {
         echo json_encode([
             "ok" => true,
             "mensaje" =>
-                ($tipoEsperado === "csv" ? "CSV" : "PDF") . " guardado correctamente en almacenamiento local.",
+                $etiquetaTipo . " guardado correctamente en almacenamiento local.",
             "datos" => [
                 "id_archivo" => $subidaLocal["id_archivo"],
                 "nombre_archivo" => $subidaLocal["nombre_archivo"],
@@ -402,7 +439,7 @@ try {
     echo json_encode([
         "ok" => true,
         "mensaje" =>
-            ($tipoEsperado === "csv" ? "CSV" : "PDF") . " {$accion} correctamente en Google Drive.",
+            $etiquetaTipo . " {$accion} correctamente en Google Drive.",
         "datos" => [
             "id_archivo" =>
                 $archivoDrive->getId(),
@@ -439,7 +476,7 @@ try {
     echo json_encode([
         "ok" => false,
         "mensaje" =>
-            "No se pudo subir el " . ($tipoEsperado === "csv" ? "CSV" : "PDF") . " de evidencia.",
+            "No se pudo subir el " . $etiquetaTipo . " de evidencia.",
         "detalle" =>
             $error->getMessage(),
     ], JSON_UNESCAPED_UNICODE);

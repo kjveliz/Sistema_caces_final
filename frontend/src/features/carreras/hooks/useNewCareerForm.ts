@@ -91,7 +91,7 @@ export function useNewCareerForm(onSaved: () => Promise<void>) {
       setSavingCareer(true);
 
       if (!newCareerFile) {
-        toast.error('Seleccione la malla curricular en PDF.');
+        toast.error('Seleccione la malla curricular en Excel (.xlsx).');
         return;
       }
 

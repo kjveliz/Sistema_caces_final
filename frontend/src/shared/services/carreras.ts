@@ -212,15 +212,21 @@ export async function subirMallaCurricular({
   archivo,
   carrera,
 }: SubirMallaParams): Promise<MallaCurricularRegistrada> {
-  if (archivo.type !== 'application/pdf' && !archivo.name.toLowerCase().endsWith('.pdf')) {
-    throw new Error('La malla curricular debe ser un archivo PDF.');
+  // Parte E del plan de malla curricular xlsx: mismo criterio que ya usaba
+  // el validador de PDF (chequear mime type O extensión, no exigir ambos),
+  // porque el navegador no siempre setea el mime correcto para xlsx --
+  // mismo mime real que valida subir_archivo.php del lado del servidor.
+  const mimeXlsx = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+  if (archivo.type !== mimeXlsx && !archivo.name.toLowerCase().endsWith('.xlsx')) {
+    throw new Error('La malla curricular debe ser un archivo Excel (.xlsx).');
   }
 
   if (archivo.size > 25 * 1024 * 1024) {
-    throw new Error('El PDF no debe superar los 25 MB.');
+    throw new Error('El archivo no debe superar los 25 MB.');
   }
 
-  const nombreArchivo = `Malla_Curricular_${carrera.codigo}.pdf`;
+  const nombreArchivo = `Malla_Curricular_${carrera.codigo}.xlsx`;
 
   const formulario = new FormData();
   formulario.append('archivo', archivo);
@@ -235,7 +241,7 @@ export async function subirMallaCurricular({
   formulario.append('cohorte', 'GENERAL');
   formulario.append('indicador', '1');
   formulario.append('nombre_archivo', nombreArchivo);
-  formulario.append('tipo_esperado', 'pdf');
+  formulario.append('tipo_esperado', 'xlsx');
 
   const respuestaDrive = await fetch(
     'http://localhost/sistemacaces/api/google_drive/subir_archivo.php',
