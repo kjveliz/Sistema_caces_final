@@ -79,6 +79,34 @@ final class SeguimientoSyllabusRepository
         return (int) $stmt->insert_id;
     }
 
+    /** Existencia simple de una carrera (sin exigir `activo = 1`: alcanza para validar el FK antes de insertar). */
+    public function carreraExiste(int $idCarrera): bool
+    {
+        $stmt = $this->conexion->prepare('SELECT id_carrera FROM carreras WHERE id_carrera = ?');
+        $stmt->bind_param('i', $idCarrera);
+        $stmt->execute();
+
+        return (bool) $stmt->get_result()->fetch_assoc();
+    }
+
+    /**
+     * Crea una cohorte para una carrera. Parte del flujo nuevo de carga de
+     * malla curricular en .xlsx al crear carrera (ver
+     * plan_malla_curricular_xlsx.txt §3.2/§7 Parte 2): hoy no existía
+     * ningún endpoint para crear cohortes, solo periodos.php las listaba
+     * (GET) asumiendo que ya existían cargadas a mano en la BD.
+     */
+    public function crearCohorte(string $nombreCohorte, int $idCarrera, ?string $fechaInicio, ?string $fechaFin): int
+    {
+        $stmt = $this->conexion->prepare(
+            'INSERT INTO cohortes (nombre_cohorte, id_carrera, fecha_inicio, fecha_fin) VALUES (?, ?, ?, ?)',
+        );
+        $stmt->bind_param('siss', $nombreCohorte, $idCarrera, $fechaInicio, $fechaFin);
+        $stmt->execute();
+
+        return (int) $stmt->insert_id;
+    }
+
     /**
      * Periodos académicos (PAO) de un cohorte, igual que la consulta
      * original de periodos.php.

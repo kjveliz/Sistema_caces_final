@@ -57,6 +57,71 @@ final class SeguimientoSyllabusController
         return $response->withHeader('Content-Type', 'application/json; charset=utf-8')->withStatus($httpCode);
     }
 
+    /** POST /seguimiento-syllabus/cohortes (json: nombre_cohorte, id_carrera, fecha_inicio?, fecha_fin?) — crea una cohorte nueva. */
+    #[OA\Post(
+        path: '/seguimiento-syllabus/cohortes',
+        summary: 'Crea una cohorte para una carrera.',
+        description: 'Parte del flujo de carga de malla curricular en .xlsx al crear una carrera nueva '
+            . '(ver plan_malla_curricular_xlsx.txt §7 Parte 2). A diferencia de `asignaturas`, este '
+            . 'endpoint no hace get-or-create: cada llamada crea una fila nueva en `cohortes`.',
+        tags: ['I2 - Seguimiento Syllabus'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['nombre_cohorte', 'id_carrera'],
+                properties: [
+                    new OA\Property(property: 'nombre_cohorte', type: 'string'),
+                    new OA\Property(property: 'id_carrera', type: 'integer'),
+                    new OA\Property(property: 'fecha_inicio', type: 'string', format: 'date', nullable: true),
+                    new OA\Property(property: 'fecha_fin', type: 'string', format: 'date', nullable: true),
+                ],
+            ),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'ID de la cohorte creada.',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'datos', properties: [
+                        new OA\Property(property: 'id_cohorte', type: 'integer'),
+                    ], type: 'object'),
+                ]),
+            ),
+            new OA\Response(response: 400, description: 'nombre_cohorte e id_carrera son requeridos.'),
+            new OA\Response(response: 404, description: 'La carrera indicada no existe.'),
+        ],
+    )]
+    public function cohorteCrear(Request $request, Response $response): Response
+    {
+        $body = (array) ($request->getParsedBody() ?? []);
+        $nombreCohorte = trim((string) ($body['nombre_cohorte'] ?? ''));
+        $idCarrera = (int) ($body['id_carrera'] ?? 0);
+        $fechaInicio = trim((string) ($body['fecha_inicio'] ?? ''));
+        $fechaFin = trim((string) ($body['fecha_fin'] ?? ''));
+
+        if ($nombreCohorte === '' || $idCarrera <= 0) {
+            return $this->json($response, false, 'nombre_cohorte e id_carrera son requeridos.', [], 400);
+        }
+
+        if (!$this->repositorio->carreraExiste($idCarrera)) {
+            return $this->json($response, false, 'La carrera indicada no existe.', [], 404);
+        }
+
+        try {
+            $idCohorte = $this->repositorio->crearCohorte(
+                $nombreCohorte,
+                $idCarrera,
+                $fechaInicio !== '' ? $fechaInicio : null,
+                $fechaFin !== '' ? $fechaFin : null,
+            );
+        } catch (Throwable $e) {
+            return $this->json($response, false, 'No se pudo crear la cohorte.', ['detalle' => $e->getMessage()], 400);
+        }
+
+        return $this->json($response, true, 'Cohorte creada.', ['datos' => ['id_cohorte' => $idCohorte]]);
+    }
+
     /** GET /seguimiento-syllabus/periodos?id_cohorte= */
     #[OA\Get(
         path: '/seguimiento-syllabus/periodos',

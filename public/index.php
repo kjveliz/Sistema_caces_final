@@ -124,12 +124,14 @@ $app->group('/tutorias-academicas', function ($grupo) use ($tutoriasController) 
 });
 
 // --- Rutas de I2 (Seguimiento Syllabus) ---------------------------------
-// Mismos 7 endpoints reales que consumía frontend/src/services/seguimientoSyllabus.ts
+// Los 7 endpoints reales que consumía frontend/src/services/seguimientoSyllabus.ts
 // contra los 8 archivos sueltos originales (el 8vo, materias_encuesta.php,
 // era un endpoint deprecado sin llamadores reales -- ver MEMORIA e
-// INSTRUCCIONES_fase3_i2.md); ver ese mismo documento para el cambio de URL
-// base que requiere el frontend.
+// INSTRUCCIONES_fase3_i2.md), más POST /cohortes (nuevo, ver
+// plan_malla_curricular_xlsx.txt §7 Parte 2 -- hoy solo se listaban
+// periodos, nunca se creaba una cohorte por API).
 $app->group('/seguimiento-syllabus', function ($grupo) use ($seguimientoController) {
+    $grupo->post('/cohortes', [$seguimientoController, 'cohorteCrear']);
     $grupo->get('/periodos', [$seguimientoController, 'periodos']);
     $grupo->get('/asignaturas', [$seguimientoController, 'asignaturasListar']);
     $grupo->post('/asignaturas', [$seguimientoController, 'asignaturaCrear']);
