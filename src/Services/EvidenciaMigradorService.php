@@ -268,23 +268,50 @@ final class EvidenciaMigradorService
     }
 
     /**
-     * Evidencia de I4/I5 (`evidencias`, catálogo genérico) — sin PAO ni
-     * asignatura real. Decisión tomada con el usuario (v89 §67): PAO fijo
-     * 'General', "asignatura" = nombre de la evaluación.
+     * Códigos de `catalogo_evidencias` que TODAVÍA se suben/leen contra la
+     * tabla legacy `evidencias` (evaluation-wide): I1 completo, I4 completo,
+     * I5 completo, y los 3 códigos de I2 que siguen siendo evaluation-wide
+     * (Malla/Normativa compartidas y los 2 reportes SIU de EF1 — ver
+     * ver_archivo.php/SeguimientoSyllabusRepository::tiposCarreraVigentes()).
+     * Deliberadamente NO incluye los códigos de I2 (DOC.SEG.02/03/04/05) ni
+     * de I3 (DOC.TUT.01-04): esos indicadores migraron a `evidencia_asignatura`
+     * y las filas que quedan con esos códigos en `evidencias` son basura
+     * histórica huérfana (evidencia rota descubierta en el paso 7 del
+     * interruptor de almacenamiento, sesión v98/v99 — ver MEMORIA). Sin este
+     * filtro, esas filas huérfanas entraban al lote a migrar y, si su archivo
+     * en Drive ya no existe, abortaban toda la migración todo-o-nada de la
+     * carrera aunque nadie las use.
+     */
+    private const CODIGOS_EVIDENCIAS_VIGENTES = [
+        'DOC.SYL.01', 'DOC.SYL.02',
+        'DOC.SEG.01', 'DOC.SEG.06', 'DOC.SEG.07',
+        'DOC.DES.01', 'DOC.DES.02', 'DOC.DES.03',
+        'DOC.TIT.01', 'DOC.TIT.02', 'DOC.TIT.03', 'DOC.TIT.04',
+    ];
+
+    /**
+     * Evidencia de I1/I4/I5 y las evaluation-wide de I2 (`evidencias`,
+     * catálogo genérico) — sin PAO ni asignatura real. Decisión tomada con
+     * el usuario (v89 §67): PAO fijo 'General', "asignatura" = nombre de la
+     * evaluación. Filtrada a CODIGOS_EVIDENCIAS_VIGENTES (ver constante).
      *
      * @return list<array{tabla: string, id: int, nombre_archivo: string, url_archivo: string, cohorte: string, pao: string, asignatura: string}>
      */
     private function recolectarEvidenciasCatalogo(int $idCarrera): array
     {
+        $codigos = self::CODIGOS_EVIDENCIAS_VIGENTES;
+        $placeholders = implode(',', array_fill(0, count($codigos), '?'));
+
         $stmt = $this->conexion->prepare(
-            'SELECT e.id_evidencia, e.nombre_archivo, e.url_archivo,
+            "SELECT e.id_evidencia, e.nombre_archivo, e.url_archivo,
                     co.nombre_cohorte AS cohorte, ev.nombre_evaluacion AS asignatura
              FROM evidencias e
              JOIN evaluaciones ev ON ev.id_evaluacion = e.id_evaluacion
              JOIN cohortes co ON co.id_cohorte = ev.id_cohorte
-             WHERE ev.id_carrera = ?',
+             WHERE ev.id_carrera = ? AND e.codigo_evidencia IN ({$placeholders})",
         );
-        $stmt->bind_param('i', $idCarrera);
+        $tipos = 'i' . str_repeat('s', count($codigos));
+        $stmt->bind_param($tipos, $idCarrera, ...$codigos);
         $stmt->execute();
         $resultado = $stmt->get_result();
 
