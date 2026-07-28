@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Controllers\CarrerasAlmacenamientoController;
 use App\Controllers\CarrerasController;
+use App\Controllers\EvidenciaAsignaturaVisorController;
 use App\Controllers\MallaCurricularController;
 use App\Controllers\SeguimientoSyllabusController;
 use App\Controllers\TasaDesercionController;
@@ -14,6 +15,7 @@ use App\Middleware\CorsMiddleware;
 use App\Middleware\SessionAuthMiddleware;
 use App\Repositories\CarrerasRepository;
 use App\Repositories\DesercionRepository;
+use App\Repositories\EvidenciaAsignaturaRepository;
 use App\Repositories\MallaCurricularRepository;
 use App\Repositories\SeguimientoSyllabusRepository;
 use App\Repositories\TitulacionRepository;
@@ -230,6 +232,20 @@ $carrerasAlmacenamientoController = new CarrerasAlmacenamientoController($eviden
 // (rol administrador/coordinador) chequeado dentro del controlador, igual
 // que el resto de endpoints protegidos de este archivo.
 $app->put('/carreras/{id}/almacenamiento', [$carrerasAlmacenamientoController, 'almacenamiento'])
+    ->add(new SessionAuthMiddleware());
+
+// --- Visor de evidencia_asignatura (I2/I3) -- parte 1 del paso 6 de -----
+// plan_interruptor_almacenamiento.txt (ver MEMORIA §68.2/§68.5): el paso 5
+// solo ramificó ver_archivo.php (I4/I5, tabla `evidencias`); I2/I3 no tenían
+// ningún visor en el backend porque el frontend abría url_archivo directo
+// con window.open(), lo que se rompe si la carrera está en modo 'local'.
+// Reusa $conexion/$storageResolver ya armados arriba para I2/I3.
+$evidenciaAsignaturaRepositorio = new EvidenciaAsignaturaRepository($conexion);
+$evidenciaAsignaturaVisorController = new EvidenciaAsignaturaVisorController($evidenciaAsignaturaRepositorio, $storageResolver);
+
+// GET /evidencia-asignatura/ver?id_evidencia_asig= — 401 vía SessionAuthMiddleware
+// (mismo requisito que ver_archivo.php, que exige sesión activa).
+$app->get('/evidencia-asignatura/ver', [$evidenciaAsignaturaVisorController, 'ver'])
     ->add(new SessionAuthMiddleware());
 
 $app->run();
