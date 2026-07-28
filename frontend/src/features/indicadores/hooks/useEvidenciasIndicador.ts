@@ -307,6 +307,17 @@ export function useEvidenciasIndicador({
 
   const hasFile = Boolean(selectedSlot?.file && urlDocumento);
 
+  // Solo para archivos servidos por nuestro propio visor (evidencia_asignatura,
+  // I2/I3) con extensión .csv: esos se muestran como tabla (CsvPreviewTable)
+  // en vez de en el <iframe>, porque el navegador no tiene visor nativo para
+  // 'text/csv'/'text/plain' dentro de un iframe (se descargaba solo -- ver
+  // MEMORIA, bug reportado tras paso 6 parte 2b). Los CSV que siguen viviendo
+  // en Drive (slots fuera de evidencia_asignatura) no entran acá: ya se ven
+  // bien con el visor propio de Google (`convertirUrlVistaPrevia`).
+  const nombreArchivoSeleccionado = selectedSlot?.file?.fileName ?? '';
+  const esCsvInterno =
+    Boolean(idEvidenciaAsig) && nombreArchivoSeleccionado.toLowerCase().endsWith('.csv');
+
   function abrirDocumento() {
     if (!urlDocumento) {
       toast.error('La evidencia no contiene una URL válida.');
@@ -326,6 +337,7 @@ export function useEvidenciasIndicador({
     urlDocumento,
     urlVistaPrevia,
     hasFile,
+    esCsvInterno,
     abrirDocumento,
   };
 }

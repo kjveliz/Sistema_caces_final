@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 
 import type { Career, IndicatorDef } from '../../../types/index';
 import { useEvidenciasIndicador } from '../hooks/useEvidenciasIndicador';
+import CsvPreviewTable from '../components/CsvPreviewTable';
 
 // ── Tab Evidencias (split view) ────────────────────────────────────────────
 export default function TabEvidences({
@@ -29,8 +30,10 @@ export default function TabEvidences({
     setSelected,
     cargandoEvidencias,
     selectedSlot,
+    urlDocumento,
     urlVistaPrevia,
     hasFile,
+    esCsvInterno,
     abrirDocumento,
   } = useEvidenciasIndicador({ ind, career, cohort, idAsignatura, nombreAsignatura });
 
@@ -241,6 +244,8 @@ export default function TabEvidences({
                 Cargando documentos...
               </p>
             </div>
+          ) : hasFile && selectedSlot?.file && esCsvInterno ? (
+            <CsvPreviewTable key={urlDocumento} url={urlDocumento} />
           ) : hasFile && selectedSlot?.file ? (
             <iframe
               key={urlVistaPrevia}

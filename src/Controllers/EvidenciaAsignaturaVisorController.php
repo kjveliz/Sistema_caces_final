@@ -107,7 +107,13 @@ final class EvidenciaAsignaturaVisorController
 
         $nombreArchivo = $evidencia['nombre_archivo'] !== '' ? $evidencia['nombre_archivo'] : 'evidencia.pdf';
         $extension = strtolower(pathinfo($nombreArchivo, PATHINFO_EXTENSION));
-        $mimeType = $extension === 'csv' ? 'text/csv' : 'application/pdf';
+        // 'text/plain' (no 'text/csv') a propósito: Chrome no tiene visor
+        // nativo para 'text/csv' dentro de un <iframe> y lo descarga aunque
+        // el Content-Disposition sea 'inline'. Con 'text/plain' sí lo
+        // renderiza inline como texto -- ver MEMORIA (bug reportado tras
+        // paso 6 parte 2b: cada CSV se descargaba solo en vez de
+        // previsualizarse en TabEvidences.tsx).
+        $mimeType = $extension === 'csv' ? 'text/plain; charset=utf-8' : 'application/pdf';
 
         $response->getBody()->write($contenido);
 
