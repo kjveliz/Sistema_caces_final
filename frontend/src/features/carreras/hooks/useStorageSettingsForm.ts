@@ -19,7 +19,7 @@ import type { CarreraBD } from './useCareers';
 export function useStorageSettingsForm(carrerasBD: CarreraBD[], onSaved: () => Promise<void>) {
   const [showStorageSettings, setShowStorageSettings] = useState(false);
   const [storageCareerId, setStorageCareerId] = useState('');
-  const [storageModo, setStorageModo] = useState<ModoAlmacenamiento>('drive');
+  const [storageModo, setStorageModo] = useState<ModoAlmacenamiento>('local');
   const [storageRutaLocal, setStorageRutaLocal] = useState('');
   const [migrando, setMigrando] = useState(false);
 
@@ -33,7 +33,7 @@ export function useStorageSettingsForm(carrerasBD: CarreraBD[], onSaved: () => P
     const carrera = carrerasBD.find((item) => Number(item.id_carrera) === Number(id));
 
     if (!carrera) {
-      setStorageModo('drive');
+      setStorageModo('local');
       setStorageRutaLocal('');
       return;
     }
@@ -47,7 +47,7 @@ export function useStorageSettingsForm(carrerasBD: CarreraBD[], onSaved: () => P
 
     setShowStorageSettings(false);
     setStorageCareerId('');
-    setStorageModo('drive');
+    setStorageModo('local');
     setStorageRutaLocal('');
   }
 

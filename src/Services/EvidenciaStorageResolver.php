@@ -41,14 +41,16 @@ final class EvidenciaStorageResolver
         $stmt->execute();
         $fila = $stmt->get_result()->fetch_assoc();
 
-        // Si la carrera no se encontró (no debería pasar, contextoParaDrive
-        // ya la resolvió antes) o el modo es 'drive'/desconocido, se cae al
-        // comportamiento de siempre: Drive.
-        if ($fila === null || ($fila['modo_almacenamiento'] ?? 'drive') !== 'local') {
+        // Default de la entrega: local. Solo se usa Drive si la carrera
+        // tiene el modo 'drive' guardado explícitamente; si no se
+        // encontró la carrera (no debería pasar, contextoParaDrive ya la
+        // resolvió antes) o el modo es 'local'/desconocido, se usa
+        // almacenamiento local.
+        if ($fila !== null && ($fila['modo_almacenamiento'] ?? 'local') === 'drive') {
             return $this->driveService;
         }
 
-        $rutaLocal = $fila['ruta_almacenamiento_local'] ?? null;
+        $rutaLocal = $fila !== null ? ($fila['ruta_almacenamiento_local'] ?? null) : null;
 
         return new AlmacenamientoLocalService($rutaLocal !== '' ? $rutaLocal : null);
     }
