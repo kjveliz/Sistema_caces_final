@@ -4,6 +4,7 @@ import type { FormEvent } from 'react';
 import { toast } from 'sonner';
 
 import { crearCarrera, subirMallaCurricular } from '../../../shared/services/carreras';
+import type { CrearCohorteParams } from '../../../shared/services/cohortes';
 
 function generarCodigoCarrera(nombre: string): string {
   const palabrasIgnoradas = ['DE', 'DEL', 'LA', 'LAS', 'EL', 'LOS', 'EN', 'Y', 'PARA'];
@@ -32,6 +33,15 @@ export function useNewCareerForm(onSaved: () => Promise<void>) {
   const [newCareerFile, setNewCareerFile] = useState<File | null>(null);
   const [savingCareer, setSavingCareer] = useState(false);
 
+  // Campos de la cohorte que se crea junto con la carrera (Parte B del plan
+  // de malla curricular xlsx, ver plan §9.5). El envío real a
+  // crearCohorteEvaluacion() dentro de handleSaveCareer queda para la
+  // Parte D (orquestación); acá solo se agrega el estado de estos campos.
+  const [newCohorteNombre, setNewCohorteNombre] = useState('');
+  const [newCohorteFechaInicio, setNewCohorteFechaInicio] = useState('');
+  const [newCohorteFechaFin, setNewCohorteFechaFin] = useState('');
+  const [newCohorteEstado, setNewCohorteEstado] = useState<CrearCohorteParams['estado']>('Activa');
+
   const fileRef = useRef<HTMLInputElement>(null);
 
   function handleNewCareerNameChange(nombre: string) {
@@ -50,6 +60,10 @@ export function useNewCareerForm(onSaved: () => Promise<void>) {
     setNewCareerArea('');
     setNewCareerModalidad('');
     setNewCareerFile(null);
+    setNewCohorteNombre('');
+    setNewCohorteFechaInicio('');
+    setNewCohorteFechaFin('');
+    setNewCohorteEstado('Activa');
 
     if (fileRef.current) {
       fileRef.current.value = '';
@@ -118,6 +132,14 @@ export function useNewCareerForm(onSaved: () => Promise<void>) {
     setNewCareerModalidad,
     newCareerFile,
     setNewCareerFile,
+    newCohorteNombre,
+    setNewCohorteNombre,
+    newCohorteFechaInicio,
+    setNewCohorteFechaInicio,
+    newCohorteFechaFin,
+    setNewCohorteFechaFin,
+    newCohorteEstado,
+    setNewCohorteEstado,
     savingCareer,
     fileRef,
     handleNewCareerNameChange,

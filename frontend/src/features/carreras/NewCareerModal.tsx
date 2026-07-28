@@ -2,6 +2,7 @@ import { ChevronDown, Upload, X } from 'lucide-react';
 import type { FormEvent, RefObject } from 'react';
 
 import type { CareerArea } from '../../types/index';
+import type { CrearCohorteParams } from '../../shared/services/cohortes';
 
 export default function NewCareerModal({
   open,
@@ -18,6 +19,14 @@ export default function NewCareerModal({
   newCareerFile,
   onFileChange,
   fileRef,
+  newCohorteNombre,
+  onCohorteNombreChange,
+  newCohorteFechaInicio,
+  onCohorteFechaInicioChange,
+  newCohorteFechaFin,
+  onCohorteFechaFinChange,
+  newCohorteEstado,
+  onCohorteEstadoChange,
   savingCareer,
   onSubmit,
 }: {
@@ -35,6 +44,14 @@ export default function NewCareerModal({
   newCareerFile: File | null;
   onFileChange: (file: File | null) => void;
   fileRef: RefObject<HTMLInputElement>;
+  newCohorteNombre: string;
+  onCohorteNombreChange: (value: string) => void;
+  newCohorteFechaInicio: string;
+  onCohorteFechaInicioChange: (value: string) => void;
+  newCohorteFechaFin: string;
+  onCohorteFechaFinChange: (value: string) => void;
+  newCohorteEstado: CrearCohorteParams['estado'];
+  onCohorteEstadoChange: (value: CrearCohorteParams['estado']) => void;
   savingCareer: boolean;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
@@ -48,13 +65,14 @@ export default function NewCareerModal({
       }}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 flex flex-col"
         style={{
           border: '1px solid rgba(27,58,107,0.12)',
+          maxHeight: '90vh',
         }}
       >
         <div
-          className="flex items-center justify-between px-6 py-4 border-b"
+          className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0"
           style={{
             borderColor: 'rgba(27,58,107,0.1)',
           }}
@@ -83,7 +101,7 @@ export default function NewCareerModal({
           </button>
         </div>
 
-        <form onSubmit={onSubmit} className="px-6 py-5 space-y-4">
+        <form onSubmit={onSubmit} className="px-6 py-5 space-y-4 overflow-y-auto">
           <div>
             <label
               className="block text-xs font-bold uppercase tracking-widest mb-1.5"
@@ -230,7 +248,7 @@ export default function NewCareerModal({
                 color: '#5A7295',
               }}
             >
-              Malla Curricular (PDF) *
+              Malla Curricular (XLSX) *
             </label>
 
             <div className="flex items-center gap-3">
@@ -245,7 +263,7 @@ export default function NewCareerModal({
               >
                 <Upload size={12} />
 
-                {newCareerFile ? 'Cambiar archivo' : 'Subir PDF'}
+                {newCareerFile ? 'Cambiar archivo' : 'Subir Excel'}
               </button>
 
               {newCareerFile && (
@@ -263,10 +281,123 @@ export default function NewCareerModal({
             <input
               ref={fileRef}
               type="file"
-              accept=".pdf,application/pdf"
+              accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
               className="hidden"
               onChange={(event) => onFileChange(event.target.files?.[0] ?? null)}
             />
+          </div>
+
+          <div>
+            <label
+              className="block text-xs font-bold uppercase tracking-widest mb-1.5"
+              style={{
+                color: '#5A7295',
+              }}
+            >
+              Nombre de la cohorte
+            </label>
+
+            <input
+              type="text"
+              value={newCohorteNombre}
+              onChange={(event) => onCohorteNombreChange(event.target.value)}
+              placeholder="A2026"
+              required
+              className="w-full px-3 py-2 rounded-xl text-sm border outline-none"
+              style={{
+                background: '#F4F7FB',
+                borderColor: 'rgba(27,58,107,0.2)',
+                color: '#0F1E3C',
+              }}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label
+                className="block text-xs font-bold uppercase tracking-widest mb-1.5"
+                style={{
+                  color: '#5A7295',
+                }}
+              >
+                Inicio
+              </label>
+
+              <input
+                type="date"
+                value={newCohorteFechaInicio}
+                onChange={(event) => onCohorteFechaInicioChange(event.target.value)}
+                required
+                className="w-full px-3 py-2 rounded-xl text-sm border outline-none"
+                style={{
+                  background: '#F4F7FB',
+                  borderColor: 'rgba(27,58,107,0.2)',
+                  color: '#0F1E3C',
+                }}
+              />
+            </div>
+
+            <div>
+              <label
+                className="block text-xs font-bold uppercase tracking-widest mb-1.5"
+                style={{
+                  color: '#5A7295',
+                }}
+              >
+                Fin
+              </label>
+
+              <input
+                type="date"
+                value={newCohorteFechaFin}
+                onChange={(event) => onCohorteFechaFinChange(event.target.value)}
+                required
+                className="w-full px-3 py-2 rounded-xl text-sm border outline-none"
+                style={{
+                  background: '#F4F7FB',
+                  borderColor: 'rgba(27,58,107,0.2)',
+                  color: '#0F1E3C',
+                }}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label
+              className="block text-xs font-bold uppercase tracking-widest mb-1.5"
+              style={{
+                color: '#5A7295',
+              }}
+            >
+              Estado
+            </label>
+
+            <div className="relative">
+              <select
+                value={newCohorteEstado}
+                onChange={(event) =>
+                  onCohorteEstadoChange(event.target.value as CrearCohorteParams['estado'])
+                }
+                className="w-full px-3 py-2 rounded-xl text-sm border outline-none appearance-none cursor-pointer"
+                style={{
+                  background: '#F4F7FB',
+                  borderColor: 'rgba(27,58,107,0.2)',
+                  color: '#0F1E3C',
+                }}
+              >
+                <option value="Activa">Activa</option>
+                <option value="Pendiente">Pendiente</option>
+                <option value="Cerrada">Cerrada</option>
+              </select>
+
+              <ChevronDown
+                size={14}
+                className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                style={{
+                  color: '#5A7295',
+                }}
+              />
+            </div>
           </div>
 
           <div className="flex gap-3 pt-1">

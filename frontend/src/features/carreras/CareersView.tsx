@@ -119,6 +119,14 @@ export default function CareersView({ onSelect, onLogout, usuario }: CareersView
         newCareerFile={newCareerForm.newCareerFile}
         onFileChange={newCareerForm.setNewCareerFile}
         fileRef={newCareerForm.fileRef}
+        newCohorteNombre={newCareerForm.newCohorteNombre}
+        onCohorteNombreChange={newCareerForm.setNewCohorteNombre}
+        newCohorteFechaInicio={newCareerForm.newCohorteFechaInicio}
+        onCohorteFechaInicioChange={newCareerForm.setNewCohorteFechaInicio}
+        newCohorteFechaFin={newCareerForm.newCohorteFechaFin}
+        onCohorteFechaFinChange={newCareerForm.setNewCohorteFechaFin}
+        newCohorteEstado={newCareerForm.newCohorteEstado}
+        onCohorteEstadoChange={newCareerForm.setNewCohorteEstado}
         savingCareer={newCareerForm.savingCareer}
         onSubmit={newCareerForm.handleSaveCareer}
       />
