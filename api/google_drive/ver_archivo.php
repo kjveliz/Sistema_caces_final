@@ -1,5 +1,16 @@
 <?php
 
+/*
+ * CORS: hasta ahora este script solo se abría con window.open()/<iframe
+ * src=...> (navegación top-level, no necesita CORS), pero al conectarlo
+ * desde el frontend para I1/I4/I5 (paso 6, ver MEMORIA) también lo puede
+ * consumir CsvPreviewTable con fetch(credentials:'include') para los CSV
+ * de reporte del SIU (DOC.SEG.06/DOC.SEG.07) -- mismo patrón que el resto
+ * de endpoints de api/evidencias/*.php.
+ */
+header("Access-Control-Allow-Origin: http://localhost:5173");
+header("Access-Control-Allow-Credentials: true");
+
 session_start();
 
 if (!isset($_SESSION["id_usuario"])) {

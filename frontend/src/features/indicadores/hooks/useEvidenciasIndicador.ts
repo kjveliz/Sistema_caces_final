@@ -5,6 +5,7 @@ import {
   obtenerEvaluacion,
   obtenerEvidenciasCompartidas,
   obtenerEvidenciasGuardadas,
+  urlVisorEvidenciaLegacy,
 } from '../../../shared/services/evidencias';
 import { obtenerEvidenciaAsignatura } from '../../../shared/services/seguimientoSyllabus';
 import { obtenerEvidenciaTutorias } from '../../../shared/services/tutoriasAcademicas';
@@ -225,6 +226,7 @@ export function useEvidenciasIndicador({
 
           return {
             ...slot,
+            idEvidencia: Number(evidencia.id_evidencia),
             file: {
               originalName: evidencia.nombre_archivo,
               fileName: evidencia.nombre_archivo,
@@ -285,13 +287,19 @@ export function useEvidenciasIndicador({
   // abrible desde el navegador si la carrera está en modo 'local' (ver
   // plan_interruptor_almacenamiento.txt §4.5/§4.6). El resto de los slots
   // (malla curricular / normativa institucional compartidas, I1/I4/I5)
-  // no tienen idEvidenciaAsig y siguen abriendo `url_archivo` tal cual --
-  // fuera de alcance de este paso (ver plan §5, "fuera de alcance").
+  // traen idEvidencia (tabla `evidencias`) y usan el visor equivalente
+  // (GET /api/google_drive/ver_archivo.php), ya ramificado Drive/local
+  // desde el paso 5 pero nunca antes consumido desde acá -- ver MEMORIA,
+  // bug reportado al migrar una carrera a local (evidencia de I1/I4/I5
+  // se veía "subida" pero no abría ni previsualizaba).
   const idEvidenciaAsig = selectedSlot?.file?.idEvidenciaAsig;
+  const idEvidenciaLegacy = selectedSlot?.idEvidencia;
 
   const urlDocumento = idEvidenciaAsig
     ? urlVisorEvidenciaAsignatura(idEvidenciaAsig)
-    : selectedSlot?.file?.serverUrl || selectedSlot?.file?.url || '';
+    : idEvidenciaLegacy
+      ? urlVisorEvidenciaLegacy(idEvidenciaLegacy)
+      : selectedSlot?.file?.serverUrl || selectedSlot?.file?.url || '';
 
   function convertirUrlVistaPrevia(url: string): string {
     const coincidencia = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
@@ -307,16 +315,18 @@ export function useEvidenciasIndicador({
 
   const hasFile = Boolean(selectedSlot?.file && urlDocumento);
 
-  // Solo para archivos servidos por nuestro propio visor (evidencia_asignatura,
-  // I2/I3) con extensión .csv: esos se muestran como tabla (CsvPreviewTable)
-  // en vez de en el <iframe>, porque el navegador no tiene visor nativo para
-  // 'text/csv'/'text/plain' dentro de un iframe (se descargaba solo -- ver
-  // MEMORIA, bug reportado tras paso 6 parte 2b). Los CSV que siguen viviendo
-  // en Drive (slots fuera de evidencia_asignatura) no entran acá: ya se ven
-  // bien con el visor propio de Google (`convertirUrlVistaPrevia`).
+  // Solo para archivos servidos por nuestro propio visor (evidencia_asignatura
+  // vía idEvidenciaAsig, o evidencias vía idEvidencia) con extensión .csv:
+  // esos se muestran como tabla (CsvPreviewTable) en vez de en el <iframe>,
+  // porque el navegador no tiene visor nativo para 'text/csv'/'text/plain'
+  // dentro de un iframe (se descargaba solo -- ver MEMORIA, bug reportado
+  // tras paso 6 parte 2b). Los CSV que siguen viviendo en Drive (ninguno de
+  // los dos visores propios) no entran acá: ya se ven bien con el visor
+  // propio de Google (`convertirUrlVistaPrevia`).
   const nombreArchivoSeleccionado = selectedSlot?.file?.fileName ?? '';
   const esCsvInterno =
-    Boolean(idEvidenciaAsig) && nombreArchivoSeleccionado.toLowerCase().endsWith('.csv');
+    Boolean(idEvidenciaAsig || idEvidenciaLegacy) &&
+    nombreArchivoSeleccionado.toLowerCase().endsWith('.csv');
 
   function abrirDocumento() {
     if (!urlDocumento) {
