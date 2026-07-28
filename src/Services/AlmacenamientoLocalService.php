@@ -108,6 +108,23 @@ final class AlmacenamientoLocalService implements EvidenciaStorageInterface
     }
 
     /**
+     * Elimina un archivo ya guardado localmente, dado su url_archivo (ruta
+     * absoluta). Parte del contrato común (EvidenciaStorageInterface),
+     * usada por EvidenciaMigradorService para revertir una migración a
+     * medias. Devuelve false (sin lanzar) si la ruta no existe o no se
+     * pudo borrar -- el llamador decide qué hacer con una reversión que no
+     * se pudo completar del todo.
+     */
+    public function eliminarArchivo(string $urlArchivo): bool
+    {
+        if (!is_file($urlArchivo)) {
+            return false;
+        }
+
+        return unlink($urlArchivo);
+    }
+
+    /**
      * Evita que un nombre de carrera/cohorte/pao/asignatura con "/", ".."
      * u otros caracteres raros pueda escaparse de <raiz> (path traversal)
      * o crear subcarpetas no intencionadas. Mismo criterio ya usado en

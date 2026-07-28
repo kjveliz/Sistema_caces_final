@@ -47,4 +47,15 @@ interface EvidenciaStorageInterface
 
     /** Validación de CSV (extensión + MIME real + tamaño máximo). */
     public function validarCsv(array $archivo): ?string;
+
+    /**
+     * Elimina un archivo ya subido a este destino, dado su url_archivo.
+     * Usado exclusivamente por EvidenciaMigradorService para revertir una
+     * migración a medias (ver plan_interruptor_almacenamiento.txt §4.4,
+     * punto 4: si un archivo falla, se borra del destino nuevo lo que ya
+     * se alcanzó a subir). Devuelve false si no se pudo eliminar (el
+     * llamador decide si eso es fatal o solo se registra); no lanza
+     * excepción para no interrumpir el resto de la reversión.
+     */
+    public function eliminarArchivo(string $urlArchivo): bool;
 }

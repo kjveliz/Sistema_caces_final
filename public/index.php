@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Controllers\CarrerasAlmacenamientoController;
 use App\Controllers\CarrerasController;
 use App\Controllers\MallaCurricularController;
 use App\Controllers\SeguimientoSyllabusController;
@@ -18,6 +19,7 @@ use App\Repositories\SeguimientoSyllabusRepository;
 use App\Repositories\TitulacionRepository;
 use App\Repositories\TutoriasRepository;
 use App\Services\EncuestaEvidenciaService;
+use App\Services\EvidenciaMigradorService;
 use App\Services\EvidenciaStorageResolver;
 use App\Services\GoogleDriveService;
 use App\Services\SeguimientoSyllabusCalculoService;
@@ -215,5 +217,19 @@ $app->group('/carreras', function ($grupo) use ($carrerasController) {
     $grupo->post('/actualizar', [$carrerasController, 'actualizar'])->add(new SessionAuthMiddleware());
     $grupo->post('/eliminar', [$carrerasController, 'eliminar'])->add(new SessionAuthMiddleware());
 });
+
+// --- Composición e interruptor de almacenamiento por carrera (paso 4 de --
+// plan_interruptor_almacenamiento.txt) -------------------------------------
+// Reusa $conexion/$driveService/$storageResolver ya armados arriba para
+// I2/I3 -- mismo criterio de "una sola conexión, un solo resolver" que ya
+// usan TutoriasAcademicasController/SeguimientoSyllabusController.
+$evidenciaMigradorService = new EvidenciaMigradorService($conexion, $driveService, $storageResolver);
+$carrerasAlmacenamientoController = new CarrerasAlmacenamientoController($evidenciaMigradorService);
+
+// PUT /carreras/{id}/almacenamiento — 401 vía SessionAuthMiddleware, 403
+// (rol administrador/coordinador) chequeado dentro del controlador, igual
+// que el resto de endpoints protegidos de este archivo.
+$app->put('/carreras/{id}/almacenamiento', [$carrerasAlmacenamientoController, 'almacenamiento'])
+    ->add(new SessionAuthMiddleware());
 
 $app->run();

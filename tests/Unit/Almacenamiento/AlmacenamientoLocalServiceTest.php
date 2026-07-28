@@ -121,6 +121,26 @@ final class AlmacenamientoLocalServiceTest extends TestCase
         $this->assertStringEndsWith('/storage/evidencias', AlmacenamientoLocalService::raizPorDefecto());
     }
 
+    public function testEliminarArchivoBorraUnArchivoExistente(): void
+    {
+        $servicio = new AlmacenamientoLocalService($this->raizPrueba);
+        $tmp = $this->archivoTemporalConContenido('contenido');
+        $subida = $servicio->subirArchivo($tmp, 'informe.csv', 'Carrera', 'B2025', 'PAO 1', 'Materia');
+
+        $resultado = $servicio->eliminarArchivo($subida['url_archivo']);
+
+        $this->assertTrue($resultado);
+        $this->assertFileDoesNotExist($subida['url_archivo']);
+        unlink($tmp);
+    }
+
+    public function testEliminarArchivoDevuelveFalseSiLaRutaNoExiste(): void
+    {
+        $servicio = new AlmacenamientoLocalService($this->raizPrueba);
+
+        $this->assertFalse($servicio->eliminarArchivo($this->raizPrueba . '/no-existe.csv'));
+    }
+
     // ── Validaciones heredadas del trait compartido con GoogleDriveService ──
 
     public function testValidarCsvRechazaExtensionDistinta(): void

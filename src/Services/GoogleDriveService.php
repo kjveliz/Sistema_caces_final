@@ -163,6 +163,17 @@ final class GoogleDriveService implements EvidenciaStorageInterface
         }
         $idArchivo = $m[1];
 
+        // Seam de testing (paso 4, EvidenciaMigradorService): antes solo
+        // subirArchivo() lo tenía (ver EncuestaDetalleTest, que rodeaba
+        // esto con un caché en disco). El migrador SÍ necesita poder
+        // "leer" contenido de Drive en los tests, así que se agrega acá
+        // el mismo criterio: bajo APP_ENV=testing, nunca se llama a la
+        // API real -- se devuelve contenido determinístico basado en el
+        // id extraído de la URL, sin credenciales.
+        if ((getenv('APP_ENV') ?: '') === 'testing') {
+            return "contenido-fake-de-prueba-drive:{$idArchivo}";
+        }
+
         $cliente = require __DIR__ . '/../../api/google_drive/cliente_autorizado.php';
         $drive = new Drive($cliente);
 
@@ -175,6 +186,39 @@ final class GoogleDriveService implements EvidenciaStorageInterface
     public function descargarContenido(string $urlArchivo): ?string
     {
         return $this->descargarContenidoDrive($urlArchivo);
+    }
+
+    /**
+     * Elimina de Drive el archivo identificado por su webViewLink. Parte
+     * del contrato común (EvidenciaStorageInterface), usada por
+     * EvidenciaMigradorService para revertir una migración a medias.
+     * Devuelve false (sin lanzar) si la URL no tiene la forma esperada o
+     * si la API de Drive rechaza el borrado -- el llamador decide qué
+     * hacer con una reversión que no se pudo completar del todo.
+     */
+    public function eliminarArchivo(string $urlArchivo): bool
+    {
+        if ((getenv('APP_ENV') ?: '') === 'testing') {
+            return true;
+        }
+
+        if (!preg_match('#/d/([a-zA-Z0-9_-]+)#', $urlArchivo, $m)) {
+            error_log("GoogleDriveService: no se pudo extraer el id de Drive de '{$urlArchivo}' para eliminarlo.");
+
+            return false;
+        }
+
+        try {
+            $cliente = require __DIR__ . '/../../api/google_drive/cliente_autorizado.php';
+            $drive = new Drive($cliente);
+            $drive->files->delete($m[1]);
+
+            return true;
+        } catch (Throwable $e) {
+            error_log("GoogleDriveService: no se pudo eliminar el archivo '{$urlArchivo}' de Drive: " . $e->getMessage());
+
+            return false;
+        }
     }
 
     // validarArchivoSubido() y validarCsv() vienen de ValidacionArchivoSubidoTrait
