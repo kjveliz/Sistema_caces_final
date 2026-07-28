@@ -89,6 +89,7 @@ final class SeguimientoSyllabusController
                 ]),
             ),
             new OA\Response(response: 400, description: 'nombre_cohorte e id_carrera son requeridos.'),
+            new OA\Response(response: 401, description: 'La sesión no está activa.'),
             new OA\Response(response: 404, description: 'La carrera indicada no existe.'),
         ],
     )]
@@ -155,6 +156,7 @@ final class SeguimientoSyllabusController
                 ]),
             ),
             new OA\Response(response: 400, description: 'id_cohorte, nombre y orden son requeridos.'),
+            new OA\Response(response: 401, description: 'La sesión no está activa.'),
             new OA\Response(response: 404, description: 'La cohorte indicada no existe.'),
         ],
     )]
@@ -302,6 +304,7 @@ final class SeguimientoSyllabusController
                 ]),
             ),
             new OA\Response(response: 400, description: 'id_periodo y nombre son requeridos, o modulo tiene más de 1 caracter.'),
+            new OA\Response(response: 401, description: 'La sesión no está activa.'),
         ],
     )]
     public function asignaturaCrear(Request $request, Response $response): Response

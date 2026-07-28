@@ -127,15 +127,18 @@ $app->group('/tutorias-academicas', function ($grupo) use ($tutoriasController) 
 // Los 7 endpoints reales que consumía frontend/src/services/seguimientoSyllabus.ts
 // contra los 8 archivos sueltos originales (el 8vo, materias_encuesta.php,
 // era un endpoint deprecado sin llamadores reales -- ver MEMORIA e
-// INSTRUCCIONES_fase3_i2.md), más POST /cohortes y POST /periodos (nuevos,
-// ver plan_malla_curricular_xlsx.txt §7 Partes 2 y 3 -- hoy solo se
-// listaban periodos, nunca se creaba una cohorte ni un período por API).
+// INSTRUCCIONES_fase3_i2.md), más POST /cohortes, POST /periodos y el
+// modulo opcional de POST /asignaturas (ver plan_malla_curricular_xlsx.txt
+// §7 Partes 2/3/4). SessionAuthMiddleware agregado a los 3 POST de
+// creación que quedaron sin auth al cerrar esas partes (hallazgo de la
+// sesión de preguntas abiertas, MEMORIA §82.2) -- mismo criterio que
+// /evidencia-subir, que ya lo tenía.
 $app->group('/seguimiento-syllabus', function ($grupo) use ($seguimientoController) {
-    $grupo->post('/cohortes', [$seguimientoController, 'cohorteCrear']);
+    $grupo->post('/cohortes', [$seguimientoController, 'cohorteCrear'])->add(new SessionAuthMiddleware());
     $grupo->get('/periodos', [$seguimientoController, 'periodos']);
-    $grupo->post('/periodos', [$seguimientoController, 'periodoCrear']);
+    $grupo->post('/periodos', [$seguimientoController, 'periodoCrear'])->add(new SessionAuthMiddleware());
     $grupo->get('/asignaturas', [$seguimientoController, 'asignaturasListar']);
-    $grupo->post('/asignaturas', [$seguimientoController, 'asignaturaCrear']);
+    $grupo->post('/asignaturas', [$seguimientoController, 'asignaturaCrear'])->add(new SessionAuthMiddleware());
     $grupo->get('/resultado-asignatura', [$seguimientoController, 'resultadoAsignatura']);
     $grupo->get('/resultado-cohorte', [$seguimientoController, 'resultadoCohorte']);
     $grupo->get('/evidencia-listar', [$seguimientoController, 'evidenciaListar']);
