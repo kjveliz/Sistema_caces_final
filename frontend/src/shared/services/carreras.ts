@@ -341,8 +341,16 @@ export async function actualizarAlmacenamientoCarrera({
   );
 
   if (!respuesta.ok || !resultado.ok || !resultado.datos) {
+    // A diferencia del resto de endpoints de este archivo, acá el backend
+    // (CarrerasAlmacenamientoController::almacenamiento) manda siempre el
+    // mismo `mensaje` genérico ("No se pudo cambiar el almacenamiento de
+    // la carrera.") y deja la causa real en `detalle` (mensaje de la
+    // excepción original: archivo que falló al migrar, ruta no
+    // escribible, error de Drive/BD, etc.). Priorizar `detalle` acá es lo
+    // único que le permite al usuario ver por qué falló en vez de un
+    // texto siempre igual.
     throw new Error(
-      resultado.mensaje ?? resultado.detalle ?? 'No se pudo cambiar el almacenamiento de la carrera.',
+      resultado.detalle ?? resultado.mensaje ?? 'No se pudo cambiar el almacenamiento de la carrera.',
     );
   }
 
