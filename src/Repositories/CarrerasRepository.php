@@ -41,6 +41,8 @@ final class CarrerasRepository
                 c.nombre,
                 c.area_conocimiento,
                 c.modalidad,
+                c.modo_almacenamiento,
+                c.ruta_almacenamiento_local,
                 m.nombre_archivo AS nombre_malla,
                 m.id_drive,
                 m.url_drive AS url_malla
@@ -72,6 +74,8 @@ final class CarrerasRepository
                 nombreMalla: $fila['nombre_malla'],
                 idDrive: $fila['id_drive'],
                 urlMalla: $fila['url_malla'],
+                modoAlmacenamiento: $fila['modo_almacenamiento'],
+                rutaAlmacenamientoLocal: $fila['ruta_almacenamiento_local'],
             );
         }
 

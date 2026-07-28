@@ -1,6 +1,7 @@
 import {
   CalendarDays,
   ChevronDown,
+  HardDrive,
   LogOut,
   Pencil,
   Plus,
@@ -13,6 +14,14 @@ import {
 
 import type { UsuarioSesion } from '../../../shared/services/auth';
 
+// Roles con permiso para mover el interruptor de almacenamiento
+// (Drive/local) de una carrera — decisión del plan
+// plan_interruptor_almacenamiento.txt §3.2. A diferencia del resto del
+// menú "Gestionar" (solo administrador), este botón es su propia entrada
+// separada porque coordinador NO debe ganar acceso a crear/editar/eliminar
+// carreras ni a gestionar usuarios/cohortes — solo al interruptor.
+const ROLES_ALMACENAMIENTO: UsuarioSesion['rol'][] = ['administrador', 'coordinador'];
+
 export default function TopBar({
   usuario,
   onLogout,
@@ -24,6 +33,7 @@ export default function TopBar({
   onManageCohorts,
   onManageUsers,
   onDeleteCareer,
+  onManageStorage,
 }: {
   usuario: UsuarioSesion;
   onLogout: () => void;
@@ -35,6 +45,7 @@ export default function TopBar({
   onManageCohorts: () => void;
   onManageUsers: () => void;
   onDeleteCareer: () => void;
+  onManageStorage: () => void;
 }) {
   return (
     <>
@@ -192,6 +203,21 @@ export default function TopBar({
                 </div>
               )}
             </div>
+          )}
+
+          {ROLES_ALMACENAMIENTO.includes(usuario.rol) && (
+            <button
+              type="button"
+              onClick={onManageStorage}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all hover:bg-blue-50"
+              style={{
+                borderColor: 'rgba(27,58,107,0.2)',
+                color: '#1B3A6B',
+              }}
+            >
+              <HardDrive size={12} />
+              Almacenamiento
+            </button>
           )}
 
           <div

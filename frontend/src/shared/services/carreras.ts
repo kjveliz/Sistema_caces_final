@@ -1,6 +1,8 @@
 import { AREAS } from '../data/careers';
 import type { Career } from '../../types/index';
 
+export type ModoAlmacenamiento = 'drive' | 'local';
+
 export interface CarreraBD {
   id_carrera: number;
   codigo: string;
@@ -10,6 +12,8 @@ export interface CarreraBD {
   nombre_malla?: string | null;
   id_drive?: string | null;
   url_malla?: string | null;
+  modo_almacenamiento: ModoAlmacenamiento;
+  ruta_almacenamiento_local?: string | null;
 }
 
 interface RespuestaCarreras {
@@ -274,6 +278,75 @@ export async function subirMallaCurricular({
   }
 
   return guardado.datos;
+}
+
+export interface CambioAlmacenamientoCarrera {
+  id_carrera: number;
+  modo_almacenamiento: ModoAlmacenamiento;
+  ruta_local?: string | null;
+}
+
+export interface AlmacenamientoMigrado {
+  total_migrados: number;
+  modo_anterior: ModoAlmacenamiento;
+  modo_nuevo: ModoAlmacenamiento;
+}
+
+interface RespuestaAlmacenamientoCarrera {
+  ok: boolean;
+  mensaje?: string;
+  datos?: AlmacenamientoMigrado;
+  detalle?: string;
+}
+
+/**
+ * PUT /carreras/{id}/almacenamiento — mueve el interruptor Drive/local de
+ * una carrera y dispara la migración síncrona y todo-o-nada de
+ * `EvidenciaMigradorService` (ver plan_interruptor_almacenamiento.txt §4.4
+ * y CarrerasAlmacenamientoController). La llamada solo se resuelve cuando
+ * el backend termina de migrar (o revertir), así que quien la use debe
+ * mostrar un loading bloqueante mientras dura — no hay progreso parcial
+ * que reportar.
+ *
+ * Puede tardar (llamadas reales a Drive por archivo), así que no se le
+ * pone un AbortController con timeout corto: cortar la petición a mitad
+ * de camino no cancela la migración del lado del servidor, solo nos deja
+ * sin saber si terminó bien o no.
+ */
+export async function actualizarAlmacenamientoCarrera({
+  id_carrera,
+  modo_almacenamiento,
+  ruta_local,
+}: CambioAlmacenamientoCarrera): Promise<AlmacenamientoMigrado> {
+  if (!Number.isInteger(id_carrera) || id_carrera <= 0) {
+    throw new Error('El identificador de la carrera no es válido.');
+  }
+
+  const respuesta = await fetch(`${API_BASE}/${id_carrera}/almacenamiento`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({
+      modo_almacenamiento,
+      ruta_local: ruta_local?.trim() || null,
+    }),
+  });
+
+  const resultado = await leerRespuestaJson<RespuestaAlmacenamientoCarrera>(
+    respuesta,
+    'El servidor no devolvió una respuesta válida al cambiar el almacenamiento.',
+  );
+
+  if (!respuesta.ok || !resultado.ok || !resultado.datos) {
+    throw new Error(
+      resultado.mensaje ?? resultado.detalle ?? 'No se pudo cambiar el almacenamiento de la carrera.',
+    );
+  }
+
+  return resultado.datos;
 }
 
 /**

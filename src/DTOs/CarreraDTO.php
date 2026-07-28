@@ -21,6 +21,8 @@ final class CarreraDTO
         public readonly ?string $nombreMalla,
         public readonly ?string $idDrive,
         public readonly ?string $urlMalla,
+        public readonly string $modoAlmacenamiento,
+        public readonly ?string $rutaAlmacenamientoLocal,
     ) {
     }
 
@@ -36,6 +38,8 @@ final class CarreraDTO
             'nombre_malla' => $this->nombreMalla,
             'id_drive' => $this->idDrive,
             'url_malla' => $this->urlMalla,
+            'modo_almacenamiento' => $this->modoAlmacenamiento,
+            'ruta_almacenamiento_local' => $this->rutaAlmacenamientoLocal,
         ];
     }
 }

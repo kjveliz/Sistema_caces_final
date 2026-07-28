@@ -5,6 +5,7 @@ import CohortsManagementModal from './CohortsManagementModal';
 import NewCareerModal from './NewCareerModal';
 import EditCareerModal from './EditCareerModal';
 import DeleteCareerModal from './DeleteCareerModal';
+import StorageSettingsModal from './StorageSettingsModal';
 
 import TopBar from './components/TopBar';
 import AreasGrid from './components/AreasGrid';
@@ -13,6 +14,7 @@ import { useCareers } from './hooks/useCareers';
 import { useNewCareerForm } from './hooks/useNewCareerForm';
 import { useEditCareerForm } from './hooks/useEditCareerForm';
 import { useDeleteCareerForm } from './hooks/useDeleteCareerForm';
+import { useStorageSettingsForm } from './hooks/useStorageSettingsForm';
 
 import type { Career } from '../../types/index';
 import type { UsuarioSesion } from '../../shared/services/auth';
@@ -30,6 +32,7 @@ export default function CareersView({ onSelect, onLogout, usuario }: CareersView
   const newCareerForm = useNewCareerForm(cargarCarreras);
   const editCareerForm = useEditCareerForm(carrerasBD, cargarCarreras);
   const deleteCareerForm = useDeleteCareerForm(areas, carrerasBD, cargarCarreras);
+  const storageSettingsForm = useStorageSettingsForm(carrerasBD, cargarCarreras);
 
   const [showManageMenu, setShowManageMenu] = useState(false);
   const [showUsersManagement, setShowUsersManagement] = useState(false);
@@ -71,6 +74,21 @@ export default function CareersView({ onSelect, onLogout, usuario }: CareersView
         onModalidadChange={editCareerForm.setEditCareerModalidad}
         updatingCareer={editCareerForm.updatingCareer}
         onSubmit={editCareerForm.handleUpdateCareer}
+      />
+
+      <StorageSettingsModal
+        open={storageSettingsForm.showStorageSettings}
+        onClose={storageSettingsForm.closeStorageSettingsModal}
+        carrerasBD={carrerasBD}
+        storageCareerId={storageSettingsForm.storageCareerId}
+        onSelectCareer={storageSettingsForm.seleccionarCarreraParaAlmacenamiento}
+        storageModo={storageSettingsForm.storageModo}
+        onModoChange={storageSettingsForm.setStorageModo}
+        storageRutaLocal={storageSettingsForm.storageRutaLocal}
+        onRutaLocalChange={storageSettingsForm.setStorageRutaLocal}
+        carreraSeleccionada={storageSettingsForm.carreraSeleccionada}
+        migrando={storageSettingsForm.migrando}
+        onSubmit={storageSettingsForm.handleUpdateStorage}
       />
 
       <DeleteCareerModal
@@ -131,6 +149,7 @@ export default function CareersView({ onSelect, onLogout, usuario }: CareersView
           setShowManageMenu(false);
           deleteCareerForm.setShowDeleteCareer(true);
         }}
+        onManageStorage={() => storageSettingsForm.setShowStorageSettings(true)}
       />
 
       <div
