@@ -24,6 +24,17 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
 
 require_once __DIR__ . "/drive_helpers.php";
 
+// Interruptor de almacenamiento (plan_interruptor_almacenamiento.txt): hasta
+// ahora esta ruta subía SIEMPRE a Google Drive sin mirar
+// carreras.modo_almacenamiento -- gap real documentado en MEMORIA v89/§67 y
+// cerrado en v100/§76. Se agrega acá el mismo EvidenciaStorageResolver que ya
+// usan SeguimientoSyllabusController/TutoriasAcademicasController para I2/I3,
+// así I1/I4/I5 (y los 3 slots evaluation-wide de I2 que siguen pasando por
+// esta ruta legacy: DOC.SEG.01/06/07) respetan el interruptor igual que el
+// resto. require de conexion.php da $conexion (mysqli) y carga
+// vendor/autoload.php, necesario para las clases App\Services\*.
+require_once __DIR__ . "/../conexion.php";
+
 // Se lee ANTES del try (con default seguro) para que el catch siempre tenga
 // un valor, incluso si la excepción ocurre antes de llegar a la lectura
 // original del $_POST más abajo (p. ej. al fallar cliente_autorizado.php,
@@ -37,8 +48,9 @@ if (!in_array($tipoEsperado, ["pdf", "csv"], true)) {
 }
 
 try {
-    $cliente = require __DIR__ . "/cliente_autorizado.php";
-    $drive = new Google\Service\Drive($cliente);
+    $idCarrera = intval(
+        $_POST["id_carrera"] ?? 0
+    );
 
     $codigoCarrera = strtoupper(
         preg_replace(
@@ -69,6 +81,7 @@ try {
     );
 
     if (
+        $idCarrera <= 0 ||
         $codigoCarrera === "" ||
         $nombreCarrera === "" ||
         $cohorte === "" ||
@@ -176,6 +189,66 @@ try {
     }
 
     $mimeSubida = $tipoEsperado === "csv" ? "text/csv" : "application/pdf";
+
+    /*
+     * Se resuelve el destino ANTES de tocar Drive para nada -- ni siquiera
+     * cliente_autorizado.php se llega a requerir si la carrera está en modo
+     * 'local'. Mismo criterio que EvidenciaStorageResolver::resolver() ya
+     * usa para I2/I3: default local, Drive solo si la carrera lo tiene
+     * guardado explícito.
+     */
+    $storageResolver = new App\Services\EvidenciaStorageResolver(
+        $conexion,
+        new App\Services\GoogleDriveService()
+    );
+
+    $storage = $storageResolver->resolver($idCarrera);
+
+    if ($storage instanceof App\Services\AlmacenamientoLocalService) {
+        /*
+         * I1/I4/I5 (y los 3 slots evaluation-wide de I2) no tienen
+         * PAO/asignatura real como I2/I3 -- se usan 2 segmentos fijos
+         * ("Evaluacion" / "I{indicador}") para no aplanar todo en la
+         * carpeta de la cohorte y mantener separada la evidencia de cada
+         * indicador dentro del árbol local.
+         */
+        $subidaLocal = $storage->subirArchivo(
+            $archivo["tmp_name"],
+            $nombreArchivo,
+            $nombreCarrera,
+            $cohorte,
+            "Evaluacion",
+            "I{$indicador}",
+            $mimeSubida
+        );
+
+        echo json_encode([
+            "ok" => true,
+            "mensaje" =>
+                ($tipoEsperado === "csv" ? "CSV" : "PDF") . " guardado correctamente en almacenamiento local.",
+            "datos" => [
+                "id_archivo" => $subidaLocal["id_archivo"],
+                "nombre_archivo" => $subidaLocal["nombre_archivo"],
+                "url_archivo" => $subidaLocal["url_archivo"],
+                "url_descarga" => null,
+                "id_carpeta" => "",
+                "codigo_carrera" => $codigoCarrera,
+                "nombre_carrera" => $nombreCarrera,
+                "cohorte" => $cohorte,
+                "indicador" => $indicador,
+            ],
+        ], JSON_UNESCAPED_UNICODE);
+
+        exit;
+    }
+
+    // ---- A partir de acá solo se llega si la carrera tiene
+    // modo_almacenamiento = 'drive' explícito -- el resto del archivo queda
+    // exactamente igual que antes (misma estructura de carpetas
+    // Carrera/Cohorte, mismo manejo de duplicados y permisos). ----
+
+    $cliente = require __DIR__ . "/cliente_autorizado.php";
+    $drive = new Google\Service\Drive($cliente);
 
     /*
      * Estructura final:
@@ -366,7 +439,7 @@ try {
     echo json_encode([
         "ok" => false,
         "mensaje" =>
-            "No se pudo subir el " . ($tipoEsperado === "csv" ? "CSV" : "PDF") . " a Google Drive.",
+            "No se pudo subir el " . ($tipoEsperado === "csv" ? "CSV" : "PDF") . " de evidencia.",
         "detalle" =>
             $error->getMessage(),
     ], JSON_UNESCAPED_UNICODE);

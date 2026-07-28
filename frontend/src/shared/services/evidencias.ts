@@ -324,6 +324,10 @@ export interface SubirDriveResponse {
 
 interface SubirDriveParams {
   archivo: File;
+  // Necesario para que el backend resuelva el interruptor de almacenamiento
+  // de la carrera (EvidenciaStorageResolver) -- antes esta ruta subía
+  // siempre a Google Drive sin mirar el flag para nada (ver MEMORIA v100/§76).
+  idCarrera: number;
   codigoCarrera: string;
   nombreCarrera: string;
   cohorte: string;
@@ -336,6 +340,7 @@ interface SubirDriveParams {
 
 export async function subirPdfGoogleDrive({
   archivo,
+  idCarrera,
   codigoCarrera,
   nombreCarrera,
   cohorte,
@@ -346,6 +351,7 @@ export async function subirPdfGoogleDrive({
   const formulario = new FormData();
 
   formulario.append('archivo', archivo);
+  formulario.append('id_carrera', String(idCarrera));
   formulario.append('codigo_carrera', codigoCarrera);
   formulario.append('nombre_carrera', nombreCarrera);
   formulario.append('cohorte', cohorte);

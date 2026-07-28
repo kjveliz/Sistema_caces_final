@@ -242,12 +242,17 @@ export function useSubidaEvidencia({
         }
       }
       /*
-       * 2. Subir o reemplazar el archivo en Google Drive.
+       * 2. Subir o reemplazar el archivo (Drive o almacenamiento local,
+       * según el interruptor de la carrera -- se envía id_carrera para que
+       * el backend pueda resolverlo con EvidenciaStorageResolver, mismo
+       * patrón que ya usan I2/I3. Antes esta ruta subía siempre a Drive sin
+       * mirar el flag; ver MEMORIA v100/§76).
        */
-      setMensajeSubida('Subiendo evidencia a Google Drive...');
+      setMensajeSubida('Subiendo evidencia...');
 
-      const drive = await subirPdfGoogleDrive({
+      const subida = await subirPdfGoogleDrive({
         archivo,
+        idCarrera: evaluacion.id_carrera,
         codigoCarrera: career.code,
         nombreCarrera: career.name,
         cohorte: cohorteBD,
@@ -256,10 +261,10 @@ export function useSubidaEvidencia({
         tipoEsperado: esCsv ? 'csv' : 'pdf',
       });
 
-      const urlDrive = drive.datos?.url_archivo?.trim() ?? '';
+      const urlArchivoSubido = subida.datos?.url_archivo?.trim() ?? '';
 
-      if (!urlDrive.startsWith('https://drive.google.com/')) {
-        throw new Error('Google Drive no devolvió una URL válida.');
+      if (!urlArchivoSubido) {
+        throw new Error('El servidor no devolvió una URL de archivo válida.');
       }
 
       const cohorteNormalizada = cohorteBD;
@@ -376,7 +381,7 @@ export function useSubidaEvidencia({
 
       /*
        * 5. Registrar o actualizar inmediatamente
-       * la URL de Google Drive en MySQL.
+       * la URL del archivo (Drive o local) en MySQL.
        */
       setMensajeSubida('Guardando la evidencia en la base de datos...');
 
@@ -387,7 +392,7 @@ export function useSubidaEvidencia({
         descripcion: slot.descripcionCompleta ?? slot.label,
         nombreArchivo: preparacion.datos.nombre_generado,
         tipo: esCsv ? 'text/csv' : 'application/pdf',
-        urlArchivo: urlDrive,
+        urlArchivo: urlArchivoSubido,
       });
 
       if (!guardado.id_evidencia) {
@@ -404,16 +409,15 @@ export function useSubidaEvidencia({
         file: {
           fileName: preparacion.datos.nombre_generado,
           originalName: archivo.name,
-          url: urlDrive,
-          serverUrl: urlDrive,
+          url: urlArchivoSubido,
+          serverUrl: urlArchivoSubido,
           size: archivo.size,
         },
       });
 
       toast.success(esCsv ? 'CSV guardado correctamente' : 'PDF guardado correctamente', {
         description:
-          descripcionResultado ??
-          'El documento se subió a Google Drive y su URL se actualizó en MySQL.',
+          descripcionResultado ?? 'El documento se subió correctamente y su URL se actualizó en MySQL.',
       });
     } catch (error) {
       updateSlot(indicator.id, {
