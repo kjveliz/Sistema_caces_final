@@ -31,6 +31,7 @@ export interface ItemEvidenciaPorTipo {
   tipo: string;
   subida: boolean;
   archivo: {
+    id_evidencia_asig: number;
     nombre_archivo: string;
     url_archivo: string;
   } | null;
@@ -46,6 +47,7 @@ export function resolverArchivoPorTipo(
       url: string;
       serverUrl: string;
       size: number;
+      idEvidenciaAsig: number;
     }
   | undefined {
   const item = items?.find((e) => e.tipo === tipo);
@@ -60,5 +62,6 @@ export function resolverArchivoPorTipo(
     url: item.archivo.url_archivo,
     serverUrl: item.archivo.url_archivo,
     size: 0,
+    idEvidenciaAsig: item.archivo.id_evidencia_asig,
   };
 }

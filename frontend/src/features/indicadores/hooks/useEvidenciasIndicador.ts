@@ -8,6 +8,7 @@ import {
 } from '../../../shared/services/evidencias';
 import { obtenerEvidenciaAsignatura } from '../../../shared/services/seguimientoSyllabus';
 import { obtenerEvidenciaTutorias } from '../../../shared/services/tutoriasAcademicas';
+import { urlVisorEvidenciaAsignatura } from '../../../shared/services/evidenciaAsignaturaVisor';
 import {
   I2_SOURCE_NUM_TO_TIPO,
   I3_SOURCE_NUM_TO_TIPO,
@@ -278,7 +279,19 @@ export function useEvidenciasIndicador({
 
   const selectedSlot = slots.find((slot) => slot.sourceNum === selected);
 
-  const urlDocumento = selectedSlot?.file?.serverUrl || selectedSlot?.file?.url || '';
+  // Slots de I2/I3 (evidencia_asignatura) traen idEvidenciaAsig -- para
+  // esos, el visor real (GET /evidencia-asignatura/ver) reemplaza abrir
+  // `url_archivo` directo, que puede ser una ruta de filesystem local no
+  // abrible desde el navegador si la carrera está en modo 'local' (ver
+  // plan_interruptor_almacenamiento.txt §4.5/§4.6). El resto de los slots
+  // (malla curricular / normativa institucional compartidas, I1/I4/I5)
+  // no tienen idEvidenciaAsig y siguen abriendo `url_archivo` tal cual --
+  // fuera de alcance de este paso (ver plan §5, "fuera de alcance").
+  const idEvidenciaAsig = selectedSlot?.file?.idEvidenciaAsig;
+
+  const urlDocumento = idEvidenciaAsig
+    ? urlVisorEvidenciaAsignatura(idEvidenciaAsig)
+    : selectedSlot?.file?.serverUrl || selectedSlot?.file?.url || '';
 
   function convertirUrlVistaPrevia(url: string): string {
     const coincidencia = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
