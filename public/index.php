@@ -127,12 +127,13 @@ $app->group('/tutorias-academicas', function ($grupo) use ($tutoriasController) 
 // Los 7 endpoints reales que consumía frontend/src/services/seguimientoSyllabus.ts
 // contra los 8 archivos sueltos originales (el 8vo, materias_encuesta.php,
 // era un endpoint deprecado sin llamadores reales -- ver MEMORIA e
-// INSTRUCCIONES_fase3_i2.md), más POST /cohortes (nuevo, ver
-// plan_malla_curricular_xlsx.txt §7 Parte 2 -- hoy solo se listaban
-// periodos, nunca se creaba una cohorte por API).
+// INSTRUCCIONES_fase3_i2.md), más POST /cohortes y POST /periodos (nuevos,
+// ver plan_malla_curricular_xlsx.txt §7 Partes 2 y 3 -- hoy solo se
+// listaban periodos, nunca se creaba una cohorte ni un período por API).
 $app->group('/seguimiento-syllabus', function ($grupo) use ($seguimientoController) {
     $grupo->post('/cohortes', [$seguimientoController, 'cohorteCrear']);
     $grupo->get('/periodos', [$seguimientoController, 'periodos']);
+    $grupo->post('/periodos', [$seguimientoController, 'periodoCrear']);
     $grupo->get('/asignaturas', [$seguimientoController, 'asignaturasListar']);
     $grupo->post('/asignaturas', [$seguimientoController, 'asignaturaCrear']);
     $grupo->get('/resultado-asignatura', [$seguimientoController, 'resultadoAsignatura']);

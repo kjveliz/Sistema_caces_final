@@ -125,6 +125,37 @@ final class SeguimientoSyllabusRepository
         return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 
+    /** Existencia simple de una cohorte (alcanza para validar el FK antes de insertar un período). */
+    public function cohorteExiste(int $idCohorte): bool
+    {
+        $stmt = $this->conexion->prepare('SELECT id_cohorte FROM cohortes WHERE id_cohorte = ?');
+        $stmt->bind_param('i', $idCohorte);
+        $stmt->execute();
+
+        return (bool) $stmt->get_result()->fetch_assoc();
+    }
+
+    /**
+     * Crea un período académico (PAO) para una cohorte. Parte del flujo de
+     * carga de malla curricular en .xlsx (ver plan_malla_curricular_xlsx.txt
+     * §3.2/§7 Parte 3): hoy solo existía el GET (periodos.php), que asumía
+     * que los 3 PAO ya estaban cargados a mano en la BD.
+     *
+     * `orden` es requerido (a diferencia de `crearCohorte`, donde las fechas
+     * son opcionales): periodosPorCohorte() ya ordena por esta columna, así
+     * que un período sin orden quedaría mal ubicado en el selector de PAO.
+     */
+    public function crearPeriodo(int $idCohorte, string $nombre, int $orden, ?string $fechaInicio, ?string $fechaFin): int
+    {
+        $stmt = $this->conexion->prepare(
+            'INSERT INTO periodo_academico (id_cohorte, nombre, orden, fecha_inicio, fecha_fin) VALUES (?, ?, ?, ?, ?)',
+        );
+        $stmt->bind_param('isiss', $idCohorte, $nombre, $orden, $fechaInicio, $fechaFin);
+        $stmt->execute();
+
+        return (int) $stmt->insert_id;
+    }
+
     /**
      * Asignaturas de un cohorte (opcionalmente filtradas por periodo),
      * misma consulta que calcularResultadoGeneral() original.

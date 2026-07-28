@@ -122,6 +122,74 @@ final class SeguimientoSyllabusController
         return $this->json($response, true, 'Cohorte creada.', ['datos' => ['id_cohorte' => $idCohorte]]);
     }
 
+    /** POST /seguimiento-syllabus/periodos (json: id_cohorte, nombre, orden, fecha_inicio?, fecha_fin?) — crea un período académico (PAO). */
+    #[OA\Post(
+        path: '/seguimiento-syllabus/periodos',
+        summary: 'Crea un período académico (PAO) para una cohorte.',
+        description: 'Parte del flujo de carga de malla curricular en .xlsx al crear una carrera nueva '
+            . '(ver plan_malla_curricular_xlsx.txt §7 Parte 3). `orden` es requerido: '
+            . '`GET /periodos` ya ordena por esta columna.',
+        tags: ['I2 - Seguimiento Syllabus'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['id_cohorte', 'nombre', 'orden'],
+                properties: [
+                    new OA\Property(property: 'id_cohorte', type: 'integer'),
+                    new OA\Property(property: 'nombre', type: 'string'),
+                    new OA\Property(property: 'orden', type: 'integer'),
+                    new OA\Property(property: 'fecha_inicio', type: 'string', format: 'date', nullable: true),
+                    new OA\Property(property: 'fecha_fin', type: 'string', format: 'date', nullable: true),
+                ],
+            ),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'ID del período académico creado.',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'datos', properties: [
+                        new OA\Property(property: 'id_periodoacademico', type: 'integer'),
+                    ], type: 'object'),
+                ]),
+            ),
+            new OA\Response(response: 400, description: 'id_cohorte, nombre y orden son requeridos.'),
+            new OA\Response(response: 404, description: 'La cohorte indicada no existe.'),
+        ],
+    )]
+    public function periodoCrear(Request $request, Response $response): Response
+    {
+        $body = (array) ($request->getParsedBody() ?? []);
+        $idCohorte = (int) ($body['id_cohorte'] ?? 0);
+        $nombre = trim((string) ($body['nombre'] ?? ''));
+        $orden = isset($body['orden']) && $body['orden'] !== '' ? (int) $body['orden'] : 0;
+        $fechaInicio = trim((string) ($body['fecha_inicio'] ?? ''));
+        $fechaFin = trim((string) ($body['fecha_fin'] ?? ''));
+
+        if ($idCohorte <= 0 || $nombre === '' || $orden <= 0) {
+            return $this->json($response, false, 'id_cohorte, nombre y orden son requeridos.', [], 400);
+        }
+
+        if (!$this->repositorio->cohorteExiste($idCohorte)) {
+            return $this->json($response, false, 'La cohorte indicada no existe.', [], 404);
+        }
+
+        try {
+            $idPeriodo = $this->repositorio->crearPeriodo(
+                $idCohorte,
+                $nombre,
+                $orden,
+                $fechaInicio !== '' ? $fechaInicio : null,
+                $fechaFin !== '' ? $fechaFin : null,
+            );
+        } catch (Throwable $e) {
+            return $this->json($response, false, 'No se pudo crear el período académico.', ['detalle' => $e->getMessage()], 400);
+        }
+
+        return $this->json($response, true, 'Período académico creado.', ['datos' => ['id_periodoacademico' => $idPeriodo]]);
+    }
+
     /** GET /seguimiento-syllabus/periodos?id_cohorte= */
     #[OA\Get(
         path: '/seguimiento-syllabus/periodos',
