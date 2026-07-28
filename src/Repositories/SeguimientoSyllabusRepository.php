@@ -157,6 +157,144 @@ final class SeguimientoSyllabusRepository
     }
 
     /**
+     * Chequeo previo al borrado en cascada de una cohorte (ver
+     * plan_malla_curricular_xlsx.txt §9.5 Parte A / §9 hallazgo sobre
+     * FKs reales del dump). A diferencia de `seguimiento_syllabus`,
+     * `syllabus` y `tutorias_academicas` (FK RESTRICT hacia
+     * `asignatura`, que ya protegen solas rechazando cualquier DELETE
+     * con datos reales), `evidencia_asignatura.id_asignatura` tiene
+     * `ON DELETE CASCADE` -- borrar una asignatura con evidencia real
+     * subida ahí la eliminaría en silencio. Este método es la
+     * protección equivalente, hecha a mano, para ese único caso sin
+     * cobertura de FK.
+     */
+    public function cohorteTieneEvidenciaAsignaturaReal(int $idCohorte): bool
+    {
+        $stmt = $this->conexion->prepare(
+            'SELECT ea.id_evidencia_asig
+             FROM evidencia_asignatura ea
+             JOIN asignatura a ON a.id_asignatura = ea.id_asignatura
+             JOIN periodo_academico p ON p.id_periodoacademico = a.id_periodoacademico
+             WHERE p.id_cohorte = ?
+             LIMIT 1',
+        );
+        $stmt->bind_param('i', $idCohorte);
+        $stmt->execute();
+
+        return (bool) $stmt->get_result()->fetch_assoc();
+    }
+
+    /**
+     * Borra en cascada una cohorte y todo lo que genera el flujo de
+     * carga de malla curricular en .xlsx (ver
+     * plan_malla_curricular_xlsx.txt §9.5 Parte A): la evidencia
+     * DOC.SYL.01 auto-registrada por `crear.php` (si la hay) + su fila
+     * en `indicador_evidencia`, las asignaturas de todos los períodos,
+     * los períodos, la evaluación asociada (si la hay) y la cohorte.
+     * Todo en una única transacción.
+     *
+     * El llamador (controller) debe validar antes con `cohorteExiste()`
+     * y `cohorteTieneEvidenciaAsignaturaReal()` -- este método asume
+     * que ambos chequeos ya pasaron. Si de todos modos hay datos reales
+     * que ninguno de los 2 chequeos cubre (ej. filas en
+     * `seguimiento_syllabus`/`syllabus`/`tutorias_academicas`), la FK
+     * RESTRICT correspondiente hace fallar el DELETE de `asignatura` a
+     * mitad de camino -- la excepción resultante hace rollback de toda
+     * la transacción (nada queda a medio borrar) y el controller la
+     * traduce a 409 (mismo criterio que crear.php con errno 1062).
+     *
+     * @return array{periodos_borrados: int, asignaturas_borradas: int, evidencia_borrada: bool}
+     */
+    public function eliminarCohorteEnCascada(int $idCohorte): array
+    {
+        $this->conexion->begin_transaction();
+
+        try {
+            $stmtEvaluacion = $this->conexion->prepare(
+                'SELECT id_evaluacion FROM evaluaciones WHERE id_cohorte = ? LIMIT 1',
+            );
+            $stmtEvaluacion->bind_param('i', $idCohorte);
+            $stmtEvaluacion->execute();
+            $filaEvaluacion = $stmtEvaluacion->get_result()->fetch_assoc();
+            $idEvaluacion = $filaEvaluacion !== null ? (int) $filaEvaluacion['id_evaluacion'] : null;
+
+            $evidenciaBorrada = false;
+
+            if ($idEvaluacion !== null) {
+                $stmtEvidencia = $this->conexion->prepare(
+                    "SELECT e.id_evidencia
+                     FROM evidencias e
+                     JOIN catalogo_evidencias c ON c.id_catalogo = e.id_catalogo
+                     WHERE e.id_evaluacion = ?
+                       AND c.codigo_evidencia = 'DOC.SYL.01'
+                     LIMIT 1",
+                );
+                $stmtEvidencia->bind_param('i', $idEvaluacion);
+                $stmtEvidencia->execute();
+                $filaEvidencia = $stmtEvidencia->get_result()->fetch_assoc();
+
+                if ($filaEvidencia !== null) {
+                    $idEvidencia = (int) $filaEvidencia['id_evidencia'];
+
+                    $stmtIndicadorEvidencia = $this->conexion->prepare(
+                        'DELETE FROM indicador_evidencia WHERE id_evidencia = ?',
+                    );
+                    $stmtIndicadorEvidencia->bind_param('i', $idEvidencia);
+                    $stmtIndicadorEvidencia->execute();
+
+                    $stmtEliminarEvidencia = $this->conexion->prepare(
+                        'DELETE FROM evidencias WHERE id_evidencia = ?',
+                    );
+                    $stmtEliminarEvidencia->bind_param('i', $idEvidencia);
+                    $stmtEliminarEvidencia->execute();
+
+                    $evidenciaBorrada = true;
+                }
+            }
+
+            $stmtAsignaturas = $this->conexion->prepare(
+                'DELETE a FROM asignatura a
+                 JOIN periodo_academico p ON p.id_periodoacademico = a.id_periodoacademico
+                 WHERE p.id_cohorte = ?',
+            );
+            $stmtAsignaturas->bind_param('i', $idCohorte);
+            $stmtAsignaturas->execute();
+            $asignaturasBorradas = $stmtAsignaturas->affected_rows;
+
+            $stmtPeriodos = $this->conexion->prepare(
+                'DELETE FROM periodo_academico WHERE id_cohorte = ?',
+            );
+            $stmtPeriodos->bind_param('i', $idCohorte);
+            $stmtPeriodos->execute();
+            $periodosBorrados = $stmtPeriodos->affected_rows;
+
+            if ($idEvaluacion !== null) {
+                $stmtEliminarEvaluacion = $this->conexion->prepare(
+                    'DELETE FROM evaluaciones WHERE id_evaluacion = ?',
+                );
+                $stmtEliminarEvaluacion->bind_param('i', $idEvaluacion);
+                $stmtEliminarEvaluacion->execute();
+            }
+
+            $stmtCohorte = $this->conexion->prepare('DELETE FROM cohortes WHERE id_cohorte = ?');
+            $stmtCohorte->bind_param('i', $idCohorte);
+            $stmtCohorte->execute();
+
+            $this->conexion->commit();
+
+            return [
+                'periodos_borrados' => $periodosBorrados,
+                'asignaturas_borradas' => $asignaturasBorradas,
+                'evidencia_borrada' => $evidenciaBorrada,
+            ];
+        } catch (\Throwable $e) {
+            $this->conexion->rollback();
+
+            throw $e;
+        }
+    }
+
+    /**
      * Crea un período académico (PAO) para una cohorte. Parte del flujo de
      * carga de malla curricular en .xlsx (ver plan_malla_curricular_xlsx.txt
      * §3.2/§7 Parte 3): hoy solo existía el GET (periodos.php), que asumía

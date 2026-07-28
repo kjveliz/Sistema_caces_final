@@ -123,6 +123,88 @@ final class SeguimientoSyllabusController
         return $this->json($response, true, 'Cohorte creada.', ['datos' => ['id_cohorte' => $idCohorte]]);
     }
 
+    /**
+     * DELETE /seguimiento-syllabus/cohortes/{id} — borra en cascada una
+     * cohorte creada por el flujo de malla curricular en .xlsx (ver
+     * plan_malla_curricular_xlsx.txt §9.5 Parte A). Pensado como
+     * rollback cuando falla un paso posterior (crear períodos o
+     * asignaturas) del mismo flujo, y como acción manual de limpieza en
+     * "Gestión de cohortes".
+     */
+    #[OA\Delete(
+        path: '/seguimiento-syllabus/cohortes/{id}',
+        summary: 'Borra en cascada una cohorte (evidencia DOC.SYL.01 asociada, asignaturas, períodos y evaluación).',
+        security: [['sesionPhp' => []]],
+        tags: ['I2 - Seguimiento Syllabus'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Cohorte y todo lo asociado borrados correctamente.',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'datos', properties: [
+                        new OA\Property(property: 'periodos_borrados', type: 'integer'),
+                        new OA\Property(property: 'asignaturas_borradas', type: 'integer'),
+                        new OA\Property(property: 'evidencia_borrada', type: 'boolean'),
+                    ], type: 'object'),
+                ]),
+            ),
+            new OA\Response(response: 400, description: 'El identificador de la cohorte no es válido.'),
+            new OA\Response(response: 401, description: 'La sesión no está activa.'),
+            new OA\Response(response: 404, description: 'La cohorte indicada no existe.'),
+            new OA\Response(response: 409, description: 'La cohorte tiene datos reales asociados (evidencia de asignatura, seguimiento, syllabus o tutorías) y no puede borrarse automáticamente.'),
+            new OA\Response(response: 500, description: 'No se pudo borrar la cohorte.'),
+        ],
+    )]
+    public function cohorteEliminar(Request $request, Response $response, array $args): Response
+    {
+        $idCohorte = isset($args['id']) ? (int) $args['id'] : 0;
+
+        if ($idCohorte <= 0) {
+            return $this->json($response, false, 'El identificador de la cohorte no es válido.', [], 400);
+        }
+
+        if (!$this->repositorio->cohorteExiste($idCohorte)) {
+            return $this->json($response, false, 'La cohorte indicada no existe.', [], 404);
+        }
+
+        if ($this->repositorio->cohorteTieneEvidenciaAsignaturaReal($idCohorte)) {
+            return $this->json(
+                $response,
+                false,
+                'La cohorte tiene evidencia real subida en alguna de sus asignaturas y no puede borrarse automáticamente.',
+                [],
+                409,
+            );
+        }
+
+        try {
+            $resumen = $this->repositorio->eliminarCohorteEnCascada($idCohorte);
+        } catch (Throwable $e) {
+            // errno 1451: "Cannot delete or update a parent row: a foreign key
+            // constraint fails" -- se dispara si seguimiento_syllabus, syllabus
+            // o tutorias_academicas tienen filas reales para alguna asignatura
+            // de esta cohorte (FK RESTRICT, ver plan §9 hallazgo de FKs). La
+            // transacción ya hizo rollback dentro del repositorio.
+            $codigo = $e->getCode() === 1451 ? 409 : 500;
+
+            return $this->json(
+                $response,
+                false,
+                $codigo === 409
+                    ? 'La cohorte tiene datos reales asociados (seguimiento, syllabus o tutorías) y no puede borrarse automáticamente.'
+                    : 'No se pudo borrar la cohorte.',
+                ['detalle' => $e->getMessage()],
+                $codigo,
+            );
+        }
+
+        return $this->json($response, true, 'Cohorte borrada correctamente.', ['datos' => $resumen]);
+    }
+
     /** POST /seguimiento-syllabus/periodos (json: id_cohorte, nombre, orden, fecha_inicio?, fecha_fin?) — crea un período académico (PAO). */
     #[OA\Post(
         path: '/seguimiento-syllabus/periodos',

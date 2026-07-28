@@ -135,6 +135,7 @@ $app->group('/tutorias-academicas', function ($grupo) use ($tutoriasController) 
 // /evidencia-subir, que ya lo tenía.
 $app->group('/seguimiento-syllabus', function ($grupo) use ($seguimientoController) {
     $grupo->post('/cohortes', [$seguimientoController, 'cohorteCrear'])->add(new SessionAuthMiddleware());
+    $grupo->delete('/cohortes/{id}', [$seguimientoController, 'cohorteEliminar'])->add(new SessionAuthMiddleware());
     $grupo->get('/periodos', [$seguimientoController, 'periodos']);
     $grupo->post('/periodos', [$seguimientoController, 'periodoCrear'])->add(new SessionAuthMiddleware());
     $grupo->get('/asignaturas', [$seguimientoController, 'asignaturasListar']);
