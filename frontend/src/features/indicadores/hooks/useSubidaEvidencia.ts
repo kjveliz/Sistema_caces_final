@@ -150,7 +150,7 @@ export function useSubidaEvidencia({
           : 'Validando y subiendo el archivo PDF...',
         construirMensajeExito: () => ({
           titulo: esCsv ? 'CSV guardado correctamente' : 'PDF guardado correctamente',
-          descripcion: 'La evidencia se subió a Google Drive y se registró en la asignatura.',
+          descripcion: 'La evidencia se guardó correctamente y se registró en la asignatura.',
         }),
         updateSlot,
         setSubiendoEvidencia,
@@ -184,7 +184,7 @@ export function useSubidaEvidencia({
         construirMensajeExito: (resultado) => ({
           titulo: `${esCsv ? 'CSV' : 'PDF'} guardado y validado (${resultado.cumplidos}/${resultado.total_puntos} puntos cumplidos)`,
           descripcion:
-            'La evidencia se subió a Google Drive y se validó automáticamente para ' +
+            'La evidencia se guardó correctamente y se validó automáticamente para ' +
             resultado.ef +
             '.',
         }),

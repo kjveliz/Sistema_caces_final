@@ -161,9 +161,15 @@ final class MallaCurricularController
             return $this->json($response, false, 'Faltan datos para registrar la malla curricular.', [], 400);
         }
 
-        if (!str_starts_with($urlDrive, 'https://drive.google.com/')) {
-            return $this->json($response, false, 'La URL de Google Drive no es válida.', [], 400);
-        }
+        // Antes exigía que $urlDrive empezara con "https://drive.google.com/".
+        // Desde que las carreras nuevas arrancan en modo 'local' por default
+        // (migración 20260728120000), api/google_drive/subir_archivo.php
+        // devuelve una ruta de filesystem para esos casos -- exigir el
+        // prefijo de Drive acá bloqueaba el registro de la malla para
+        // TODA carrera nueva. Basta con que no venga vacía (ya validado
+        // arriba); el nombre de los campos (id_drive/url_drive) queda
+        // igual por ahora para no tocar el esquema de Mallas_Curriculares
+        // en esta sesión.
 
         try {
             $existeCarrera = $this->repositorio->carreraExisteActiva($idCarrera);

@@ -224,6 +224,12 @@ export async function subirMallaCurricular({
 
   const formulario = new FormData();
   formulario.append('archivo', archivo);
+  // Requerido desde que subir_archivo.php resuelve el interruptor de
+  // almacenamiento por carrera (ver MEMORIA v100/§76 y sesión de fix de
+  // I1/I4/I5): sin esto, la subida de malla fallaba con "Faltan datos"
+  // para CUALQUIER carrera, sin importar el modo -- regresión detectada y
+  // corregida en la misma sesión en que se reportó.
+  formulario.append('id_carrera', String(carrera.id_carrera));
   formulario.append('codigo_carrera', carrera.codigo);
   formulario.append('nombre_carrera', carrera.nombre);
   formulario.append('cohorte', 'GENERAL');
@@ -242,11 +248,11 @@ export async function subirMallaCurricular({
 
   const drive = await leerRespuestaJson<SubirMallaDriveResponse>(
     respuestaDrive,
-    'Google Drive no devolvió una respuesta válida.',
+    'El servidor no devolvió una respuesta válida al subir la malla curricular.',
   );
 
   if (!respuestaDrive.ok || !drive.ok || !drive.datos?.id_archivo || !drive.datos.url_archivo) {
-    throw new Error(drive.mensaje ?? drive.detalle ?? 'No se pudo subir la malla a Google Drive.');
+    throw new Error(drive.mensaje ?? drive.detalle ?? 'No se pudo subir la malla curricular.');
   }
 
   const respuestaGuardar = await fetch('http://localhost/sistemacaces/public/malla-curricular/guardar', {
@@ -273,7 +279,7 @@ export async function subirMallaCurricular({
     throw new Error(
       guardado.mensaje ??
         guardado.detalle ??
-        'La malla se subió a Drive, pero no pudo registrarse en MySQL.',
+        'La malla se subió, pero no pudo registrarse en MySQL.',
     );
   }
 

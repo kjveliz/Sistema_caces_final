@@ -371,7 +371,7 @@ export async function subirPdfGoogleDrive({
   const datos = (await respuesta.json()) as SubirDriveResponse;
 
   if (!respuesta.ok || !datos.ok || !datos.datos) {
-    throw new Error(datos.mensaje || 'No se pudo subir el PDF a Google Drive.');
+    throw new Error(datos.mensaje || 'No se pudo subir el PDF.');
   }
 
   return datos;
