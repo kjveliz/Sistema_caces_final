@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Repositories\EvidenciaAsignaturaRepository;
 use App\Services\EvidenciaStorageResolver;
+use App\Services\MimeTypePorExtension;
 use OpenApi\Attributes as OA;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -71,7 +72,7 @@ final class EvidenciaAsignaturaVisorController
             ),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'Contenido del archivo (application/pdf o text/csv según la extensión).'),
+            new OA\Response(response: 200, description: 'Contenido del archivo (Content-Type según la extensión real: PDF, CSV, imagen, Office, etc.).'),
             new OA\Response(response: 400, description: 'Parámetro id_evidencia_asig es requerido.'),
             new OA\Response(response: 401, description: 'La sesión no está activa.'),
             new OA\Response(response: 404, description: 'La evidencia no existe, o el archivo ya no se pudo encontrar en su origen.'),
@@ -112,8 +113,14 @@ final class EvidenciaAsignaturaVisorController
         // el Content-Disposition sea 'inline'. Con 'text/plain' sí lo
         // renderiza inline como texto -- ver MEMORIA (bug reportado tras
         // paso 6 parte 2b: cada CSV se descargaba solo en vez de
-        // previsualizarse en TabEvidences.tsx).
-        $mimeType = $extension === 'csv' ? 'text/plain; charset=utf-8' : 'application/pdf';
+        // previsualizarse en TabEvidences.tsx). Para el resto de
+        // extensiones, antes hardcodeado a application/pdf -- rompía la
+        // vista previa de la Malla Curricular subida como .xlsx (el
+        // navegador recibía bytes de Excel etiquetados como PDF) -- ver
+        // MimeTypePorExtension para el detalle completo.
+        $mimeType = $extension === 'csv'
+            ? 'text/plain; charset=utf-8'
+            : MimeTypePorExtension::resolver($nombreArchivo);
 
         $response->getBody()->write($contenido);
 

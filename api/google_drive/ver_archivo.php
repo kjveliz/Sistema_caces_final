@@ -88,7 +88,14 @@ if (!str_starts_with($urlArchivo, "http://") && !str_starts_with($urlArchivo, "h
 
     $nombreArchivoLocal = $evidencia["nombre_archivo"] ?? "evidencia.pdf";
     $extensionLocal = strtolower(pathinfo($nombreArchivoLocal, PATHINFO_EXTENSION));
-    $mimeTypeLocal = $extensionLocal === "csv" ? "text/csv" : "application/pdf";
+    // Antes: hardcodeado a application/pdf salvo CSV. Rompía la vista
+    // previa de cualquier evidencia que no fuera PDF/CSV -- p. ej. la
+    // Malla Curricular subida como .xlsx (el navegador recibía bytes de
+    // Excel etiquetados como PDF) -- ver App\Services\MimeTypePorExtension
+    // para el detalle completo.
+    $mimeTypeLocal = $extensionLocal === "csv"
+        ? "text/csv"
+        : App\Services\MimeTypePorExtension::resolver($nombreArchivoLocal);
 
     header("Content-Type: {$mimeTypeLocal}");
     header("Content-Disposition: inline; filename=\"" . basename($nombreArchivoLocal) . "\"");
@@ -150,8 +157,17 @@ try {
         $evidencia["nombre_archivo"] ??
         "evidencia.pdf";
 
+    // Antes: hardcodeado a "application/pdf" sin mirar la extensión real
+    // -- ni siquiera tenía el caso especial de CSV que sí tiene el branch
+    // de almacenamiento local arriba. Mismo bug que ese branch (ver
+    // MimeTypePorExtension), agravado acá porque ni CSV quedaba bien.
+    $extensionDrive = strtolower(pathinfo($nombreArchivo, PATHINFO_EXTENSION));
+    $mimeTypeDrive = $extensionDrive === "csv"
+        ? "text/csv"
+        : App\Services\MimeTypePorExtension::resolver($nombreArchivo);
+
     header(
-        "Content-Type: application/pdf"
+        "Content-Type: {$mimeTypeDrive}"
     );
 
     header(

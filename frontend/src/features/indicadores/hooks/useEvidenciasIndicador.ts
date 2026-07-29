@@ -328,6 +328,34 @@ export function useEvidenciasIndicador({
     Boolean(idEvidenciaAsig || idEvidenciaLegacy) &&
     nombreArchivoSeleccionado.toLowerCase().endsWith('.csv');
 
+  // Mismo criterio que esCsvInterno (solo aplica a archivos servidos por
+  // nuestros propios visores, no a links directos de Drive con su propio
+  // preview vía convertirUrlVistaPrevia): el navegador no tiene visor
+  // nativo para Office dentro de un <iframe>, a diferencia de PDF o
+  // imágenes. Antes de este fix el backend además mandaba esos archivos
+  // con Content-Type: application/pdf (ver App\Services\MimeTypePorExtension
+  // en el backend), lo que hacía que el visor de PDF del navegador tratara
+  // de abrirlos y mostrara "No podemos abrir este archivo" -- reportado en
+  // vivo con la Malla Curricular de una carrera de prueba subida como
+  // .xlsx. Con el Content-Type ya corregido el iframe ya no muestra ese
+  // error, pero seguía sin haber vista previa real.
+  //
+  // Para .xlsx/.xls sí hay vista previa real: XlsxPreviewTable parsea el
+  // archivo del lado del cliente con la librería `xlsx` (ya usada para
+  // leer la malla curricular al crear una carrera, ver
+  // shared/utils/mallaCurricular.ts) y lo muestra como tabla, mismo
+  // patrón que esCsvInterno/CsvPreviewTable. Para .docx/.pptx y variantes
+  // no hay una librería de parseo ya instalada en el proyecto, así que
+  // esos siguen mostrando el mensaje de "vista previa no disponible".
+  const EXTENSIONES_XLSX = ['xlsx', 'xls'];
+  const EXTENSIONES_SIN_VISTA_PREVIA = ['docx', 'doc', 'pptx', 'ppt'];
+  const extensionSeleccionada = nombreArchivoSeleccionado.toLowerCase().split('.').pop() ?? '';
+  const esXlsxInterno =
+    Boolean(idEvidenciaAsig || idEvidenciaLegacy) && EXTENSIONES_XLSX.includes(extensionSeleccionada);
+  const sinVistaPrevia =
+    Boolean(idEvidenciaAsig || idEvidenciaLegacy) &&
+    EXTENSIONES_SIN_VISTA_PREVIA.includes(extensionSeleccionada);
+
   function abrirDocumento() {
     if (!urlDocumento) {
       toast.error('La evidencia no contiene una URL válida.');
@@ -348,6 +376,8 @@ export function useEvidenciasIndicador({
     urlVistaPrevia,
     hasFile,
     esCsvInterno,
+    esXlsxInterno,
+    sinVistaPrevia,
     abrirDocumento,
   };
 }

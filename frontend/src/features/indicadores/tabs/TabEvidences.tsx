@@ -1,9 +1,10 @@
-import { AlertCircle, BookOpen, ExternalLink, FolderOpen, Upload } from 'lucide-react';
+import { AlertCircle, BookOpen, ExternalLink, FileWarning, FolderOpen, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
 import type { Career, IndicatorDef } from '../../../types/index';
 import { useEvidenciasIndicador } from '../hooks/useEvidenciasIndicador';
 import CsvPreviewTable from '../components/CsvPreviewTable';
+import XlsxPreviewTable from '../components/XlsxPreviewTable';
 
 // ── Tab Evidencias (split view) ────────────────────────────────────────────
 export default function TabEvidences({
@@ -34,6 +35,8 @@ export default function TabEvidences({
     urlVistaPrevia,
     hasFile,
     esCsvInterno,
+    esXlsxInterno,
+    sinVistaPrevia,
     abrirDocumento,
   } = useEvidenciasIndicador({ ind, career, cohort, idAsignatura, nombreAsignatura });
 
@@ -246,6 +249,20 @@ export default function TabEvidences({
             </div>
           ) : hasFile && selectedSlot?.file && esCsvInterno ? (
             <CsvPreviewTable key={urlDocumento} url={urlDocumento} />
+          ) : hasFile && selectedSlot?.file && esXlsxInterno ? (
+            <XlsxPreviewTable key={urlDocumento} url={urlDocumento} />
+          ) : hasFile && selectedSlot?.file && sinVistaPrevia ? (
+            <div className="text-center px-8">
+              <FileWarning size={40} className="mx-auto mb-3" style={{ color: '#D1D5DB' }} />
+
+              <p className="text-sm font-medium" style={{ color: '#6B7280' }}>
+                Vista previa no disponible para este tipo de archivo
+              </p>
+
+              <p className="text-xs mt-1" style={{ color: '#9CA3AF' }}>
+                Use &ldquo;Abrir documento&rdquo; para descargarlo y verlo.
+              </p>
+            </div>
           ) : hasFile && selectedSlot?.file ? (
             <iframe
               key={urlVistaPrevia}
