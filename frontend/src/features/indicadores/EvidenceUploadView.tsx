@@ -108,6 +108,7 @@ export default function EvidenceUploadView({
   if (step === 'configTitDes') {
     return (
       <StepConfigTitDes
+        career={career}
         indicator={indicator}
         preselectedIndicatorId={preselectedIndicatorId}
         onBack={onBack}

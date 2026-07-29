@@ -1,13 +1,28 @@
+import { useEffect, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 import EvidenceHeader from '../../../shared/components/EvidenceHeader';
 import Breadcrumb from '../../../shared/components/Breadcrumb';
 
-import { COHORT_OPTIONS } from '../../../shared/data/academic';
+import { listarCohortesEvaluaciones } from '../../../shared/services/cohortes';
 
-import type { IndicatorDef } from '../../../types/index';
+import type { Career, IndicatorDef } from '../../../types/index';
+
+/**
+ * Reemplaza el mock `COHORT_OPTIONS` de `shared/data/academic.ts` (siempre
+ * las mismas 2 cohortes fijas, 'B 2025' y 'A 2026', sin importar la carrera)
+ * por cohortes reales de ESTA carrera, mismo patrón ya usado en
+ * StepConfigSyllabus.tsx para I1/I2/I3 (Parte G del plan de malla curricular
+ * xlsx) — acá aplicado a I4/I5. `codigo_carrera` es el mismo campo que ya usa
+ * CohortsManagementModal.tsx para identificar la carrera de cada cohorte.
+ */
+interface CohorteReal {
+  idCohorte: number;
+  nombreCohorte: string;
+}
 
 export default function StepConfigTitDes({
+  career,
   indicator,
   preselectedIndicatorId,
   onBack,
@@ -16,6 +31,7 @@ export default function StepConfigTitDes({
   setCohort,
   onContinue,
 }: {
+  career: Career;
   indicator: IndicatorDef | undefined;
   preselectedIndicatorId?: string;
   onBack: () => void;
@@ -24,6 +40,34 @@ export default function StepConfigTitDes({
   setCohort: (v: string) => void;
   onContinue: () => void;
 }) {
+  const [cohortesReales, setCohortesReales] = useState<CohorteReal[]>([]);
+  const [cargandoCohortes, setCargandoCohortes] = useState(true);
+
+  useEffect(() => {
+    let activo = true;
+    setCargandoCohortes(true);
+
+    listarCohortesEvaluaciones()
+      .then((todas) => {
+        if (!activo) return;
+        setCohortesReales(
+          todas
+            .filter((c) => c.codigo_carrera === career.code)
+            .map((c) => ({ idCohorte: c.id_cohorte, nombreCohorte: c.nombre_cohorte })),
+        );
+      })
+      .catch(() => {
+        if (activo) setCohortesReales([]);
+      })
+      .finally(() => {
+        if (activo) setCargandoCohortes(false);
+      });
+
+    return () => {
+      activo = false;
+    };
+  }, [career.code]);
+
   const canContinue = !!cohort;
   return (
     <div
@@ -71,11 +115,14 @@ export default function StepConfigTitDes({
                   borderColor: 'rgba(27,58,107,0.2)',
                   color: '#0F1E3C',
                 }}
+                disabled={cargandoCohortes}
               >
-                <option value="">— Seleccionar cohorte —</option>
-                {COHORT_OPTIONS.map((c) => (
-                  <option key={c} value={c}>
-                    Cohorte {c}
+                <option value="">
+                  {cargandoCohortes ? 'Cargando cohortes…' : '— Seleccionar cohorte —'}
+                </option>
+                {cohortesReales.map((c) => (
+                  <option key={c.idCohorte} value={c.nombreCohorte}>
+                    Cohorte {c.nombreCohorte}
                   </option>
                 ))}
               </select>
