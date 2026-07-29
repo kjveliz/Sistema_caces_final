@@ -22,15 +22,6 @@ if (!isset($_SESSION["id_usuario"])) {
     exit;
 }
 
-if (($_SESSION["rol"] ?? "") !== "administrador") {
-    http_response_code(403);
-    echo json_encode([
-        "ok" => false,
-        "mensaje" => "No tiene permisos para consultar cohortes."
-    ], JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
 require_once __DIR__ . "/../../conexion.php";
 
 $sql = "
