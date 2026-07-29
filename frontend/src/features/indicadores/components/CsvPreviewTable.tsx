@@ -93,20 +93,37 @@ export default function CsvPreviewTable({ url }: { url: string }) {
 
   const [encabezado, ...cuerpo] = filas;
 
+  // Ancho máximo por celda: las columnas de texto largo (p. ej. preguntas de
+  // encuesta) truncan con "..." en vez de forzar todo el scroll horizontal;
+  // el valor completo queda disponible como tooltip nativo (title).
+  const ANCHO_MAX_CELDA = 260;
+
   return (
-    <div className="w-full h-full overflow-auto">
+    <div
+      className="w-full h-full overflow-auto"
+      style={{
+        border: '1px solid rgba(27,58,107,0.15)',
+        borderRadius: 8,
+      }}
+    >
       <table className="min-w-full text-xs border-collapse">
         <thead>
-          <tr style={{ background: '#F8FAFD' }}>
+          <tr>
             {encabezado.map((columna, i) => (
               <th
                 key={i}
-                className="sticky top-0 px-3 py-2 text-left font-bold whitespace-nowrap"
+                className="sticky top-0 z-10 px-3 py-2.5 text-left font-bold whitespace-nowrap"
                 style={{
                   color: '#0F1E3C',
-                  background: '#F8FAFD',
-                  borderBottom: '1px solid rgba(27,58,107,0.12)',
+                  background: '#EAF0FB',
+                  borderBottom: '2px solid rgba(27,58,107,0.35)',
+                  borderRight: '1px solid rgba(27,58,107,0.12)',
+                  boxShadow: '0 2px 4px rgba(15,30,60,0.06)',
+                  maxWidth: ANCHO_MAX_CELDA,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
                 }}
+                title={columna || `Columna ${i + 1}`}
               >
                 {columna || `Columna ${i + 1}`}
               </th>
@@ -119,7 +136,7 @@ export default function CsvPreviewTable({ url }: { url: string }) {
             <tr
               key={i}
               style={{
-                background: i % 2 === 0 ? '#FFFFFF' : '#FAFBFD',
+                background: i % 2 === 0 ? '#FFFFFF' : '#F0F4FA',
               }}
             >
               {fila.map((valor, j) => (
@@ -128,8 +145,13 @@ export default function CsvPreviewTable({ url }: { url: string }) {
                   className="px-3 py-1.5 whitespace-nowrap"
                   style={{
                     color: '#334155',
-                    borderBottom: '1px solid rgba(27,58,107,0.05)',
+                    borderBottom: '1px solid rgba(27,58,107,0.12)',
+                    borderRight: '1px solid rgba(27,58,107,0.08)',
+                    maxWidth: ANCHO_MAX_CELDA,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
                   }}
+                  title={valor}
                 >
                   {valor}
                 </td>
