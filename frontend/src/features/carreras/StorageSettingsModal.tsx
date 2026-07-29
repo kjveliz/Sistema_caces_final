@@ -1,8 +1,16 @@
-import { ChevronDown, HardDrive, Loader2, X } from 'lucide-react';
+import { ChevronDown, ExternalLink, HardDrive, Loader2, X } from 'lucide-react';
 import type { FormEvent } from 'react';
 
 import type { ModoAlmacenamiento } from '../../shared/services/carreras';
 import type { CarreraBD } from './hooks/useCareers';
+
+// GET /api/google_drive/conectar.php — redirige (302) al consentimiento
+// OAuth de Google. Es navegación top-level real (el propio script hace
+// header("Location: ...") hacia Google), no un endpoint JSON, así que se
+// abre con window.open() en vez de llamarse con fetch() -- mismo criterio
+// que urlVisorEvidenciaLegacy/urlVisorEvidenciaAsignatura para las URLs de
+// google_drive/*.php que tampoco son JSON.
+const URL_CONECTAR_DRIVE = 'http://localhost/sistemacaces/api/google_drive/conectar.php';
 
 /**
  * Interruptor de almacenamiento (Drive/local) por carrera. Visible desde un
@@ -161,6 +169,35 @@ export default function StorageSettingsModal({
               </div>
             </div>
 
+            {storageModo === 'drive' && (
+              <div
+                className="rounded-xl px-3 py-3 space-y-2.5"
+                style={{ background: '#F4F7FB', border: '1px solid rgba(27,58,107,0.15)' }}
+              >
+                <p className="text-xs" style={{ color: '#5A7295' }}>
+                  Si todavía no vinculó una cuenta de Google Drive en este servidor, conéctela
+                  antes de guardar.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    window.open(URL_CONECTAR_DRIVE, '_blank', 'noopener,noreferrer')
+                  }
+                  disabled={migrando}
+                  className="w-full py-2 rounded-xl text-sm font-bold border flex items-center justify-center gap-2 transition-all hover:bg-white"
+                  style={{
+                    background: '#fff',
+                    borderColor: 'rgba(27,58,107,0.25)',
+                    color: '#1B3A6B',
+                  }}
+                >
+                  <ExternalLink size={13} />
+                  Conectar Google Drive
+                </button>
+              </div>
+            )}
+
             {storageModo === 'local' && (
               <div>
                 <label
@@ -174,7 +211,7 @@ export default function StorageSettingsModal({
                   value={storageRutaLocal}
                   onChange={(event) => onRutaLocalChange(event.target.value)}
                   disabled={migrando}
-                  placeholder="Vacío = ruta por defecto del servidor"
+                  placeholder="Ej: C:\Users\usuario\Documents\Evidencias"
                   className="w-full px-3 py-2 rounded-xl text-sm border outline-none"
                   style={{
                     background: '#F4F7FB',
