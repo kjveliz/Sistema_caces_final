@@ -84,15 +84,6 @@ export default function StepSelectIndicator({
                     </p>
                   </div>
                   <div className="flex-shrink-0 flex items-center gap-2">
-                    <span
-                      className="text-xs font-mono px-2 py-0.5 rounded-full"
-                      style={{
-                        background: complete ? '#DCFCE7' : '#F3F4F6',
-                        color: complete ? '#16A34A' : '#6B7280',
-                      }}
-                    >
-                      {done}/{total}
-                    </span>
                     {complete && <CheckCircle2 size={14} style={{ color: '#16A34A' }} />}
                     <span className="text-blue-600 text-xs font-semibold group-hover:text-blue-700">
                       →
