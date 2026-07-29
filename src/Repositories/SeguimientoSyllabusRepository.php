@@ -305,6 +305,135 @@ final class SeguimientoSyllabusRepository
     }
 
     /**
+     * Borra forzadamente una cohorte y toda su cadena relacionada, sin el
+     * chequeo de `cohorteTieneEvidenciaAsignaturaReal()` que bloquea a
+     * `eliminarCohorteEnCascada()` con 409. Mismo criterio y mismo alcance
+     * de tablas que `CarrerasRepository::eliminarForzadaEnCascada()`
+     * (herramienta de desarrollo/pruebas), pero acotado a una sola cohorte
+     * (`id_cohorte`) en vez de a toda una carrera (`id_carrera`) -- acá
+     * `evaluaciones.id_cohorte` es 0 o 1 fila, a diferencia de la versión
+     * de carrera que puede tener varias evaluaciones por carrera.
+     *
+     * Solo borra filas de la BD; los archivos ya subidos a Drive/local
+     * quedan huérfanos a propósito, igual que la versión de carrera.
+     * `evidencia_asignatura` y `evidencia_validacion_pdf` no se tocan a
+     * mano: tienen `ON DELETE CASCADE` hacia `asignatura`, igual que
+     * `datos_tasa_desercion` hacia `evaluaciones` -- se van solos cuando se
+     * borra la fila padre. El llamador (controller) debe validar antes con
+     * `cohorteExiste()`; este método no repite ese chequeo.
+     *
+     * @return array{evaluaciones_borradas: int, periodos_borrados: int, asignaturas_borradas: int, evidencias_borradas: int}
+     */
+    public function eliminarForzadaCohorteEnCascada(int $idCohorte): array
+    {
+        $this->conexion->begin_transaction();
+
+        try {
+            $stmtIndicadorEvidencia = $this->conexion->prepare(
+                'DELETE ie FROM indicador_evidencia ie
+                 JOIN evidencias e ON e.id_evidencia = ie.id_evidencia
+                 JOIN evaluaciones ev ON ev.id_evaluacion = e.id_evaluacion
+                 WHERE ev.id_cohorte = ?',
+            );
+            $stmtIndicadorEvidencia->bind_param('i', $idCohorte);
+            $stmtIndicadorEvidencia->execute();
+
+            $stmtEvidencias = $this->conexion->prepare(
+                'DELETE e FROM evidencias e
+                 JOIN evaluaciones ev ON ev.id_evaluacion = e.id_evaluacion
+                 WHERE ev.id_cohorte = ?',
+            );
+            $stmtEvidencias->bind_param('i', $idCohorte);
+            $stmtEvidencias->execute();
+            $evidenciasBorradas = $stmtEvidencias->affected_rows;
+
+            $stmtTasaTitulacion = $this->conexion->prepare(
+                'DELETE d FROM datos_tasa_titulacion d
+                 JOIN evaluaciones ev ON ev.id_evaluacion = d.id_evaluacion
+                 WHERE ev.id_cohorte = ?',
+            );
+            $stmtTasaTitulacion->bind_param('i', $idCohorte);
+            $stmtTasaTitulacion->execute();
+
+            $stmtSeguimientoSyllabus = $this->conexion->prepare(
+                'DELETE s FROM seguimiento_syllabus s
+                 JOIN evaluaciones ev ON ev.id_evaluacion = s.id_evaluacion
+                 WHERE ev.id_cohorte = ?',
+            );
+            $stmtSeguimientoSyllabus->bind_param('i', $idCohorte);
+            $stmtSeguimientoSyllabus->execute();
+
+            $stmtSyllabus = $this->conexion->prepare(
+                'DELETE s FROM syllabus s
+                 JOIN evaluaciones ev ON ev.id_evaluacion = s.id_evaluacion
+                 WHERE ev.id_cohorte = ?',
+            );
+            $stmtSyllabus->bind_param('i', $idCohorte);
+            $stmtSyllabus->execute();
+
+            $stmtTutorias = $this->conexion->prepare(
+                'DELETE t FROM tutorias t
+                 JOIN evaluaciones ev ON ev.id_evaluacion = t.id_evaluacion
+                 WHERE ev.id_cohorte = ?',
+            );
+            $stmtTutorias->bind_param('i', $idCohorte);
+            $stmtTutorias->execute();
+
+            $stmtTutoriasAcademicas = $this->conexion->prepare(
+                'DELETE t FROM tutorias_academicas t
+                 JOIN evaluaciones ev ON ev.id_evaluacion = t.id_evaluacion
+                 WHERE ev.id_cohorte = ?',
+            );
+            $stmtTutoriasAcademicas->bind_param('i', $idCohorte);
+            $stmtTutoriasAcademicas->execute();
+
+            $stmtAsignaturas = $this->conexion->prepare(
+                'DELETE a FROM asignatura a
+                 JOIN periodo_academico p ON p.id_periodoacademico = a.id_periodoacademico
+                 WHERE p.id_cohorte = ?',
+            );
+            $stmtAsignaturas->bind_param('i', $idCohorte);
+            $stmtAsignaturas->execute();
+            $asignaturasBorradas = $stmtAsignaturas->affected_rows;
+
+            $stmtPeriodos = $this->conexion->prepare(
+                'DELETE FROM periodo_academico WHERE id_cohorte = ?',
+            );
+            $stmtPeriodos->bind_param('i', $idCohorte);
+            $stmtPeriodos->execute();
+            $periodosBorrados = $stmtPeriodos->affected_rows;
+
+            $stmtEvaluaciones = $this->conexion->prepare(
+                'DELETE FROM evaluaciones WHERE id_cohorte = ?',
+            );
+            $stmtEvaluaciones->bind_param('i', $idCohorte);
+            $stmtEvaluaciones->execute();
+            $evaluacionesBorradas = $stmtEvaluaciones->affected_rows;
+
+            $stmtCohorte = $this->conexion->prepare('DELETE FROM cohortes WHERE id_cohorte = ?');
+            $stmtCohorte->bind_param('i', $idCohorte);
+            $stmtCohorte->execute();
+
+            if ($stmtCohorte->affected_rows !== 1) {
+                throw new \RuntimeException('La cohorte no fue eliminada de la base de datos.');
+            }
+
+            $this->conexion->commit();
+
+            return [
+                'evaluaciones_borradas' => $evaluacionesBorradas,
+                'periodos_borrados' => $periodosBorrados,
+                'asignaturas_borradas' => $asignaturasBorradas,
+                'evidencias_borradas' => $evidenciasBorradas,
+            ];
+        } catch (\Throwable $e) {
+            $this->conexion->rollback();
+
+            throw $e;
+        }
+    }
+
+    /**
      * Crea un período académico (PAO) para una cohorte. Parte del flujo de
      * carga de malla curricular en .xlsx (ver plan_malla_curricular_xlsx.txt
      * §3.2/§7 Parte 3): hoy solo existía el GET (periodos.php), que asumía

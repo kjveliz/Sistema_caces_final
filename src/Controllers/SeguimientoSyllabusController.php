@@ -205,6 +205,77 @@ final class SeguimientoSyllabusController
         return $this->json($response, true, 'Cohorte borrada correctamente.', ['datos' => $resumen]);
     }
 
+    /**
+     * POST /seguimiento-syllabus/cohortes/eliminar-forzada (json: id_cohorte) — borra una
+     * cohorte y toda su cadena relacionada aunque tenga evidencia real, es decir, aunque
+     * `cohorteEliminar()` hubiera devuelto 409. Mismo criterio que
+     * `CarrerasController::eliminarForzada()` (herramienta de desarrollo/pruebas, exige rol
+     * administrador, sin ninguna restricción adicional sobre qué cohortes admite).
+     */
+    #[OA\Post(
+        path: '/seguimiento-syllabus/cohortes/eliminar-forzada',
+        summary: 'Elimina forzadamente una cohorte y toda su cadena relacionada, aunque tenga evidencia real. Herramienta de desarrollo/pruebas.',
+        security: [['sesionPhp' => []]],
+        tags: ['I2 - Seguimiento Syllabus'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['id_cohorte'],
+                properties: [new OA\Property(property: 'id_cohorte', type: 'integer')],
+            ),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Cohorte y toda su cadena relacionada eliminadas permanentemente.',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'datos', type: 'object'),
+                ]),
+            ),
+            new OA\Response(response: 400, description: 'El identificador de la cohorte no es válido.'),
+            new OA\Response(response: 401, description: 'La sesión no está activa.'),
+            new OA\Response(response: 403, description: 'No tiene permisos para eliminar cohortes.'),
+            new OA\Response(response: 404, description: 'La cohorte indicada no existe.'),
+            new OA\Response(response: 500, description: 'No se pudo eliminar forzadamente la cohorte.'),
+        ],
+    )]
+    public function cohorteEliminarForzada(Request $request, Response $response): Response
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+
+        if (($_SESSION['rol'] ?? '') !== 'administrador') {
+            return $this->json($response, false, 'No tiene permisos para eliminar cohortes.', [], 403);
+        }
+
+        $datos = $request->getParsedBody();
+
+        $idCohorte = isset($datos['id_cohorte']) ? (int) $datos['id_cohorte'] : 0;
+
+        if ($idCohorte <= 0) {
+            return $this->json($response, false, 'El identificador de la cohorte no es válido.', [], 400);
+        }
+
+        if (!$this->repositorio->cohorteExiste($idCohorte)) {
+            return $this->json($response, false, 'La cohorte indicada no existe.', [], 404);
+        }
+
+        try {
+            $resumen = $this->repositorio->eliminarForzadaCohorteEnCascada($idCohorte);
+        } catch (Throwable $e) {
+            return $this->json($response, false, 'No se pudo eliminar forzadamente la cohorte.', ['detalle' => $e->getMessage()], 500);
+        }
+
+        return $this->json(
+            $response,
+            true,
+            'Cohorte y toda su cadena relacionada eliminadas permanentemente.',
+            ['datos' => $resumen],
+        );
+    }
+
     /** POST /seguimiento-syllabus/periodos (json: id_cohorte, nombre, orden, fecha_inicio?, fecha_fin?) — crea un período académico (PAO). */
     #[OA\Post(
         path: '/seguimiento-syllabus/periodos',

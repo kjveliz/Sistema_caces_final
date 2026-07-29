@@ -144,6 +144,16 @@ interface EliminarCohorteResponse {
 }
 
 /**
+ * Se lanza específicamente cuando DELETE /cohortes/{id} responde 409 porque
+ * la cohorte tiene evidencia real subida (cohorteTieneEvidenciaAsignaturaReal()
+ * en el backend, o una FK RESTRICT de seguimiento_syllabus/syllabus/
+ * tutorias_academicas). Mismo patrón que CarreraConEvaluacionesError en
+ * carreras.ts: permite a la UI distinguir este caso puntual (para ofrecer la
+ * eliminación forzada) de cualquier otro error genérico.
+ */
+export class CohorteConEvidenciaError extends Error {}
+
+/**
  * DELETE /seguimiento-syllabus/cohortes/{id} (Parte A del plan, ver
  * plan_malla_curricular_xlsx.txt §9.5). Usado por la Parte D como
  * rollback cuando falla la creación de períodos o asignaturas después de
@@ -161,7 +171,58 @@ export async function eliminarCohorteSeguimiento(
   const datos = (await respuesta.json()) as EliminarCohorteResponse;
 
   if (!respuesta.ok || !datos.ok || !datos.datos) {
-    throw new Error(datos.mensaje || 'No se pudo borrar la cohorte.');
+    const mensaje = datos.mensaje || 'No se pudo borrar la cohorte.';
+
+    if (respuesta.status === 409) {
+      throw new CohorteConEvidenciaError(mensaje);
+    }
+
+    throw new Error(mensaje);
+  }
+
+  return datos.datos;
+}
+
+export interface ResumenEliminacionCohorteForzada {
+  evaluaciones_borradas: number;
+  periodos_borrados: number;
+  asignaturas_borradas: number;
+  evidencias_borradas: number;
+}
+
+interface EliminarCohorteForzadaResponse {
+  ok: boolean;
+  mensaje?: string;
+  datos?: ResumenEliminacionCohorteForzada;
+}
+
+/**
+ * POST /seguimiento-syllabus/cohortes/eliminar-forzada. Herramienta de
+ * desarrollo/pruebas: borra una cohorte y TODA su cadena relacionada
+ * (evaluación, períodos, asignaturas, evidencia en BD), sin el chequeo de
+ * cohorteTieneEvidenciaAsignaturaReal() que aplica eliminarCohorteSeguimiento().
+ * Mismo criterio que eliminarCarreraForzada() en carreras.ts: solo borra
+ * filas de la base de datos, los archivos ya subidos quedan huérfanos a
+ * propósito. Requiere confirmación extra en la UI antes de llamar a esta
+ * función.
+ */
+export async function eliminarCohorteForzada(
+  idCohorte: number,
+): Promise<ResumenEliminacionCohorteForzada> {
+  const respuesta = await fetch(`${BASE}/cohortes/eliminar-forzada`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({ id_cohorte: idCohorte }),
+  });
+
+  const datos = (await respuesta.json()) as EliminarCohorteForzadaResponse;
+
+  if (!respuesta.ok || !datos.ok || !datos.datos) {
+    throw new Error(datos.mensaje || 'No se pudo eliminar forzadamente la cohorte.');
   }
 
   return datos.datos;
