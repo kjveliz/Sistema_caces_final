@@ -31,6 +31,38 @@ function RequireAuth({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+/**
+ * "Volver" real dentro de la app: si esta pestaña ya tiene una entrada
+ * anterior en el historial (llegamos acá por un `navigate(...)` push desde
+ * otra pantalla de la propia app), hace `navigate(-1)` -- un pop real, igual
+ * que si el usuario hubiera usado la flecha "atrás" del navegador. Antes
+ * cada botón "Volver" hacía `navigate(ruta, { replace: true })`: eso no saca
+ * nada del historial, solo le cambia el destino a la entrada actual, así
+ * que cada "Volver" dejaba una entrada extra apuntando a la pantalla
+ * anterior en vez de sacar la de adelante. Con uso prolongado eso
+ * desalineaba el historial real del navegador respecto al flujo de la app,
+ * y ahí es donde las flechas atrás/adelante del navegador terminaban
+ * repitiendo pantallas ya vistas.
+ *
+ * `fallback` cubre el caso de entrada directa por URL o refresh (no hay
+ * ninguna entrada anterior de esta sesión a la cual volver con -1): ahí sí
+ * se navega explícito, con `replace` para no dejar una entrada de más.
+ */
+function useVolver(fallback: string) {
+  const navigate = useNavigate();
+
+  return () => {
+    const idx = (window.history.state as { idx?: number } | null)?.idx;
+
+    if (typeof idx === 'number' && idx > 0) {
+      navigate(-1);
+      return;
+    }
+
+    navigate(fallback, { replace: true });
+  };
+}
+
 function LoginRoute() {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -77,12 +109,13 @@ function CriteriaRoute() {
   const { career } = useCareerContext();
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const volver = useVolver('/carreras');
 
   return (
     <CriteriaView
       career={career}
       onSelectDocencia={() => navigate(`/carreras/${career.code}/dashboard`)}
-      onBack={() => navigate('/carreras', { replace: true })}
+      onBack={volver}
       onLogout={() => {
         logout();
         navigate('/login', { replace: true });
@@ -96,6 +129,7 @@ function DashboardRoute() {
     useCareerContext();
   const { usuario, puedeCargar, logout } = useAuth();
   const navigate = useNavigate();
+  const volver = useVolver('/carreras');
 
   // Carga los datos reales de I4/I5 para el dashboard (matriculados/
   // graduados/desertores de la cohorte seleccionada). Antes vivía en un
@@ -225,7 +259,7 @@ function DashboardRoute() {
 
         navigate(`/carreras/${career.code}/evidencias`);
       }}
-      onBackToCareers={() => navigate('/carreras', { replace: true })}
+      onBackToCareers={volver}
       usuario={usuario!}
       puedeCargar={Boolean(puedeCargar)}
     />
@@ -237,6 +271,7 @@ function IndicatorRoute() {
   const { puedeCargar } = useAuth();
   const navigate = useNavigate();
   const { codigo } = useParams<{ codigo: string }>();
+  const volver = useVolver(`/carreras/${career.code}/dashboard`);
 
   const selected = indicators.find((indicator) => indicator.id === codigo);
 
@@ -247,7 +282,7 @@ function IndicatorRoute() {
   return (
     <IndicatorView
       indicator={selected}
-      onBack={() => navigate(`/carreras/${career.code}/dashboard`, { replace: true })}
+      onBack={volver}
       career={career}
       cohort={selectedCohort}
       pao={selectedPAO}
@@ -266,8 +301,12 @@ function IndicatorRoute() {
 function EvidenceUploadRoute() {
   const { career, indicators, setIndicators, selectedCohort } = useCareerContext();
   const { puedeCargar } = useAuth();
-  const navigate = useNavigate();
   const { codigo } = useParams<{ codigo?: string }>();
+  const volver = useVolver(
+    codigo
+      ? `/carreras/${career.code}/indicadores/${codigo}`
+      : `/carreras/${career.code}/dashboard`,
+  );
 
   if (!puedeCargar) {
     return <Navigate to={`/carreras/${career.code}/dashboard`} replace />;
@@ -278,14 +317,7 @@ function EvidenceUploadRoute() {
       career={career}
       indicators={indicators}
       onChange={setIndicators}
-      onBack={() =>
-        navigate(
-          codigo
-            ? `/carreras/${career.code}/indicadores/${codigo}`
-            : `/carreras/${career.code}/dashboard`,
-          { replace: true },
-        )
-      }
+      onBack={volver}
       preselectedCohort={selectedCohort}
       preselectedIndicatorId={codigo}
     />
