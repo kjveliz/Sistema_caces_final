@@ -86,6 +86,7 @@ export default function EvidenceUploadView({
   if (step === 'configSyllabus') {
     return (
       <StepConfigSyllabus
+        career={career}
         indicator={indicator}
         preselectedIndicatorId={preselectedIndicatorId}
         onBack={onBack}

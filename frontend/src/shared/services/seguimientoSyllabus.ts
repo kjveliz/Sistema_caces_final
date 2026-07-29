@@ -77,6 +77,11 @@ export interface AsignaturaReal {
   id_asignatura: number;
   nombre: string;
   docente: string | null;
+  // Agregado en la Parte "3.5" del plan de malla curricular xlsx (ver
+  // plan_malla_curricular_xlsx.txt §3.5): agrupador visual A/B/C real, para
+  // que StepConfigSyllabus.tsx pueda dejar de usar el mock
+  // MATERIAS_BY_PAO_MODULE de shared/data/academic.ts.
+  modulo?: string | null;
 }
 
 export function obtenerAsignaturas(idPeriodo: number): Promise<AsignaturaReal[]> {

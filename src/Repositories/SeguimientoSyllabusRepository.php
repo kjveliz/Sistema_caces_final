@@ -46,10 +46,20 @@ final class SeguimientoSyllabusRepository
      *
      * @return array<int, array{id_asignatura: int, nombre: string, docente: string|null}>
      */
+    /**
+     * `modulo` se agrega al SELECT (no estaba antes de la Parte "3.5" del
+     * plan de malla curricular xlsx, ver plan_malla_curricular_xlsx.txt §3.5):
+     * sin esta columna en la respuesta, el frontend no tiene forma de
+     * reconstruir el agrupador visual A/B/C por carrera real en el selector
+     * de carga de evidencia -- ver StepConfigSyllabus.tsx. Agregar un campo
+     * a un SELECT ya existente no rompe a ningún consumidor actual (los que
+     * no lo leen, simplemente lo ignoran); confirmado contra
+     * AsignaturasListarTest.php, que solo verifica `nombre`.
+     */
     public function asignaturasPorPeriodo(int $idPeriodo): array
     {
         $stmt = $this->conexion->prepare(
-            'SELECT id_asignatura, nombre, docente FROM asignatura WHERE id_periodoacademico = ? ORDER BY nombre',
+            'SELECT id_asignatura, nombre, docente, modulo FROM asignatura WHERE id_periodoacademico = ? ORDER BY nombre',
         );
         $stmt->bind_param('i', $idPeriodo);
         $stmt->execute();
