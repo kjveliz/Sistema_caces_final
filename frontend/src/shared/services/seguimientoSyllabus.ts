@@ -28,6 +28,50 @@ export function obtenerPeriodos(idCohorte: number): Promise<PeriodoAcademico[]> 
   return getJson(`${BASE}/periodos?id_cohorte=${idCohorte}`);
 }
 
+interface CrearPeriodoResponse {
+  ok: boolean;
+  mensaje?: string;
+  datos?: { id_periodoacademico: number };
+}
+
+export interface CrearPeriodoParams {
+  idCohorte: number;
+  nombre: string;
+  orden: number;
+  fechaInicio?: string | null;
+  fechaFin?: string | null;
+}
+
+/**
+ * POST /seguimiento-syllabus/periodos (Parte D del plan de malla
+ * curricular xlsx, ver plan_malla_curricular_xlsx.txt §9.2 paso 4). El
+ * endpoint en sí ya existía desde el backend original de §7 Parte 3; lo
+ * único nuevo acá es el wrapper del lado del frontend, sin el cual
+ * useNewCareerForm no tenía forma de llamarlo.
+ */
+export async function crearPeriodo(params: CrearPeriodoParams): Promise<number> {
+  const respuesta = await fetch(`${BASE}/periodos`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({
+      id_cohorte: params.idCohorte,
+      nombre: params.nombre,
+      orden: params.orden,
+      fecha_inicio: params.fechaInicio || undefined,
+      fecha_fin: params.fechaFin || undefined,
+    }),
+  });
+
+  const datos = (await respuesta.json()) as CrearPeriodoResponse;
+
+  if (!respuesta.ok || !datos.ok || !datos.datos?.id_periodoacademico) {
+    throw new Error(datos.mensaje || 'No se pudo crear el período académico.');
+  }
+
+  return datos.datos.id_periodoacademico;
+}
+
 // ── Asignaturas ──────────────────────────────────────────────────────────
 export interface AsignaturaReal {
   id_asignatura: number;
@@ -37,6 +81,85 @@ export interface AsignaturaReal {
 
 export function obtenerAsignaturas(idPeriodo: number): Promise<AsignaturaReal[]> {
   return getJson(`${BASE}/asignaturas?id_periodo=${idPeriodo}`);
+}
+
+interface CrearAsignaturaResponse {
+  ok: boolean;
+  mensaje?: string;
+  datos?: { id_asignatura: number };
+}
+
+export interface CrearAsignaturaParams {
+  idPeriodo: number;
+  nombre: string;
+  docente?: string | null;
+  modulo?: string | null;
+}
+
+/**
+ * POST /seguimiento-syllabus/asignaturas (Parte D, plan §9.2 paso 5).
+ * Mismo endpoint get-or-create ya usado por I2/I3 antes de este plan
+ * (§7 Parte 4 le agregó `modulo`); acá solo se agrega el wrapper del
+ * frontend para poder invocarlo desde la orquestación de alta de
+ * carrera.
+ */
+export async function crearAsignatura(params: CrearAsignaturaParams): Promise<number> {
+  const respuesta = await fetch(`${BASE}/asignaturas`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({
+      id_periodo: params.idPeriodo,
+      nombre: params.nombre,
+      docente: params.docente || undefined,
+      modulo: params.modulo || undefined,
+    }),
+  });
+
+  const datos = (await respuesta.json()) as CrearAsignaturaResponse;
+
+  if (!respuesta.ok || !datos.ok || !datos.datos?.id_asignatura) {
+    throw new Error(datos.mensaje || 'No se pudo crear la asignatura.');
+  }
+
+  return datos.datos.id_asignatura;
+}
+
+// ── Borrado en cascada de cohorte (rollback de la Parte D) ──────────────
+export interface ResumenEliminacionCohorte {
+  periodos_borrados: number;
+  asignaturas_borradas: number;
+  evidencia_borrada: boolean;
+}
+
+interface EliminarCohorteResponse {
+  ok: boolean;
+  mensaje?: string;
+  datos?: ResumenEliminacionCohorte;
+}
+
+/**
+ * DELETE /seguimiento-syllabus/cohortes/{id} (Parte A del plan, ver
+ * plan_malla_curricular_xlsx.txt §9.5). Usado por la Parte D como
+ * rollback cuando falla la creación de períodos o asignaturas después de
+ * que la cohorte ya existe -- ver useNewCareerForm.ts.
+ */
+export async function eliminarCohorteSeguimiento(
+  idCohorte: number,
+): Promise<ResumenEliminacionCohorte> {
+  const respuesta = await fetch(`${BASE}/cohortes/${idCohorte}`, {
+    method: 'DELETE',
+    credentials: 'include',
+    headers: { Accept: 'application/json' },
+  });
+
+  const datos = (await respuesta.json()) as EliminarCohorteResponse;
+
+  if (!respuesta.ok || !datos.ok || !datos.datos) {
+    throw new Error(datos.mensaje || 'No se pudo borrar la cohorte.');
+  }
+
+  return datos.datos;
 }
 
 // ── Resultado EF1-EF5 ────────────────────────────────────────────────────
