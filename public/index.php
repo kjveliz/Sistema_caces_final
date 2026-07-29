@@ -225,6 +225,7 @@ $app->group('/carreras', function ($grupo) use ($carrerasController) {
     $grupo->post('/crear', [$carrerasController, 'crear']);
     $grupo->post('/actualizar', [$carrerasController, 'actualizar'])->add(new SessionAuthMiddleware());
     $grupo->post('/eliminar', [$carrerasController, 'eliminar'])->add(new SessionAuthMiddleware());
+    $grupo->post('/eliminar-forzada', [$carrerasController, 'eliminarForzada'])->add(new SessionAuthMiddleware());
 });
 
 // --- Composición e interruptor de almacenamiento por carrera (paso 4 de --

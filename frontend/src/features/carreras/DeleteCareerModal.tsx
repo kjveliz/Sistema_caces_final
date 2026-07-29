@@ -14,6 +14,11 @@ export default function DeleteCareerModal({
   deletableCareers,
   deletingCareer,
   onSubmit,
+  bloqueadaPorEvaluaciones,
+  confirmacionForzada,
+  onConfirmacionForzadaChange,
+  eliminandoForzado,
+  onForcedDelete,
 }: {
   open: boolean;
   onClose: () => void;
@@ -25,8 +30,18 @@ export default function DeleteCareerModal({
   deletableCareers: Career[];
   deletingCareer: boolean;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  bloqueadaPorEvaluaciones: boolean;
+  confirmacionForzada: string;
+  onConfirmacionForzadaChange: (value: string) => void;
+  eliminandoForzado: boolean;
+  onForcedDelete: () => void;
 }) {
   if (!open) return null;
+
+  const carreraSeleccionada = deletableCareers.find((career) => career.code === deleteCareer);
+  const codigoConfirmacionListo =
+    Boolean(carreraSeleccionada) &&
+    confirmacionForzada.trim().toUpperCase() === carreraSeleccionada?.code.toUpperCase();
 
   return (
     <div
@@ -221,6 +236,58 @@ export default function DeleteCareerModal({
               Cancelar
             </button>
           </div>
+
+          {bloqueadaPorEvaluaciones && carreraSeleccionada && (
+            <div
+              className="rounded-xl px-3.5 py-3 space-y-2.5 mt-1"
+              style={{
+                background: '#FFF7ED',
+                border: '1px solid #EA580C40',
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <AlertCircle size={13} style={{ color: '#C2410C', flexShrink: 0 }} />
+                <p className="text-xs font-bold" style={{ color: '#9A3412' }}>
+                  Eliminación forzada (solo desarrollo)
+                </p>
+              </div>
+
+              <p className="text-xs" style={{ color: '#9A3412' }}>
+                Esta carrera tiene evaluaciones/cohortes/asignaturas asociadas. Esta opción borra{' '}
+                <strong>toda esa cadena</strong> (evaluaciones, cohortes, períodos, asignaturas y
+                evidencia) directamente de la base de datos. Los archivos ya subidos a Drive o
+                almacenamiento local <strong>no</strong> se borran y quedarán huérfanos. Escriba el
+                código <strong>{carreraSeleccionada.code}</strong> para confirmar.
+              </p>
+
+              <input
+                type="text"
+                value={confirmacionForzada}
+                onChange={(event) => onConfirmacionForzadaChange(event.target.value)}
+                placeholder={`Escriba "${carreraSeleccionada.code}" para confirmar`}
+                className="w-full px-3 py-2 rounded-lg text-sm border outline-none"
+                style={{
+                  background: '#fff',
+                  borderColor: '#EA580C40',
+                  color: '#0F1E3C',
+                }}
+              />
+
+              <button
+                type="button"
+                onClick={onForcedDelete}
+                disabled={!codigoConfirmacionListo || eliminandoForzado}
+                className="w-full py-2 rounded-lg text-xs font-bold transition-all hover:opacity-90"
+                style={{
+                  background: codigoConfirmacionListo && !eliminandoForzado ? '#C2410C' : '#E5E7EB',
+                  color: codigoConfirmacionListo && !eliminandoForzado ? '#fff' : '#9CA3AF',
+                  cursor: codigoConfirmacionListo ? 'pointer' : 'not-allowed',
+                }}
+              >
+                {eliminandoForzado ? 'Eliminando en cascada...' : 'Eliminar TODO (forzado)'}
+              </button>
+            </div>
+          )}
         </form>
       </div>
     </div>

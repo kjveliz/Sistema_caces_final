@@ -102,6 +102,11 @@ export default function CareersView({ onSelect, onLogout, usuario }: CareersView
         deletableCareers={deleteCareerForm.deletableCareers}
         deletingCareer={deleteCareerForm.deletingCareer}
         onSubmit={deleteCareerForm.handleDeleteCareer}
+        bloqueadaPorEvaluaciones={deleteCareerForm.bloqueadaPorEvaluaciones}
+        confirmacionForzada={deleteCareerForm.confirmacionForzada}
+        onConfirmacionForzadaChange={deleteCareerForm.setConfirmacionForzada}
+        eliminandoForzado={deleteCareerForm.eliminandoForzado}
+        onForcedDelete={deleteCareerForm.handleForcedDeleteCareer}
       />
 
       <NewCareerModal

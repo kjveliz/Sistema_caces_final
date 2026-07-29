@@ -102,6 +102,14 @@ interface RespuestaEliminarCarrera {
   detalle?: string;
 }
 
+/**
+ * Se lanza específicamente cuando /carreras/eliminar responde 409 porque la
+ * carrera tiene evaluaciones académicas relacionadas (contarEvaluaciones() > 0
+ * en el backend). Permite a la UI distinguir este caso puntual (para ofrecer
+ * la eliminación forzada) de cualquier otro error genérico.
+ */
+export class CarreraConEvaluacionesError extends Error {}
+
 export async function eliminarCarrera(idCarrera: number): Promise<void> {
   if (!Number.isInteger(idCarrera) || idCarrera <= 0) {
     throw new Error('El identificador de la carrera no es válido.');
@@ -125,8 +133,70 @@ export async function eliminarCarrera(idCarrera: number): Promise<void> {
   );
 
   if (!respuesta.ok || !resultado.ok) {
-    throw new Error(resultado.mensaje ?? resultado.detalle ?? 'No se pudo eliminar la carrera.');
+    const mensaje = resultado.mensaje ?? resultado.detalle ?? 'No se pudo eliminar la carrera.';
+
+    if (respuesta.status === 409) {
+      throw new CarreraConEvaluacionesError(mensaje);
+    }
+
+    throw new Error(mensaje);
   }
+}
+
+export interface ResultadoEliminacionForzada {
+  id_carrera: number;
+  nombre: string;
+  cohortes_borradas: number;
+  evaluaciones_borradas: number;
+  periodos_borrados: number;
+  asignaturas_borradas: number;
+  evidencias_borradas: number;
+}
+
+interface RespuestaEliminarCarreraForzada {
+  ok: boolean;
+  mensaje?: string;
+  datos?: ResultadoEliminacionForzada;
+  detalle?: string;
+}
+
+/**
+ * Herramienta de desarrollo/pruebas: borra una carrera y TODA su cadena
+ * relacionada (evaluaciones, cohortes, períodos, asignaturas, evidencia en
+ * BD), sin el bloqueo de contarEvaluaciones() que aplica eliminarCarrera().
+ * Solo borra filas de la base de datos -- los archivos ya subidos a Drive o
+ * almacenamiento local quedan huérfanos, a propósito. Requiere confirmación
+ * extra en la UI antes de llamar a esta función.
+ */
+export async function eliminarCarreraForzada(idCarrera: number): Promise<ResultadoEliminacionForzada> {
+  if (!Number.isInteger(idCarrera) || idCarrera <= 0) {
+    throw new Error('El identificador de la carrera no es válido.');
+  }
+
+  const respuesta = await fetch(`${API_BASE}/eliminar-forzada`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({
+      id_carrera: idCarrera,
+    }),
+  });
+
+  const resultado = await leerRespuestaJson<RespuestaEliminarCarreraForzada>(
+    respuesta,
+    'El servidor no devolvió una respuesta válida al eliminar forzadamente la carrera.',
+  );
+
+  if (!respuesta.ok || !resultado.ok || !resultado.datos) {
+    throw new Error(
+      resultado.mensaje ?? resultado.detalle ?? 'No se pudo eliminar forzadamente la carrera.',
+    );
+  }
+
+  return resultado.datos;
 }
 
 export interface CarreraActualizada {

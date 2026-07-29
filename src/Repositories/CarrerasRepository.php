@@ -360,4 +360,169 @@ final class CarrerasRepository
             throw $error;
         }
     }
+
+    /**
+     * Borrado forzado en cascada, pensado explícitamente para carreras de
+     * desarrollo/pruebas: a diferencia de eliminarTransaccional() (que el
+     * controller solo invoca tras confirmar contarEvaluaciones() === 0),
+     * este método SÍ borra una carrera aunque tenga evaluaciones,
+     * cohortes, períodos, asignaturas y evidencia relacionadas -- barre
+     * TODA la cadena real de FKs que cuelga de una carrera, en el orden
+     * que exigen las constraints reales del dump (ver evaluacion_caces.sql):
+     *
+     *   indicador_evidencia -> evidencias -> datos_tasa_titulacion
+     *   -> seguimiento_syllabus -> syllabus -> tutorias -> tutorias_academicas
+     *   -> asignatura (cascada automática hacia evidencia_asignatura y
+     *      evidencia_validacion_pdf, que sí tienen ON DELETE CASCADE)
+     *   -> periodo_academico -> evaluaciones -> cohortes
+     *   -> mallas_curriculares -> carreras
+     *
+     * (datos_tasa_desercion no necesita borrado manual: fk_dtd_evaluacion_2026
+     * ya tiene ON DELETE CASCADE hacia evaluaciones).
+     *
+     * Solo borra filas de la base de datos -- los archivos ya subidos a
+     * Google Drive o a almacenamiento local (mallas, evidencias) NO se
+     * tocan y quedan huérfanos ahí, a propósito (decisión explícita para
+     * esta herramienta de desarrollo: no se integra con la API de Drive
+     * ni con el filesystem local acá).
+     *
+     * El llamador (controller) es responsable de exigir rol administrador
+     * antes de invocar este método -- no hay ninguna otra restricción
+     * adicional sobre qué carreras pueden borrarse así.
+     *
+     * @return array{
+     *   cohortes_borradas: int,
+     *   evaluaciones_borradas: int,
+     *   periodos_borrados: int,
+     *   asignaturas_borradas: int,
+     *   evidencias_borradas: int,
+     * }
+     */
+    public function eliminarForzadaEnCascada(int $idCarrera): array
+    {
+        $this->conexion->begin_transaction();
+
+        try {
+            $stmtIndicadorEvidencia = $this->conexion->prepare(
+                'DELETE ie FROM indicador_evidencia ie
+                 JOIN evidencias e ON e.id_evidencia = ie.id_evidencia
+                 JOIN evaluaciones ev ON ev.id_evaluacion = e.id_evaluacion
+                 WHERE ev.id_carrera = ?',
+            );
+            $stmtIndicadorEvidencia->bind_param('i', $idCarrera);
+            $stmtIndicadorEvidencia->execute();
+
+            $stmtEvidencias = $this->conexion->prepare(
+                'DELETE e FROM evidencias e
+                 JOIN evaluaciones ev ON ev.id_evaluacion = e.id_evaluacion
+                 WHERE ev.id_carrera = ?',
+            );
+            $stmtEvidencias->bind_param('i', $idCarrera);
+            $stmtEvidencias->execute();
+            $evidenciasBorradas = $stmtEvidencias->affected_rows;
+
+            $stmtTasaTitulacion = $this->conexion->prepare(
+                'DELETE d FROM datos_tasa_titulacion d
+                 JOIN evaluaciones ev ON ev.id_evaluacion = d.id_evaluacion
+                 WHERE ev.id_carrera = ?',
+            );
+            $stmtTasaTitulacion->bind_param('i', $idCarrera);
+            $stmtTasaTitulacion->execute();
+
+            $stmtSeguimientoSyllabus = $this->conexion->prepare(
+                'DELETE s FROM seguimiento_syllabus s
+                 JOIN evaluaciones ev ON ev.id_evaluacion = s.id_evaluacion
+                 WHERE ev.id_carrera = ?',
+            );
+            $stmtSeguimientoSyllabus->bind_param('i', $idCarrera);
+            $stmtSeguimientoSyllabus->execute();
+
+            $stmtSyllabus = $this->conexion->prepare(
+                'DELETE s FROM syllabus s
+                 JOIN evaluaciones ev ON ev.id_evaluacion = s.id_evaluacion
+                 WHERE ev.id_carrera = ?',
+            );
+            $stmtSyllabus->bind_param('i', $idCarrera);
+            $stmtSyllabus->execute();
+
+            $stmtTutorias = $this->conexion->prepare(
+                'DELETE t FROM tutorias t
+                 JOIN evaluaciones ev ON ev.id_evaluacion = t.id_evaluacion
+                 WHERE ev.id_carrera = ?',
+            );
+            $stmtTutorias->bind_param('i', $idCarrera);
+            $stmtTutorias->execute();
+
+            $stmtTutoriasAcademicas = $this->conexion->prepare(
+                'DELETE t FROM tutorias_academicas t
+                 JOIN evaluaciones ev ON ev.id_evaluacion = t.id_evaluacion
+                 WHERE ev.id_carrera = ?',
+            );
+            $stmtTutoriasAcademicas->bind_param('i', $idCarrera);
+            $stmtTutoriasAcademicas->execute();
+
+            $stmtAsignaturas = $this->conexion->prepare(
+                'DELETE a FROM asignatura a
+                 JOIN periodo_academico p ON p.id_periodoacademico = a.id_periodoacademico
+                 JOIN cohortes c ON c.id_cohorte = p.id_cohorte
+                 WHERE c.id_carrera = ?',
+            );
+            $stmtAsignaturas->bind_param('i', $idCarrera);
+            $stmtAsignaturas->execute();
+            $asignaturasBorradas = $stmtAsignaturas->affected_rows;
+
+            $stmtPeriodos = $this->conexion->prepare(
+                'DELETE p FROM periodo_academico p
+                 JOIN cohortes c ON c.id_cohorte = p.id_cohorte
+                 WHERE c.id_carrera = ?',
+            );
+            $stmtPeriodos->bind_param('i', $idCarrera);
+            $stmtPeriodos->execute();
+            $periodosBorrados = $stmtPeriodos->affected_rows;
+
+            $stmtEvaluaciones = $this->conexion->prepare(
+                'DELETE FROM evaluaciones WHERE id_carrera = ?',
+            );
+            $stmtEvaluaciones->bind_param('i', $idCarrera);
+            $stmtEvaluaciones->execute();
+            $evaluacionesBorradas = $stmtEvaluaciones->affected_rows;
+
+            $stmtCohortes = $this->conexion->prepare(
+                'DELETE FROM cohortes WHERE id_carrera = ?',
+            );
+            $stmtCohortes->bind_param('i', $idCarrera);
+            $stmtCohortes->execute();
+            $cohortesBorradas = $stmtCohortes->affected_rows;
+
+            $stmtMalla = $this->conexion->prepare(
+                'DELETE FROM mallas_curriculares WHERE id_carrera = ?',
+            );
+            $stmtMalla->bind_param('i', $idCarrera);
+            $stmtMalla->execute();
+
+            $stmtCarrera = $this->conexion->prepare(
+                'DELETE FROM carreras WHERE id_carrera = ?',
+            );
+            $stmtCarrera->bind_param('i', $idCarrera);
+            $stmtCarrera->execute();
+
+            if ($stmtCarrera->affected_rows !== 1) {
+                throw new RuntimeException('La carrera no fue eliminada de la base de datos.');
+            }
+
+            $this->conexion->commit();
+
+            return [
+                'cohortes_borradas' => $cohortesBorradas,
+                'evaluaciones_borradas' => $evaluacionesBorradas,
+                'periodos_borrados' => $periodosBorrados,
+                'asignaturas_borradas' => $asignaturasBorradas,
+                'evidencias_borradas' => $evidenciasBorradas,
+            ];
+        } catch (Throwable $error) {
+            $this->conexion->rollback();
+
+            throw $error;
+        }
+    }
 }

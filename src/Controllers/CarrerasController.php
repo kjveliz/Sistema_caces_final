@@ -347,4 +347,88 @@ final class CarrerasController
             ],
         ]);
     }
+
+    /**
+     * POST /carreras/eliminar-forzada (JSON: id_carrera) — requiere sesión +
+     * rol administrador. Herramienta de desarrollo/pruebas: a diferencia de
+     * eliminar(), NO se bloquea por contarEvaluaciones() -- borra en
+     * cascada evaluaciones, cohortes, períodos, asignaturas y evidencia
+     * relacionada (ver CarrerasRepository::eliminarForzadaEnCascada()).
+     * Solo borra filas de la BD; los archivos ya subidos a Drive/local
+     * quedan huérfanos a propósito. Misma restricción de acceso que
+     * eliminar() (rol administrador), sin ninguna restricción adicional
+     * sobre qué carreras admite.
+     */
+    #[OA\Post(
+        path: '/carreras/eliminar-forzada',
+        summary: 'Elimina forzadamente una carrera y toda su cadena relacionada (evaluaciones, cohortes, períodos, asignaturas, evidencia). Herramienta de desarrollo/pruebas.',
+        security: [['sesionPhp' => []]],
+        tags: ['Carreras (administración)'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['id_carrera'],
+                properties: [new OA\Property(property: 'id_carrera', type: 'integer')],
+            ),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Carrera y toda su cadena relacionada eliminadas permanentemente.',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'datos', type: 'object'),
+                ]),
+            ),
+            new OA\Response(response: 400, description: 'El identificador de la carrera no es válido.'),
+            new OA\Response(response: 401, description: 'La sesión no está activa.'),
+            new OA\Response(response: 403, description: 'No tiene permisos para eliminar carreras.'),
+            new OA\Response(response: 404, description: 'La carrera no existe.'),
+            new OA\Response(response: 500, description: 'No se pudo eliminar forzadamente la carrera.'),
+        ],
+    )]
+    public function eliminarForzada(Request $request, Response $response): Response
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+
+        if (($_SESSION['rol'] ?? '') !== 'administrador') {
+            return $this->json($response, false, 'No tiene permisos para eliminar carreras.', [], 403);
+        }
+
+        $datos = $request->getParsedBody();
+
+        $idCarrera = isset($datos['id_carrera']) ? (int) $datos['id_carrera'] : 0;
+
+        if ($idCarrera <= 0) {
+            return $this->json($response, false, 'El identificador de la carrera no es válido.', [], 400);
+        }
+
+        try {
+            $carrera = $this->repositorio->buscarPorId($idCarrera);
+        } catch (Throwable $e) {
+            return $this->json($response, false, 'No se pudo preparar la consulta de la carrera.', ['detalle' => $e->getMessage()], 500);
+        }
+
+        if (!$carrera) {
+            return $this->json($response, false, 'La carrera no existe.', [], 404);
+        }
+
+        try {
+            $resultado = $this->repositorio->eliminarForzadaEnCascada($idCarrera);
+        } catch (Throwable $e) {
+            return $this->json($response, false, 'No se pudo eliminar forzadamente la carrera.', ['detalle' => $e->getMessage()], 500);
+        }
+
+        return $this->json($response, true, 'Carrera y toda su cadena relacionada eliminadas permanentemente.', [
+            'datos' => array_merge(
+                [
+                    'id_carrera' => $idCarrera,
+                    'nombre' => $carrera['nombre'],
+                ],
+                $resultado,
+            ),
+        ]);
+    }
 }
