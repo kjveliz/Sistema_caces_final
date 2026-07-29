@@ -1,8 +1,15 @@
 # Sistema de Gestión de Evidencias CACES
 
 Sistema web para apoyar el proceso de evaluación institucional del **Modelo de Evaluación
-CACES**, carrera de Desarrollo de Software. Centraliza la carga, organización y evaluación
-automática de evidencias para 5 indicadores del criterio Docencia.
+CACES**. Centraliza la carga, organización y evaluación automática de evidencias para 5
+indicadores del criterio Docencia, y permite administrar múltiples carreras (no solo Desarrollo
+de Software).
+
+Al crear (o editar) una carrera, el sistema parsea la **malla curricular en Excel** subida por el
+usuario y genera automáticamente la cohorte, los 3 períodos académicos (PAO) y las asignaturas
+reales de cada uno (con su módulo A/B/C), reemplazando la carga manual asignatura por asignatura.
+Las evidencias de cada indicador pueden almacenarse en **Google Drive o localmente**, configurable
+por carrera.
 
 ## Indicadores cubiertos
 
@@ -109,16 +116,49 @@ proyecto (ver comentarios en ese archivo).
 frontend/
 ├── src/
 │   ├── features/             Un módulo por área funcional (auth, carreras, dashboard, indicadores)
+│   │   ├── carreras/         Alta/edición/eliminación de carreras (incluye el flujo de carga
+│   │   │                     de malla curricular en Excel: crea cohorte + PAOs + asignaturas)
+│   │   │   └── hooks/        useNewCareerForm/useEditCareerForm — orquestan los pasos del
+│   │   │                     flujo (crear carrera → subir malla → crear cohorte/períodos/
+│   │   │                     asignaturas), con rollback si falla un paso intermedio
 │   │   └── indicadores/      Vistas, hooks y componentes específicos de cada indicador (I1–I5)
 │   ├── shared/
 │   │   ├── services/         Funciones que llaman a la API (fetch), separadas por dominio
 │   │   ├── data/              Definiciones estáticas (p. ej. slots de evidencia por indicador)
+│   │   ├── utils/mallaCurricular.ts  Parseo del Excel de malla curricular a cohorte/PAOs/
+│   │   │                             asignaturas
 │   │   └── components/       Componentes reutilizables
 │   ├── App.tsx / main.tsx
 ├── e2e/                      Tests end-to-end (Playwright)
 ├── vite.config.ts / vitest.config.ts / playwright.config.ts
 └── package.json
 ```
+
+---
+
+## Malla curricular automática desde Excel
+
+Al crear una carrera nueva (o editar una existente), el usuario sube un archivo Excel con la
+malla curricular. El sistema lo parsea (`shared/utils/mallaCurricular.ts`) y genera
+automáticamente, en orden:
+
+1. La **cohorte** de la carrera.
+2. Los **3 períodos académicos** (PAO 1/2/3) de esa cohorte.
+3. Las **asignaturas** reales de cada período, con su **módulo** (A/B/C) tomado del Excel.
+
+Si falla algún paso intermedio (por ejemplo, la subida de la malla o la creación de la cohorte),
+el flujo hace *rollback* de lo ya creado en pasos anteriores en vez de dejar una carrera a medio
+configurar. Antes de esta funcionalidad, esas asignaturas se cargaban a mano una por una o venían
+de un listado fijo que solo cubría la carrera de Desarrollo de Software.
+
+---
+
+## Almacenamiento de evidencias: Google Drive o local
+
+Cada carrera puede configurarse para guardar las evidencias que se suben (PDF, CSV, Excel) en
+**Google Drive** o en el **servidor local**, según convenga (por ejemplo, para una entrega sin
+depender de una cuenta de Drive). El interruptor se cambia desde el modal de administración de la
+carrera y aplica de inmediato a las evidencias nuevas que se suban.
 
 ---
 
@@ -241,11 +281,11 @@ El archivo resultante puede visualizarse en cualquier herramienta compatible con
 Tablas principales (ver `docs/diagrama-er.png` para el diagrama completo y `db/migrations/` para
 la definición exacta):
 
-`carreras`, `cohortes`, `periodo_academico`, `asignatura`, `indicadores`, `indicador_evidencia`,
-`evidencias`, `evidencia_asignatura`, `evidencia_validacion_pdf`, `mallas_curriculares`,
-`seguimiento_syllabus`, `syllabus`, `tutorias`, `tutorias_academicas`, `evaluaciones`,
-`datos_tasa_desercion`, `datos_tasa_titulacion`, `catalogo_evidencias`, `compartir_catalogo`,
-`usuarios`.
+`carreras`, `cohortes`, `periodo_academico`, `asignatura` (incluye `modulo`, A/B/C, tomado de la
+malla curricular en Excel), `indicadores`, `indicador_evidencia`, `evidencias`,
+`evidencia_asignatura`, `evidencia_validacion_pdf`, `mallas_curriculares`, `seguimiento_syllabus`,
+`syllabus`, `tutorias`, `tutorias_academicas`, `evaluaciones`, `datos_tasa_desercion`,
+`datos_tasa_titulacion`, `catalogo_evidencias`, `compartir_catalogo`, `usuarios`.
 
 ---
 
@@ -256,6 +296,11 @@ está en migración progresiva de `api/` (scripts PHP sueltos) hacia `src/` (arq
 capas sobre Slim); a la fecha de esta entrega, los 5 indicadores (I1–I5) y la administración de
 Carreras ya están migrados. Los endpoints de autenticación, administración de usuarios/cohortes
 y la integración con Google Drive siguen como scripts sueltos en `api/`.
+
+Funcionalidad multi-carrera cerrada y probada end-to-end: creación/edición de carreras con
+generación automática de cohorte + PAOs + asignaturas desde una malla curricular en Excel,
+interruptor de almacenamiento (Google Drive / local) por carrera, y eliminación (incluida la
+eliminación forzada con evaluaciones asociadas) de carreras y cohortes.
 
 ---
 
