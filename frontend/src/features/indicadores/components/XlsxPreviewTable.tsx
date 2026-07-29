@@ -1,10 +1,66 @@
 import { useEffect, useState } from 'react';
 import { AlertCircle } from 'lucide-react';
-import { read, utils as xlsxUtils } from 'xlsx';
+import { read, utils as xlsxUtils, type WorkSheet } from 'xlsx';
+
+interface CeldaGrilla {
+  valor: string;
+  /** Celda "maestra" de un merge: cuántas filas/columnas ocupa (1 si no está combinada). */
+  rowSpan: number;
+  colSpan: number;
+  /** true si esta celda está cubierta por el merge de otra y no debe renderizarse. */
+  oculta: boolean;
+}
 
 interface HojaParseada {
   nombre: string;
-  filas: string[][];
+  /** true si la hoja tiene celdas combinadas: en ese caso no se fuerza una fila de
+   * encabezado sintética, porque en mallas curriculares y layouts similares la
+   * primera fila real de datos no es un header en el sentido de una tabla CSV. */
+  tieneMerges: boolean;
+  filas: CeldaGrilla[][];
+}
+
+/** Arma la grilla completa de una hoja (incluye celdas vacías) respetando su rango real,
+ * y aplica las celdas combinadas como rowSpan/colSpan en la celda superior-izquierda de
+ * cada merge, marcando el resto de las celdas cubiertas como ocultas. */
+function parsearHoja(hoja: WorkSheet): CeldaGrilla[][] {
+  const rango = xlsxUtils.decode_range(hoja['!ref'] ?? 'A1');
+  const merges = hoja['!merges'] ?? [];
+
+  const grilla: CeldaGrilla[][] = [];
+  for (let r = rango.s.r; r <= rango.e.r; r++) {
+    const fila: CeldaGrilla[] = [];
+    for (let c = rango.s.c; c <= rango.e.c; c++) {
+      const celda = hoja[xlsxUtils.encode_cell({ r, c })];
+      const valor = celda ? String(celda.w ?? celda.v ?? '') : '';
+      fila.push({ valor, rowSpan: 1, colSpan: 1, oculta: false });
+    }
+    grilla.push(fila);
+  }
+
+  for (const merge of merges) {
+    const filaBase = merge.s.r - rango.s.r;
+    const colBase = merge.s.c - rango.s.c;
+    if (!grilla[filaBase]?.[colBase]) continue;
+
+    grilla[filaBase][colBase].rowSpan = merge.e.r - merge.s.r + 1;
+    grilla[filaBase][colBase].colSpan = merge.e.c - merge.s.c + 1;
+
+    for (let r = merge.s.r; r <= merge.e.r; r++) {
+      for (let c = merge.s.c; c <= merge.e.c; c++) {
+        if (r === merge.s.r && c === merge.s.c) continue;
+        const fr = r - rango.s.r;
+        const fc = c - rango.s.c;
+        if (grilla[fr]?.[fc]) grilla[fr][fc].oculta = true;
+      }
+    }
+  }
+
+  return grilla;
+}
+
+function filaConContenido(fila: CeldaGrilla[]): boolean {
+  return fila.some((celda) => !celda.oculta && celda.valor.trim() !== '');
 }
 
 /**
@@ -16,10 +72,12 @@ interface HojaParseada {
  * para leer la malla al crear una carrera — y se renderiza como tabla,
  * mismo patrón que CsvPreviewTable.tsx para CSV.
  *
- * Si el workbook tiene más de una hoja, se muestran pestañas para
- * cambiar entre ellas. No intenta reconstruir el layout visual exacto de
- * Excel (celdas combinadas, colores, fórmulas) — es una vista previa de
- * datos, no un visor de Excel completo; para eso está "Abrir documento".
+ * Respeta las celdas combinadas del Excel original (rowSpan/colSpan), que
+ * es el layout típico de una malla curricular (título de período, módulo,
+ * etc. ocupando varias columnas). Si el workbook tiene más de una hoja, se
+ * muestran pestañas para cambiar entre ellas. No reconstruye colores ni
+ * fórmulas — es una vista previa de datos y estructura, no un visor de
+ * Excel completo; para eso está "Abrir documento".
  */
 export default function XlsxPreviewTable({ url }: { url: string }) {
   const [hojas, setHojas] = useState<HojaParseada[] | null>(null);
@@ -46,14 +104,15 @@ export default function XlsxPreviewTable({ url }: { url: string }) {
         const buffer = await respuesta.arrayBuffer();
         const libro = read(buffer, { type: 'array' });
 
-        const hojasParseadas: HojaParseada[] = libro.SheetNames.map((nombre) => ({
-          nombre,
-          filas: xlsxUtils.sheet_to_json<string[]>(libro.Sheets[nombre], {
-            header: 1,
-            raw: false,
-            defval: '',
-          }),
-        })).filter((hoja) => hoja.filas.length > 0);
+        const hojasParseadas: HojaParseada[] = libro.SheetNames.map((nombre) => {
+          const hojaOriginal = libro.Sheets[nombre];
+          const filas = parsearHoja(hojaOriginal).filter(filaConContenido);
+          return {
+            nombre,
+            tieneMerges: (hojaOriginal['!merges']?.length ?? 0) > 0,
+            filas,
+          };
+        }).filter((hoja) => hoja.filas.length > 0);
 
         if (cancelado) {
           return;
@@ -110,7 +169,11 @@ export default function XlsxPreviewTable({ url }: { url: string }) {
     return null;
   }
 
-  const [encabezado, ...cuerpo] = hojas[hojaActiva].filas;
+  const hoja = hojas[hojaActiva];
+  // Solo se trata la primera fila como "encabezado" (fondo distinto, sticky) cuando la
+  // hoja NO tiene celdas combinadas -- una hoja con merges (típico de una malla
+  // curricular) no tiene una fila de encabezado real en el sentido de una tabla CSV.
+  const primeraFilaEsEncabezado = !hoja.tieneMerges;
 
   return (
     <div className="w-full h-full flex flex-col overflow-hidden">
@@ -119,9 +182,9 @@ export default function XlsxPreviewTable({ url }: { url: string }) {
           className="flex-shrink-0 flex gap-1 px-3 pt-2 overflow-x-auto"
           style={{ borderBottom: '1px solid rgba(27,58,107,0.08)' }}
         >
-          {hojas.map((hoja, i) => (
+          {hojas.map((h, i) => (
             <button
-              key={hoja.nombre}
+              key={h.nombre}
               type="button"
               onClick={() => setHojaActiva(i)}
               className="px-3 py-1.5 text-xs font-semibold rounded-t-lg whitespace-nowrap transition-colors"
@@ -131,7 +194,7 @@ export default function XlsxPreviewTable({ url }: { url: string }) {
                 borderBottom: i === hojaActiva ? '2px solid #1B3A6B' : '2px solid transparent',
               }}
             >
-              {hoja.nombre}
+              {h.nombre}
             </button>
           ))}
         </div>
@@ -139,46 +202,44 @@ export default function XlsxPreviewTable({ url }: { url: string }) {
 
       <div className="flex-1 min-h-0 overflow-auto">
         <table className="min-w-full text-xs border-collapse">
-          <thead>
-            <tr style={{ background: '#F8FAFD' }}>
-              {(encabezado ?? []).map((columna, i) => (
-                <th
+          <tbody>
+            {hoja.filas.map((fila, i) => {
+              const esEncabezado = primeraFilaEsEncabezado && i === 0;
+              return (
+                <tr
                   key={i}
-                  className="sticky top-0 px-3 py-2 text-left font-bold whitespace-nowrap"
                   style={{
-                    color: '#0F1E3C',
-                    background: '#F8FAFD',
-                    borderBottom: '1px solid rgba(27,58,107,0.12)',
+                    background: esEncabezado ? '#F8FAFD' : i % 2 === 0 ? '#FFFFFF' : '#FAFBFD',
                   }}
                 >
-                  {columna || `Columna ${i + 1}`}
-                </th>
-              ))}
-            </tr>
-          </thead>
-
-          <tbody>
-            {cuerpo.map((fila, i) => (
-              <tr
-                key={i}
-                style={{
-                  background: i % 2 === 0 ? '#FFFFFF' : '#FAFBFD',
-                }}
-              >
-                {fila.map((valor, j) => (
-                  <td
-                    key={j}
-                    className="px-3 py-1.5 whitespace-nowrap"
-                    style={{
-                      color: '#334155',
-                      borderBottom: '1px solid rgba(27,58,107,0.05)',
-                    }}
-                  >
-                    {valor}
-                  </td>
-                ))}
-              </tr>
-            ))}
+                  {fila.map((celda, j) => {
+                    if (celda.oculta) return null;
+                    const Tag = esEncabezado ? 'th' : 'td';
+                    return (
+                      <Tag
+                        key={j}
+                        rowSpan={celda.rowSpan > 1 ? celda.rowSpan : undefined}
+                        colSpan={celda.colSpan > 1 ? celda.colSpan : undefined}
+                        className={`px-3 py-1.5 ${
+                          celda.colSpan > 1 ? 'whitespace-normal' : 'whitespace-nowrap'
+                        } ${esEncabezado ? 'text-left font-bold sticky top-0' : ''}`}
+                        style={{
+                          color: esEncabezado ? '#0F1E3C' : '#334155',
+                          background: esEncabezado ? '#F8FAFD' : undefined,
+                          borderBottom: esEncabezado
+                            ? '1px solid rgba(27,58,107,0.12)'
+                            : '1px solid rgba(27,58,107,0.05)',
+                          textAlign: celda.colSpan > 1 ? 'center' : undefined,
+                          verticalAlign: celda.rowSpan > 1 ? 'middle' : undefined,
+                        }}
+                      >
+                        {celda.valor}
+                      </Tag>
+                    );
+                  })}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
