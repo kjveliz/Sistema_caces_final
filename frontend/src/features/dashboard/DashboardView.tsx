@@ -49,6 +49,10 @@ export default function DashboardView({
 }: DashboardViewProps) {
   const [cohortOpen, setCohortOpen] = useState(false);
   const [cohortes, setCohortes] = useState<CohorteEvaluacion[]>([]);
+  // Mientras CareerLayout resuelve la cohorte real por defecto (o si la
+  // carrera todavía no tiene ninguna), `cohort` llega vacío — se muestra
+  // este texto en vez de "Cohorte " a secas.
+  const etiquetaCohorte = cohort ? `Cohorte ${cohort}` : 'No hay cohortes creadas';
   // ── PAOs reales para I2 (Seguimiento de Syllabus) ──────────────────
   const PAO_INICIAL = [
     { pao: 'PAO 1', pct: -1 },
@@ -242,7 +246,7 @@ export default function DashboardView({
               }}
             >
               <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#1B3A6B' }} />
-              Cohorte {cohort}
+              {etiquetaCohorte}
               <ChevronDown
                 size={12}
                 className={`transition-transform ${cohortOpen ? 'rotate-180' : ''}`}
@@ -256,26 +260,35 @@ export default function DashboardView({
                   border: '1px solid rgba(27,58,107,0.12)',
                 }}
               >
-                {cohortes.map((item) => (
-                  <button
-                    key={item.id_cohorte}
-                    type="button"
-                    onClick={() => {
-                      onCohortChange(item.nombre_cohorte);
-                      setCohortOpen(false);
-                    }}
-                    className="w-full text-left px-4 py-2.5 text-xs font-semibold hover:bg-blue-50 transition-colors flex items-center justify-between"
-                    style={{
-                      color: item.nombre_cohorte === cohort ? '#1B3A6B' : '#374151',
-                      background: item.nombre_cohorte === cohort ? '#EEF2F7' : 'transparent',
-                    }}
+                {cohortes.length === 0 ? (
+                  <div
+                    className="px-4 py-2.5 text-xs font-medium"
+                    style={{ color: '#9CA3AF' }}
                   >
-                    Cohorte {item.nombre_cohorte}
-                    {item.nombre_cohorte === cohort && (
-                      <CheckCircle2 size={12} style={{ color: '#1B3A6B' }} />
-                    )}
-                  </button>
-                ))}
+                    No hay cohortes creadas
+                  </div>
+                ) : (
+                  cohortes.map((item) => (
+                    <button
+                      key={item.id_cohorte}
+                      type="button"
+                      onClick={() => {
+                        onCohortChange(item.nombre_cohorte);
+                        setCohortOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-xs font-semibold hover:bg-blue-50 transition-colors flex items-center justify-between"
+                      style={{
+                        color: item.nombre_cohorte === cohort ? '#1B3A6B' : '#374151',
+                        background: item.nombre_cohorte === cohort ? '#EEF2F7' : 'transparent',
+                      }}
+                    >
+                      Cohorte {item.nombre_cohorte}
+                      {item.nombre_cohorte === cohort && (
+                        <CheckCircle2 size={12} style={{ color: '#1B3A6B' }} />
+                      )}
+                    </button>
+                  ))
+                )}
               </div>
             )}
           </div>
@@ -335,7 +348,7 @@ export default function DashboardView({
               color: '#1B3A6B',
             }}
           >
-            Cohorte {cohort}
+            {etiquetaCohorte}
           </span>
         </div>
 
