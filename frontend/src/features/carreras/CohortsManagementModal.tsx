@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, CheckCircle2, Loader2, Plus, RefreshCw, Trash2, Upload, X } from 'lucide-react';
+import {
+  CalendarDays,
+  CheckCircle2,
+  Filter,
+  Loader2,
+  Plus,
+  RefreshCw,
+  Trash2,
+  Upload,
+  X,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -55,6 +65,17 @@ export default function CohortsManagementModal({
   const [idCohorteAEliminar, setIdCohorteAEliminar] = useState('');
   const [confirmacionEliminar, setConfirmacionEliminar] = useState('');
   const [eliminandoCohorte, setEliminandoCohorte] = useState(false);
+  // Filtro por carrera dentro del modal de "Eliminar cohorte" -- selector
+  // aparte del filtro de la lista principal (filtroCarreraId), porque acá
+  // además hay que limpiar la cohorte ya elegida si deja de pertenecer a la
+  // carrera recién filtrada (ver handleFiltroCarreraEliminarChange).
+  const [carreraFiltroEliminar, setCarreraFiltroEliminar] = useState('');
+
+  // Filtro "por carrera" de la lista de cohortes (pedido del usuario el 30
+  // jul 2026): a futuro va a haber muchas cohortes de muchas carreras, así
+  // que se agrega un selector chico al lado del encabezado de la tabla que
+  // reduce la lista a una sola carrera a la vez. '' = sin filtro (todas).
+  const [filtroCarreraId, setFiltroCarreraId] = useState('');
 
   // Columna "Malla" (decisión acordada con el usuario el 30 jul 2026,
   // reemplaza al flujo de subir Excel desde "Editar carrera"): un solo
@@ -72,6 +93,14 @@ export default function CohortsManagementModal({
   const totalActivas = useMemo(
     () => datos.filter((item) => item.estado === 'Activa').length,
     [datos],
+  );
+
+  const datosFiltrados = useMemo(
+    () =>
+      filtroCarreraId === ''
+        ? datos
+        : datos.filter((item) => String(item.id_carrera) === filtroCarreraId),
+    [datos, filtroCarreraId],
   );
 
   async function cargar() {
@@ -182,6 +211,7 @@ export default function CohortsManagementModal({
   function abrirModalEliminar() {
     setIdCohorteAEliminar('');
     setConfirmacionEliminar('');
+    setCarreraFiltroEliminar('');
     setModalEliminarAbierto(true);
   }
 
@@ -189,6 +219,20 @@ export default function CohortsManagementModal({
     setModalEliminarAbierto(false);
     setIdCohorteAEliminar('');
     setConfirmacionEliminar('');
+    setCarreraFiltroEliminar('');
+  }
+
+  // Al cambiar la carrera del filtro dentro del modal de eliminar, si la
+  // cohorte ya elegida no pertenece a la carrera nueva, se limpia junto con
+  // la confirmación por nombre (que ya no aplicaría a la cohorte anterior).
+  function handleFiltroCarreraEliminarChange(value: string) {
+    setCarreraFiltroEliminar(value);
+
+    const cohorteActual = datos.find((item) => String(item.id_cohorte) === idCohorteAEliminar);
+    if (value !== '' && cohorteActual && String(cohorteActual.id_carrera) !== value) {
+      setIdCohorteAEliminar('');
+      setConfirmacionEliminar('');
+    }
   }
 
   async function eliminarCohorte(event: React.FormEvent<HTMLFormElement>) {
@@ -428,6 +472,52 @@ export default function CohortsManagementModal({
 
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             <div
+              className="flex items-center justify-between gap-3 px-5 py-2.5 flex-shrink-0"
+              style={{
+                background: '#FBFCFE',
+                borderBottom: '1px solid rgba(27,58,107,0.06)',
+              }}
+            >
+              <div
+                className="flex items-center gap-1.5 pl-2.5 pr-1.5 py-1.5 rounded-full border transition-colors"
+                style={{
+                  borderColor: filtroCarreraId ? '#1B3A6B' : 'rgba(27,58,107,0.18)',
+                  background: filtroCarreraId ? '#EAF0FA' : '#fff',
+                }}
+              >
+                <Filter size={12} style={{ color: '#1B3A6B' }} />
+                <select
+                  value={filtroCarreraId}
+                  onChange={(e) => setFiltroCarreraId(e.target.value)}
+                  className="text-xs font-semibold bg-transparent outline-none pr-1"
+                  style={{ color: '#0F1E3C' }}
+                >
+                  <option value="">Todas las carreras</option>
+                  {carreras.map((carrera) => (
+                    <option key={carrera.id} value={carrera.id}>
+                      {carrera.nombre}
+                    </option>
+                  ))}
+                </select>
+
+                {filtroCarreraId !== '' && (
+                  <button
+                    type="button"
+                    onClick={() => setFiltroCarreraId('')}
+                    className="p-0.5 rounded-full hover:bg-blue-100 transition-colors"
+                    title="Quitar filtro"
+                  >
+                    <X size={11} style={{ color: '#1B3A6B' }} />
+                  </button>
+                )}
+              </div>
+
+              <span className="text-xs flex-shrink-0" style={{ color: '#5A7295' }}>
+                {datosFiltrados.length} de {datos.length} cohorte(s)
+              </span>
+            </div>
+
+            <div
               className="grid grid-cols-[1fr_1.3fr_0.8fr_0.8fr_0.9fr] gap-3 px-5 py-3 flex-shrink-0"
               style={{
                 background: '#F8FAFD',
@@ -450,8 +540,15 @@ export default function CohortsManagementModal({
                 <div className="h-full flex items-center justify-center">
                   <Loader2 size={24} className="animate-spin" />
                 </div>
+              ) : datosFiltrados.length === 0 ? (
+                <div
+                  className="h-full flex items-center justify-center text-xs"
+                  style={{ color: '#5A7295' }}
+                >
+                  Ninguna cohorte para esa carrera.
+                </div>
               ) : (
-                datos.map((item) => (
+                datosFiltrados.map((item) => (
                   <div
                     key={item.id_cohorte}
                     className="grid grid-cols-[1fr_1.3fr_0.8fr_0.8fr_0.9fr] gap-3 items-center px-5 py-3"
@@ -532,7 +629,10 @@ export default function CohortsManagementModal({
       <DeleteCohortModal
         open={modalEliminarAbierto}
         onClose={cerrarModalEliminar}
+        carreras={carreras}
         cohortes={datos}
+        carreraFiltroId={carreraFiltroEliminar}
+        onCarreraFiltroIdChange={handleFiltroCarreraEliminarChange}
         cohorteId={idCohorteAEliminar}
         onCohorteIdChange={setIdCohorteAEliminar}
         confirmacion={confirmacionEliminar}

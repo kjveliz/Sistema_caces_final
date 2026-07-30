@@ -14,7 +14,10 @@ import type { CohorteEvaluacion } from '../../shared/services/cohortes';
 export default function DeleteCohortModal({
   open,
   onClose,
+  carreras,
   cohortes,
+  carreraFiltroId,
+  onCarreraFiltroIdChange,
   cohorteId,
   onCohorteIdChange,
   confirmacion,
@@ -24,7 +27,10 @@ export default function DeleteCohortModal({
 }: {
   open: boolean;
   onClose: () => void;
+  carreras: { id: number; nombre: string }[];
   cohortes: CohorteEvaluacion[];
+  carreraFiltroId: string;
+  onCarreraFiltroIdChange: (value: string) => void;
   cohorteId: string;
   onCohorteIdChange: (value: string) => void;
   confirmacion: string;
@@ -33,6 +39,15 @@ export default function DeleteCohortModal({
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
   if (!open) return null;
+
+  // Selector de carrera (pedido del usuario el 30 jul 2026): a futuro va a
+  // haber muchas cohortes, así que primero se elige la carrera y el select
+  // de cohorte de abajo solo muestra las de esa carrera -- evita tener que
+  // buscar "a ojo" en una lista larga de todas las carreras mezcladas.
+  const cohortesFiltradas =
+    carreraFiltroId === ''
+      ? cohortes
+      : cohortes.filter((item) => String(item.id_carrera) === carreraFiltroId);
 
   const cohorteSeleccionada = cohortes.find((item) => String(item.id_cohorte) === cohorteId);
   const confirmacionLista =
@@ -74,13 +89,12 @@ export default function DeleteCohortModal({
               className="block text-xs font-bold uppercase tracking-widest mb-1.5"
               style={{ color: '#5A7295' }}
             >
-              Cohorte
+              Carrera
             </label>
 
             <select
-              value={cohorteId}
-              onChange={(event) => onCohorteIdChange(event.target.value)}
-              required
+              value={carreraFiltroId}
+              onChange={(event) => onCarreraFiltroIdChange(event.target.value)}
               className="w-full px-3 py-2 rounded-xl text-sm border outline-none"
               style={{
                 background: '#F4F7FB',
@@ -88,9 +102,43 @@ export default function DeleteCohortModal({
                 color: '#0F1E3C',
               }}
             >
-              <option value="">— Seleccionar cohorte —</option>
+              <option value="">Todas las carreras</option>
 
-              {cohortes.map((item) => (
+              {carreras.map((carrera) => (
+                <option key={carrera.id} value={carrera.id}>
+                  {carrera.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label
+              className="block text-xs font-bold uppercase tracking-widest mb-1.5"
+              style={{ color: '#5A7295' }}
+            >
+              Cohorte
+            </label>
+
+            <select
+              value={cohorteId}
+              onChange={(event) => onCohorteIdChange(event.target.value)}
+              required
+              disabled={cohortesFiltradas.length === 0}
+              className="w-full px-3 py-2 rounded-xl text-sm border outline-none"
+              style={{
+                background: '#F4F7FB',
+                borderColor: 'rgba(27,58,107,0.2)',
+                color: '#0F1E3C',
+              }}
+            >
+              <option value="">
+                {cohortesFiltradas.length === 0
+                  ? 'Sin cohortes para esa carrera'
+                  : '— Seleccionar cohorte —'}
+              </option>
+
+              {cohortesFiltradas.map((item) => (
                 <option key={item.id_cohorte} value={item.id_cohorte}>
                   {item.nombre_cohorte} — {item.carrera}
                 </option>
