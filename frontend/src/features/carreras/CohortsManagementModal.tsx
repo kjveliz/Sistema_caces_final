@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { CalendarDays, Loader2, Plus, RefreshCw, Trash2, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { CalendarDays, CheckCircle2, Loader2, Plus, RefreshCw, Trash2, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -13,6 +13,7 @@ import {
   eliminarCohorteForzada,
   eliminarCohorteSeguimiento,
 } from '../../shared/services/seguimientoSyllabus';
+import { generarMallaEnCohorte } from '../../shared/utils/generarMallaEnCohorte';
 import DeleteCohortModal from './DeleteCohortModal';
 
 interface CohortsManagementModalProps {
@@ -54,6 +55,15 @@ export default function CohortsManagementModal({
   const [idCohorteAEliminar, setIdCohorteAEliminar] = useState('');
   const [confirmacionEliminar, setConfirmacionEliminar] = useState('');
   const [eliminandoCohorte, setEliminandoCohorte] = useState(false);
+
+  // Columna "Malla" (decisión acordada con el usuario el 30 jul 2026,
+  // reemplaza al flujo de subir Excel desde "Editar carrera"): un solo
+  // input de archivo oculto, compartido por todas las filas -- se abre
+  // marcando primero para qué cohorte es (idCohortePendiente), y recién en
+  // el onChange se sabe qué archivo se eligió.
+  const mallaFileRef = useRef<HTMLInputElement>(null);
+  const [idCohortePendiente, setIdCohortePendiente] = useState<number | null>(null);
+  const [subiendoMallaId, setSubiendoMallaId] = useState<number | null>(null);
 
   useEffect(() => {
     if (open) void cargar();
@@ -133,6 +143,32 @@ export default function CohortsManagementModal({
       });
     } finally {
       setCambiandoId(null);
+    }
+  }
+
+  function abrirSelectorMalla(idCohorte: number) {
+    setIdCohortePendiente(idCohorte);
+    mallaFileRef.current?.click();
+  }
+
+  async function onMallaFileSeleccionado(archivo: File | null) {
+    const idCohorte = idCohortePendiente;
+    setIdCohortePendiente(null);
+    if (mallaFileRef.current) mallaFileRef.current.value = '';
+    if (!archivo || !idCohorte) return;
+
+    try {
+      setSubiendoMallaId(idCohorte);
+      await generarMallaEnCohorte(idCohorte, archivo);
+
+      toast.success('Malla curricular cargada');
+      await cargar();
+    } catch (error) {
+      toast.error('No se pudo cargar la malla curricular', {
+        description: error instanceof Error ? error.message : 'Ocurrió un error inesperado.',
+      });
+    } finally {
+      setSubiendoMallaId(null);
     }
   }
 
@@ -392,13 +428,13 @@ export default function CohortsManagementModal({
 
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             <div
-              className="grid grid-cols-[1fr_1.4fr_0.9fr_0.9fr] gap-3 px-5 py-3 flex-shrink-0"
+              className="grid grid-cols-[1fr_1.3fr_0.8fr_0.8fr_0.9fr] gap-3 px-5 py-3 flex-shrink-0"
               style={{
                 background: '#F8FAFD',
                 borderBottom: '1px solid rgba(27,58,107,0.08)',
               }}
             >
-              {['Cohorte', 'Carrera', 'Periodo', 'Estado'].map((titulo) => (
+              {['Cohorte', 'Carrera', 'Periodo', 'Estado', 'Malla'].map((titulo) => (
                 <span
                   key={titulo}
                   className="text-xs font-bold uppercase tracking-widest"
@@ -418,7 +454,7 @@ export default function CohortsManagementModal({
                 datos.map((item) => (
                   <div
                     key={item.id_cohorte}
-                    className="grid grid-cols-[1fr_1.4fr_0.9fr_0.9fr] gap-3 items-center px-5 py-3"
+                    className="grid grid-cols-[1fr_1.3fr_0.8fr_0.8fr_0.9fr] gap-3 items-center px-5 py-3"
                     style={{
                       borderBottom: '1px solid rgba(27,58,107,0.06)',
                     }}
@@ -446,6 +482,37 @@ export default function CohortsManagementModal({
                       <option value="Pendiente">Pendiente</option>
                       <option value="Cerrada">Cerrada</option>
                     </select>
+
+                    {item.total_periodos > 0 ? (
+                      <span
+                        className="flex items-center gap-1.5 text-xs font-semibold"
+                        style={{ color: '#16A34A' }}
+                      >
+                        <CheckCircle2 size={13} />
+                        Subida
+                      </span>
+                    ) : subiendoMallaId === item.id_cohorte ? (
+                      <span
+                        className="flex items-center gap-1.5 text-xs font-semibold"
+                        style={{ color: '#5A7295' }}
+                      >
+                        <Loader2 size={13} className="animate-spin" />
+                        Subiendo...
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => abrirSelectorMalla(item.id_cohorte)}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all hover:bg-blue-50 w-fit"
+                        style={{
+                          borderColor: 'rgba(27,58,107,0.2)',
+                          color: '#1B3A6B',
+                        }}
+                      >
+                        <Upload size={12} />
+                        Subir malla
+                      </button>
+                    )}
                   </div>
                 ))
               )}
@@ -453,6 +520,14 @@ export default function CohortsManagementModal({
           </div>
         </div>
       </div>
+
+      <input
+        ref={mallaFileRef}
+        type="file"
+        accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        className="hidden"
+        onChange={(event) => void onMallaFileSeleccionado(event.target.files?.[0] ?? null)}
+      />
 
       <DeleteCohortModal
         open={modalEliminarAbierto}

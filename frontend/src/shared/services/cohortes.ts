@@ -9,6 +9,11 @@ export interface CohorteEvaluacion {
   id_evaluacion: number | null;
   nombre_evaluacion: string | null;
   estado: string | null;
+  // Cantidad de períodos académicos (PAO) que ya tiene cargados esta
+  // cohorte. 0 => sin malla curricular todavía. Viene de un LEFT JOIN
+  // agregado en listar.php sobre periodo_academico (ver conversación del
+  // 30 jul 2026, columna "Malla" en Gestión de cohortes).
+  total_periodos: number;
 }
 
 interface ListarResponse {

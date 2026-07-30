@@ -35,13 +35,20 @@ $sql = "
         ca.codigo AS codigo_carrera,
         ev.id_evaluacion,
         ev.nombre_evaluacion,
-        ev.estado
+        ev.estado,
+        pa.total_periodos
     FROM cohortes co
     INNER JOIN carreras ca
         ON ca.id_carrera = co.id_carrera
     LEFT JOIN evaluaciones ev
         ON ev.id_cohorte = co.id_cohorte
        AND ev.id_carrera = co.id_carrera
+    LEFT JOIN (
+        SELECT id_cohorte, COUNT(*) AS total_periodos
+        FROM periodo_academico
+        GROUP BY id_cohorte
+    ) pa
+        ON pa.id_cohorte = co.id_cohorte
     ORDER BY co.fecha_inicio DESC, ca.nombre ASC
 ";
 
@@ -74,6 +81,10 @@ while ($fila = $resultado->fetch_assoc()) {
                 : null,
         "nombre_evaluacion" => $fila["nombre_evaluacion"],
         "estado" => $fila["estado"],
+        "total_periodos" =>
+            $fila["total_periodos"] !== null
+                ? intval($fila["total_periodos"])
+                : 0,
     ];
 }
 

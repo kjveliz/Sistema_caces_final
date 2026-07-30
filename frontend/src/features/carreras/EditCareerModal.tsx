@@ -1,8 +1,7 @@
-import { ChevronDown, Upload, X } from 'lucide-react';
-import type { FormEvent, RefObject } from 'react';
+import { ChevronDown, X } from 'lucide-react';
+import type { FormEvent } from 'react';
 
 import type { CareerArea } from '../../types/index';
-import type { CrearCohorteParams } from '../../shared/services/cohortes';
 import type { CarreraBD } from './hooks/useCareers';
 
 export default function EditCareerModal({
@@ -21,17 +20,6 @@ export default function EditCareerModal({
   editCareerModalidad,
   onModalidadChange,
   updatingCareer,
-  editCareerFile,
-  onFileChange,
-  fileRef,
-  editCohorteNombre,
-  onCohorteNombreChange,
-  editCohorteFechaInicio,
-  onCohorteFechaInicioChange,
-  editCohorteFechaFin,
-  onCohorteFechaFinChange,
-  editCohorteEstado,
-  onCohorteEstadoChange,
   onSubmit,
 }: {
   open: boolean;
@@ -49,17 +37,6 @@ export default function EditCareerModal({
   editCareerModalidad: string;
   onModalidadChange: (value: string) => void;
   updatingCareer: boolean;
-  editCareerFile: File | null;
-  onFileChange: (file: File | null) => void;
-  fileRef: RefObject<HTMLInputElement>;
-  editCohorteNombre: string;
-  onCohorteNombreChange: (value: string) => void;
-  editCohorteFechaInicio: string;
-  onCohorteFechaInicioChange: (value: string) => void;
-  editCohorteFechaFin: string;
-  onCohorteFechaFinChange: (value: string) => void;
-  editCohorteEstado: CrearCohorteParams['estado'];
-  onCohorteEstadoChange: (value: CrearCohorteParams['estado']) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
   if (!open) return null;
@@ -260,164 +237,6 @@ export default function EditCareerModal({
                 />
               </div>
             </div>
-
-            <div>
-              <label
-                className="block text-xs font-bold uppercase tracking-widest mb-1.5"
-                style={{ color: '#5A7295' }}
-              >
-                Generar malla curricular (opcional)
-              </label>
-
-              <p className="text-xs mb-2" style={{ color: '#9CA3AF' }}>
-                Subí un Excel (.xlsx) para crear una cohorte nueva con sus PAO y asignaturas. No
-                reemplaza la malla ya registrada de la carrera.
-              </p>
-
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => fileRef.current?.click()}
-                  disabled={updatingCareer}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border transition-all hover:bg-blue-50"
-                  style={{
-                    borderColor: 'rgba(27,58,107,0.2)',
-                    color: '#1B3A6B',
-                  }}
-                >
-                  <Upload size={12} />
-                  {editCareerFile ? 'Cambiar archivo' : 'Subir Excel'}
-                </button>
-
-                {editCareerFile && (
-                  <span
-                    className="text-xs truncate max-w-40"
-                    style={{ color: '#16A34A' }}
-                  >
-                    {editCareerFile.name}
-                  </span>
-                )}
-              </div>
-
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                className="hidden"
-                onChange={(event) => onFileChange(event.target.files?.[0] ?? null)}
-              />
-            </div>
-
-            {editCareerFile && (
-              <div className="space-y-4 pl-3 border-l-2" style={{ borderColor: 'rgba(27,58,107,0.15)' }}>
-                <div>
-                  <label
-                    className="block text-xs font-bold uppercase tracking-widest mb-1.5"
-                    style={{ color: '#5A7295' }}
-                  >
-                    Nombre de la cohorte
-                  </label>
-
-                  <input
-                    type="text"
-                    value={editCohorteNombre}
-                    onChange={(event) => onCohorteNombreChange(event.target.value)}
-                    placeholder="A2026"
-                    required
-                    disabled={updatingCareer}
-                    className="w-full px-3 py-2 rounded-xl text-sm border outline-none"
-                    style={{
-                      background: '#F4F7FB',
-                      borderColor: 'rgba(27,58,107,0.2)',
-                      color: '#0F1E3C',
-                    }}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label
-                      className="block text-xs font-bold uppercase tracking-widest mb-1.5"
-                      style={{ color: '#5A7295' }}
-                    >
-                      Inicio
-                    </label>
-
-                    <input
-                      type="date"
-                      value={editCohorteFechaInicio}
-                      onChange={(event) => onCohorteFechaInicioChange(event.target.value)}
-                      required
-                      disabled={updatingCareer}
-                      className="w-full px-3 py-2 rounded-xl text-sm border outline-none"
-                      style={{
-                        background: '#F4F7FB',
-                        borderColor: 'rgba(27,58,107,0.2)',
-                        color: '#0F1E3C',
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      className="block text-xs font-bold uppercase tracking-widest mb-1.5"
-                      style={{ color: '#5A7295' }}
-                    >
-                      Fin
-                    </label>
-
-                    <input
-                      type="date"
-                      value={editCohorteFechaFin}
-                      onChange={(event) => onCohorteFechaFinChange(event.target.value)}
-                      required
-                      disabled={updatingCareer}
-                      className="w-full px-3 py-2 rounded-xl text-sm border outline-none"
-                      style={{
-                        background: '#F4F7FB',
-                        borderColor: 'rgba(27,58,107,0.2)',
-                        color: '#0F1E3C',
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label
-                    className="block text-xs font-bold uppercase tracking-widest mb-1.5"
-                    style={{ color: '#5A7295' }}
-                  >
-                    Estado
-                  </label>
-
-                  <div className="relative">
-                    <select
-                      value={editCohorteEstado}
-                      onChange={(event) =>
-                        onCohorteEstadoChange(event.target.value as CrearCohorteParams['estado'])
-                      }
-                      disabled={updatingCareer}
-                      className="w-full px-3 py-2 rounded-xl text-sm border outline-none appearance-none cursor-pointer"
-                      style={{
-                        background: '#F4F7FB',
-                        borderColor: 'rgba(27,58,107,0.2)',
-                        color: '#0F1E3C',
-                      }}
-                    >
-                      <option value="Activa">Activa</option>
-                      <option value="Pendiente">Pendiente</option>
-                      <option value="Cerrada">Cerrada</option>
-                    </select>
-
-                    <ChevronDown
-                      size={14}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                      style={{ color: '#5A7295' }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="flex gap-3 pt-1">

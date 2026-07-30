@@ -73,17 +73,6 @@ export default function CareersView({ onSelect, onLogout, usuario }: CareersView
         editCareerModalidad={editCareerForm.editCareerModalidad}
         onModalidadChange={editCareerForm.setEditCareerModalidad}
         updatingCareer={editCareerForm.updatingCareer}
-        editCareerFile={editCareerForm.editCareerFile}
-        onFileChange={editCareerForm.setEditCareerFile}
-        fileRef={editCareerForm.fileRef}
-        editCohorteNombre={editCareerForm.editCohorteNombre}
-        onCohorteNombreChange={editCareerForm.setEditCohorteNombre}
-        editCohorteFechaInicio={editCareerForm.editCohorteFechaInicio}
-        onCohorteFechaInicioChange={editCareerForm.setEditCohorteFechaInicio}
-        editCohorteFechaFin={editCareerForm.editCohorteFechaFin}
-        onCohorteFechaFinChange={editCareerForm.setEditCohorteFechaFin}
-        editCohorteEstado={editCareerForm.editCohorteEstado}
-        onCohorteEstadoChange={editCareerForm.setEditCohorteEstado}
         onSubmit={editCareerForm.handleUpdateCareer}
       />
 
