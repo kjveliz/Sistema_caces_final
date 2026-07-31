@@ -30,7 +30,7 @@ interface CrearUsuarioResponse {
 
 export async function listarUsuarios(): Promise<UsuarioSistema[]> {
   const respuesta = await fetch(
-    'http://localhost/sistemacaces/api/administracion/usuarios/listar.php',
+    'http://localhost/sistemacaces/public/administracion/usuarios/listar',
     {
       method: 'GET',
       credentials: 'include',
