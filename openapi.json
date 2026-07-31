@@ -270,6 +270,104 @@
                 ]
             }
         },
+        "/administracion/usuarios/crear": {
+            "post": {
+                "tags": [
+                    "Administración (Usuarios)"
+                ],
+                "summary": "Crea un usuario nuevo del sistema.",
+                "description": "POST /administracion/usuarios/crear (JSON: nombres, apellidos, correo,\ncontrasena, rol, activo opcional) — requiere sesión + rol\nadministrador. Parte 15 del plan de migración slim-legacy (ver\nplan_migracion_slim_legacy_v3.txt §3 Grupo E, segunda Parte del\nsubgrupo de usuarios): reemplaza a\napi/administracion/usuarios/crear.php. Mismas validaciones y mensajes\nque el original (`rol` limitado al enum de 3 valores, correo con\nFILTER_VALIDATE_EMAIL, contraseña de al menos 8 caracteres,\n`activo` por defecto 1 si no viene), mismo chequeo de rol a mano\n($_SESSION['rol'] !== 'administrador', 403) que usuariosListar().\nUsa UsuariosRepository::crear() nuevo, agregado en esta Parte.",
+                "operationId": "97e871c76e1b164e79030e3005d78f24",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "nombres",
+                                    "apellidos",
+                                    "correo",
+                                    "contrasena",
+                                    "rol"
+                                ],
+                                "properties": {
+                                    "nombres": {
+                                        "type": "string"
+                                    },
+                                    "apellidos": {
+                                        "type": "string"
+                                    },
+                                    "correo": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "contrasena": {
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "rol": {
+                                        "type": "string",
+                                        "enum": [
+                                            "administrador",
+                                            "coordinador",
+                                            "evaluador"
+                                        ]
+                                    },
+                                    "activo": {
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Usuario creado correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Complete correctamente todos los campos, correo inválido, o contraseña demasiado corta."
+                    },
+                    "401": {
+                        "description": "La sesión no está activa."
+                    },
+                    "403": {
+                        "description": "Solo un administrador puede crear usuarios."
+                    },
+                    "409": {
+                        "description": "Ya existe un usuario con ese correo."
+                    },
+                    "500": {
+                        "description": "No se pudo crear el usuario."
+                    }
+                },
+                "security": [
+                    {
+                        "sesionPhp": []
+                    }
+                ]
+            }
+        },
         "/auth/login": {
             "post": {
                 "tags": [

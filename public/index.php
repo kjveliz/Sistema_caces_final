@@ -281,7 +281,9 @@ $administracionController = new AdministracionController($seguimientoRepositorio
 // arranca en la Parte 14 con GET /administracion/usuarios/listar, que a
 // diferencia de cohortes/listar SÍ exige rol administrador (403) además de
 // sesión activa -- mismo comportamiento que el original, preservado tal cual
-// (ver AdministracionController::usuariosListar()).
+// (ver AdministracionController::usuariosListar()). La Parte 15 agrega POST
+// /administracion/usuarios/crear, mismo chequeo de rol a mano que
+// cohortesCrear() (ver AdministracionController::usuariosCrear()).
 $app->group('/administracion', function ($grupo) use ($administracionController) {
     $grupo->group('/cohortes', function ($sub) use ($administracionController) {
         $sub->get('/listar', [$administracionController, 'cohortesListar'])->add(new SessionAuthMiddleware());
@@ -290,6 +292,7 @@ $app->group('/administracion', function ($grupo) use ($administracionController)
     });
     $grupo->group('/usuarios', function ($sub) use ($administracionController) {
         $sub->get('/listar', [$administracionController, 'usuariosListar'])->add(new SessionAuthMiddleware());
+        $sub->post('/crear', [$administracionController, 'usuariosCrear'])->add(new SessionAuthMiddleware());
     });
 });
 

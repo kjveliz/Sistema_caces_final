@@ -61,4 +61,50 @@ final class UsuariosRepository
 
         return $usuarios;
     }
+
+    /**
+     * Crea un usuario nuevo. Reemplaza al INSERT de
+     * api/administracion/usuarios/crear.php (Parte 15 del plan de
+     * migración slim-legacy, ver plan_migracion_slim_legacy_v3.txt §3
+     * Grupo E, segunda Parte del subgrupo de usuarios). $contrasenaHash ya
+     * viene hasheado (password_hash) desde el Controller, mismo criterio
+     * que el original -- este método no conoce la contraseña en texto
+     * plano. Igual que crearCohorteConEvaluacion() en
+     * SeguimientoSyllabusRepository, no se chequea a mano el error de
+     * mysqli: se deja propagar (incluyendo un eventual 1062 de correo
+     * duplicado), y es el Controller quien distingue por código de error.
+     *
+     * @return array{id_usuario: int, nombres: string, apellidos: string, correo: string, rol: string, activo: int}
+     */
+    public function crear(
+        string $nombres,
+        string $apellidos,
+        string $correo,
+        string $contrasenaHash,
+        string $rol,
+        int $activo,
+    ): array {
+        $stmt = $this->conexion->prepare(
+            'INSERT INTO usuarios (nombres, apellidos, correo, contrasena, rol, activo) VALUES (?, ?, ?, ?, ?, ?)',
+        );
+        $stmt->bind_param(
+            'sssssi',
+            $nombres,
+            $apellidos,
+            $correo,
+            $contrasenaHash,
+            $rol,
+            $activo,
+        );
+        $stmt->execute();
+
+        return [
+            'id_usuario' => (int) $stmt->insert_id,
+            'nombres' => $nombres,
+            'apellidos' => $apellidos,
+            'correo' => $correo,
+            'rol' => $rol,
+            'activo' => $activo,
+        ];
+    }
 }

@@ -343,4 +343,116 @@ final class AdministracionController
 
         return $this->json($response, true, null, ['datos' => $datos]);
     }
+
+    /**
+     * POST /administracion/usuarios/crear (JSON: nombres, apellidos, correo,
+     * contrasena, rol, activo opcional) — requiere sesión + rol
+     * administrador. Parte 15 del plan de migración slim-legacy (ver
+     * plan_migracion_slim_legacy_v3.txt §3 Grupo E, segunda Parte del
+     * subgrupo de usuarios): reemplaza a
+     * api/administracion/usuarios/crear.php. Mismas validaciones y mensajes
+     * que el original (`rol` limitado al enum de 3 valores, correo con
+     * FILTER_VALIDATE_EMAIL, contraseña de al menos 8 caracteres,
+     * `activo` por defecto 1 si no viene), mismo chequeo de rol a mano
+     * ($_SESSION['rol'] !== 'administrador', 403) que usuariosListar().
+     * Usa UsuariosRepository::crear() nuevo, agregado en esta Parte.
+     */
+    #[OA\Post(
+        path: '/administracion/usuarios/crear',
+        summary: 'Crea un usuario nuevo del sistema.',
+        security: [['sesionPhp' => []]],
+        tags: ['Administración (Usuarios)'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['nombres', 'apellidos', 'correo', 'contrasena', 'rol'],
+                properties: [
+                    new OA\Property(property: 'nombres', type: 'string'),
+                    new OA\Property(property: 'apellidos', type: 'string'),
+                    new OA\Property(property: 'correo', type: 'string', format: 'email'),
+                    new OA\Property(property: 'contrasena', type: 'string', format: 'password'),
+                    new OA\Property(property: 'rol', type: 'string', enum: ['administrador', 'coordinador', 'evaluador']),
+                    new OA\Property(property: 'activo', type: 'integer', enum: [0, 1]),
+                ],
+            ),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Usuario creado correctamente.',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'datos', type: 'object'),
+                ]),
+            ),
+            new OA\Response(response: 400, description: 'Complete correctamente todos los campos, correo inválido, o contraseña demasiado corta.'),
+            new OA\Response(response: 401, description: 'La sesión no está activa.'),
+            new OA\Response(response: 403, description: 'Solo un administrador puede crear usuarios.'),
+            new OA\Response(response: 409, description: 'Ya existe un usuario con ese correo.'),
+            new OA\Response(response: 500, description: 'No se pudo crear el usuario.'),
+        ],
+    )]
+    public function usuariosCrear(Request $request, Response $response): Response
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+
+        if (($_SESSION['rol'] ?? '') !== 'administrador') {
+            return $this->json($response, false, 'Solo un administrador puede crear usuarios.', [], 403);
+        }
+
+        $datos = $request->getParsedBody();
+
+        if (!is_array($datos)) {
+            $datos = [];
+        }
+
+        $nombres = trim((string) ($datos['nombres'] ?? ''));
+        $apellidos = trim((string) ($datos['apellidos'] ?? ''));
+        $correo = strtolower(trim((string) ($datos['correo'] ?? '')));
+        $contrasena = (string) ($datos['contrasena'] ?? '');
+        $rol = strtolower(trim((string) ($datos['rol'] ?? '')));
+        $activo = isset($datos['activo']) ? (int) $datos['activo'] : 1;
+
+        $rolesPermitidos = ['administrador', 'coordinador', 'evaluador'];
+
+        if (
+            $nombres === ''
+            || $apellidos === ''
+            || $correo === ''
+            || $contrasena === ''
+            || !in_array($rol, $rolesPermitidos, true)
+        ) {
+            return $this->json($response, false, 'Complete correctamente todos los campos.', [], 400);
+        }
+
+        if (!filter_var($correo, FILTER_VALIDATE_EMAIL)) {
+            return $this->json($response, false, 'El correo electrónico no es válido.', [], 400);
+        }
+
+        if (strlen($contrasena) < 8) {
+            return $this->json($response, false, 'La contraseña debe tener al menos 8 caracteres.', [], 400);
+        }
+
+        $hash = password_hash($contrasena, PASSWORD_DEFAULT);
+
+        try {
+            $resultado = $this->usuariosRepositorio->crear($nombres, $apellidos, $correo, $hash, $rol, $activo);
+        } catch (Throwable $e) {
+            $codigo = $e->getCode() === 1062 ? 409 : 500;
+
+            return $this->json(
+                $response,
+                false,
+                $codigo === 409
+                    ? 'Ya existe un usuario con ese correo.'
+                    : 'No se pudo crear el usuario.',
+                ['detalle' => $e->getMessage()],
+                $codigo,
+            );
+        }
+
+        return $this->json($response, true, 'Usuario creado correctamente.', ['datos' => $resultado]);
+    }
 }

@@ -51,7 +51,7 @@ export async function listarUsuarios(): Promise<UsuarioSistema[]> {
 
 export async function crearUsuario(parametros: CrearUsuarioParams): Promise<UsuarioSistema> {
   const respuesta = await fetch(
-    'http://localhost/sistemacaces/api/administracion/usuarios/crear.php',
+    'http://localhost/sistemacaces/public/administracion/usuarios/crear',
     {
       method: 'POST',
       credentials: 'include',
