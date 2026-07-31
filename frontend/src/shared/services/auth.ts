@@ -62,7 +62,10 @@ export async function verificarSesion(): Promise<UsuarioSesion | null> {
  */
 export async function cerrarSesion(): Promise<void> {
   try {
-    await fetch('http://localhost/sistemacaces/api/auth/Logout.php', {
+    // Ruta de Slim (Parte 2 del plan de migración de PHP suelto -- ver
+    // plan_migracion_slim_legacy_v3.txt §3), reemplaza a
+    // api/auth/Logout.php.
+    await fetch('http://localhost/sistemacaces/public/auth/logout', {
       method: 'POST',
       credentials: 'include',
       headers: {
@@ -80,8 +83,9 @@ export async function iniciarSesion(
 ): Promise<LoginResponse & { usuario: UsuarioSesion }> {
   // Ruta de Slim (Parte 1 del plan de migración de PHP suelto -- ver
   // plan_migracion_slim_legacy_v3.txt §3), reemplaza a
-  // api/auth/login.php. verificarSesion()/cerrarSesion() de abajo siguen
-  // apuntando al legacy hasta que se migren en las Partes 2 y 3.
+  // api/auth/login.php. cerrarSesion() de arriba ya apunta también a Slim
+  // (Parte 2); verificarSesion() sigue en el legacy hasta que Me.php se
+  // migre en la Parte 3.
   const respuesta = await fetch('http://localhost/sistemacaces/public/auth/login', {
     method: 'POST',
     credentials: 'include',

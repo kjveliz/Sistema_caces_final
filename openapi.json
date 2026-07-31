@@ -103,6 +103,36 @@
                 }
             }
         },
+        "/auth/logout": {
+            "post": {
+                "tags": [
+                    "Autenticación"
+                ],
+                "summary": "Cierra la sesión activa (si la hay).",
+                "description": "POST /auth/logout — misma lógica exacta que api/auth/Logout.php\r\n(Parte 2 del Grupo A): destruye la sesión de PHP, incluida la cookie\r\ndel navegador, y siempre devuelve 200/ok aunque no haya sesión\r\nactiva (llamar a logout sin sesión no es un error). Sin\r\nSessionAuthMiddleware a propósito: el original nunca valida\r\n$_SESSION['id_usuario'] antes de destruir, mismo criterio del plan\r\nde no tocar lógica de negocio al migrar arquitectura.",
+                "operationId": "e39ef4c513f6d25e947a67cab73e4b5b",
+                "responses": {
+                    "200": {
+                        "description": "Sesión cerrada correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "mensaje": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/carreras/{id}/almacenamiento": {
             "put": {
                 "tags": [

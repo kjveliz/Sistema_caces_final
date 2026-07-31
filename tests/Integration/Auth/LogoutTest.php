@@ -9,10 +9,12 @@ use Tests\Integration\IntegrationTestCase;
 require_once __DIR__ . '/../IntegrationTestCase.php';
 
 /**
- * Tests de integración de api/auth/Logout.php -- antes de esta sesión, el
- * "logout" del frontend solo borraba el usuario en memoria de React; la
- * sesión de PHP seguía viva del lado del servidor (ver AuthContext.tsx).
- * Este endpoint la destruye de verdad.
+ * Tests de integración de POST /auth/logout (Parte 2 del plan de migración
+ * de PHP suelto a Slim -- ver plan_migracion_slim_legacy_v3.txt §3;
+ * reemplaza a api/auth/Logout.php). Antes de la migración original a
+ * endpoint, el "logout" del frontend solo borraba el usuario en memoria de
+ * React; la sesión de PHP seguía viva del lado del servidor (ver
+ * AuthContext.tsx). Este endpoint la destruye de verdad.
  */
 final class LogoutTest extends IntegrationTestCase
 {
@@ -24,7 +26,7 @@ final class LogoutTest extends IntegrationTestCase
         $antesDeLogout = $this->peticion('GET', '/api/auth/Me.php');
         $this->assertSame(200, $antesDeLogout['status']);
 
-        $logout = $this->peticion('POST', '/api/auth/Logout.php');
+        $logout = $this->peticion('POST', '/auth/logout');
         $this->assertSame(200, $logout['status']);
         $this->assertTrue($logout['json']['ok']);
 
@@ -37,7 +39,7 @@ final class LogoutTest extends IntegrationTestCase
         // Llamar a logout sin haber iniciado sesión no debería ser un
         // error: el resultado que le importa al que llama ("ya no hay
         // sesión") se cumple igual.
-        $respuesta = $this->peticion('POST', '/api/auth/Logout.php');
+        $respuesta = $this->peticion('POST', '/auth/logout');
 
         $this->assertSame(200, $respuesta['status']);
         $this->assertTrue($respuesta['json']['ok']);
@@ -45,7 +47,7 @@ final class LogoutTest extends IntegrationTestCase
 
     public function testLogoutConMetodoGetDevuelve405(): void
     {
-        $respuesta = $this->peticion('GET', '/api/auth/Logout.php');
+        $respuesta = $this->peticion('GET', '/auth/logout');
 
         $this->assertSame(405, $respuesta['status']);
     }

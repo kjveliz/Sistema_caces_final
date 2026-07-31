@@ -12,10 +12,10 @@ use Throwable;
 
 /**
  * Controlador del Grupo A (Autenticación) del plan de migración de PHP
- * suelto a Slim (ver plan_migracion_slim_legacy_v3.txt §1/§3). Arranca en
- * la Parte 1 reemplazando solo a api/auth/Login.php; logout() y me()
- * llegan en las Partes 2 y 3 del mismo grupo (mismo criterio ya usado con
- * AuthController -> Controller nuevo por grupo, no por Parte).
+ * suelto a Slim (ver plan_migracion_slim_legacy_v3.txt §1/§3). Arrancó en
+ * la Parte 1 reemplazando a api/auth/Login.php; logout() se agrega en la
+ * Parte 2 (reemplaza a api/auth/Logout.php); me() llega en la Parte 3
+ * (mismo criterio de siempre: Controller nuevo por grupo, no por Parte).
  *
  * OJO — desvío intencional del formato {ok, mensaje, datos} que usan el
  * resto de los controllers ya migrados: login() sigue devolviendo la clave
@@ -130,5 +130,61 @@ final class AuthController
                 'rol' => $usuario['rol'],
             ],
         ]);
+    }
+
+    /**
+     * POST /auth/logout — misma lógica exacta que api/auth/Logout.php
+     * (Parte 2 del Grupo A): destruye la sesión de PHP, incluida la cookie
+     * del navegador, y siempre devuelve 200/ok aunque no haya sesión
+     * activa (llamar a logout sin sesión no es un error). Sin
+     * SessionAuthMiddleware a propósito: el original nunca valida
+     * $_SESSION['id_usuario'] antes de destruir, mismo criterio del plan
+     * de no tocar lógica de negocio al migrar arquitectura.
+     */
+    #[OA\Post(
+        path: '/auth/logout',
+        summary: 'Cierra la sesión activa (si la hay).',
+        tags: ['Autenticación'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Sesión cerrada correctamente.',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'mensaje', type: 'string'),
+                ]),
+            ),
+        ],
+    )]
+    public function logout(Request $request, Response $response): Response
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+
+        $_SESSION = [];
+
+        // Borra también la cookie del navegador, no solo los datos del lado
+        // del servidor: sin esto, session_destroy() invalida la sesión en
+        // el servidor pero el navegador seguiría mandando el mismo
+        // PHPSESSID (ya inválido) en cada pedido siguiente. Misma lógica
+        // exacta que el Logout.php original.
+        if (ini_get('session.use_cookies')) {
+            $parametros = session_get_cookie_params();
+
+            setcookie(
+                session_name(),
+                '',
+                time() - 42000,
+                $parametros['path'],
+                $parametros['domain'],
+                $parametros['secure'],
+                $parametros['httponly'],
+            );
+        }
+
+        session_destroy();
+
+        return $this->json($response, true, 'Sesión cerrada correctamente.');
     }
 }

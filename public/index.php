@@ -124,17 +124,21 @@ $driveService = new GoogleDriveService();
 $storageResolver = new EvidenciaStorageResolver($conexion, $driveService);
 
 // --- Auth (Grupo A del plan de migración de PHP suelto a Slim) ----------
-// Parte 1: reemplaza a api/auth/Login.php. Logout.php y Me.php (Partes 2 y
-// 3 del mismo grupo, ver plan_migracion_slim_legacy_v3.txt §3) siguen
-// siendo archivos sueltos por ahora -- coexisten con esta ruta nueva hasta
-// que se migren en sus propias Partes. Reusa $conexion ya abierta arriba,
-// igual que el resto de los controllers.
+// Parte 1: reemplaza a api/auth/Login.php. Parte 2 (esta sesión): reemplaza
+// a api/auth/Logout.php. Me.php (Parte 3 del mismo grupo, ver
+// plan_migracion_slim_legacy_v3.txt §3) sigue siendo un archivo suelto por
+// ahora -- coexiste con estas rutas hasta que se migre en su propia Parte.
+// Reusa $conexion ya abierta arriba, igual que el resto de los controllers.
 $authRepositorio = new AuthRepository($conexion);
 $authController = new AuthController($authRepositorio);
 
 // --- Rutas de Auth (Grupo A) --------------------------------------------
+// /auth/logout sin SessionAuthMiddleware a propósito: el Logout.php
+// original no valida sesión activa antes de destruir (ver
+// AuthController::logout()).
 $app->group('/auth', function ($grupo) use ($authController) {
     $grupo->post('/login', [$authController, 'login']);
+    $grupo->post('/logout', [$authController, 'logout']);
 });
 
 // --- I3 (Tutorías Académicas) -------------------------------------------
