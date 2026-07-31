@@ -1262,6 +1262,34 @@
                 ]
             }
         },
+        "/catalogo/obtener-evidencias": {
+            "get": {
+                "tags": [
+                    "Misceláneos"
+                ],
+                "summary": "Lista el catálogo de evidencias activo de un indicador.",
+                "description": "GET /catalogo/obtener-evidencias?id_indicador= — misma lógica exacta\nque api/catalogo/obtener_evidencias.php: lista el catálogo de\nevidencias activo de un indicador, ordenado por orden ASC.\n\nOJO — mismo desvío intencional que EvidenciasController::guardadas()\n(Parte 4): el original NO incluye \"mensaje\" en la respuesta exitosa,\nsolo \"ok\" y \"datos\" — se arma a mano para no agregar \"mensaje\": null\nde más. En los casos de error sí se usa json(), igual que el\noriginal sí trae \"mensaje\" en esos casos.",
+                "operationId": "aac66867d000e22d39d565c076ae2b4c",
+                "parameters": [
+                    {
+                        "name": "id_indicador",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Catálogo de evidencias del indicador."
+                    },
+                    "400": {
+                        "description": "Falta el id del indicador."
+                    }
+                }
+            }
+        },
         "/seguimiento-syllabus/cohortes": {
             "post": {
                 "tags": [
@@ -2711,6 +2739,9 @@
         {
             "name": "I1 - Malla Curricular",
             "description": "Los otros 4 endpoints de api/carreras/ (listar/crear/actualizar/\neliminar) son administración genérica de la entidad Carrera, no del\nindicador I1 en sí, y quedan fuera del alcance de esta migración -- ver\nMallaCurricularRepository.\n\nA diferencia de todos los indicadores ya migrados, guardar() exige rol\n\"administrador\" además de sesión activa (403 si no lo es), tal como\nhacía guardar_malla.php original. SessionAuthMiddleware solo cubre el\n401 (sesión no activa); el chequeo de rol se hace acá porque ningún\notro indicador lo necesita y agregarlo al middleware compartido\nsignificaría una condición que solo aplicaría a esta única ruta.\n\nLas anotaciones OpenAPI de cada método (Fase 3, hallazgo 1.2.7) se\ngeneran a openapi.json con `composer generate-openapi` -- ver\nsrc/OpenApi/Definition.php para la info general del documento. Igual\nque con I2/I4, la regeneración de openapi.json en sí queda pendiente de\nesta sesión (requiere Composer con acceso a packagist.org, no\ndisponible en el sandbox de Claude)."
+        },
+        {
+            "name": "Misceláneos"
         },
         {
             "name": "I2 - Seguimiento Syllabus",

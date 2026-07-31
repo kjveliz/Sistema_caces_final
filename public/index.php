@@ -8,6 +8,7 @@ use App\Controllers\CarrerasController;
 use App\Controllers\EvidenciaAsignaturaVisorController;
 use App\Controllers\EvidenciasController;
 use App\Controllers\MallaCurricularController;
+use App\Controllers\MiscelaneosController;
 use App\Controllers\SeguimientoSyllabusController;
 use App\Controllers\TasaDesercionController;
 use App\Controllers\TitulacionController;
@@ -179,6 +180,20 @@ $app->group('/evidencias', function ($grupo) use ($evidenciasController) {
     $grupo->post('/leer-matriculados', [$evidenciasController, 'leerMatriculados']);
     $grupo->post('/guardar', [$evidenciasController, 'guardar'])->add(new SessionAuthMiddleware());
     $grupo->post('/preparar-pdf', [$evidenciasController, 'prepararPdf']);
+});
+
+// --- Grupo C del plan de migración de PHP suelto a Slim (misceláneos) ---
+// Fase 3a (plan_migracion_slim_legacy_v3.txt §3). Arranca en la Parte 9 con
+// GET /catalogo/obtener-evidencias (reemplaza a
+// api/catalogo/obtener_evidencias.php). Reusa $evidenciasRepositorio (ya
+// abierto arriba para el Grupo B, misma tabla catalogo_evidencias) en vez
+// de crear un repository nuevo. El grupo '/catalogo' se crea acá, en la
+// primera Parte de este bloque. Sin SessionAuthMiddleware: el original no
+// valida $_SESSION['id_usuario'].
+$miscelaneosController = new MiscelaneosController($evidenciasRepositorio);
+
+$app->group('/catalogo', function ($grupo) use ($miscelaneosController) {
+    $grupo->get('/obtener-evidencias', [$miscelaneosController, 'obtenerEvidencias']);
 });
 
 // --- I3 (Tutorías Académicas) -------------------------------------------

@@ -364,4 +364,55 @@ final class EvidenciasRepository
 
         return $catalogo;
     }
+
+    /**
+     * Misma consulta exacta (mismas columnas, mismo WHERE con activo = 1,
+     * mismo ORDER BY orden ASC) que el SELECT original de
+     * api/catalogo/obtener_evidencias.php: lista el catálogo de evidencias
+     * activo para un indicador dado. Reutilizado acá en vez de crear un
+     * repository nuevo porque consulta la misma tabla catalogo_evidencias
+     * que obtenerCatalogoParaPreparar() (ver criterio del plan §2.2).
+     * Parte 9 del plan de migración de PHP suelto a Slim (Grupo C,
+     * primera Parte).
+     *
+     * @return list<array{
+     *     id_catalogo: int, codigo_evidencia: string, titulo_corto: ?string,
+     *     descripcion: string, nombre_archivo_base: string, orden: int
+     * }>
+     */
+    public function obtenerCatalogoPorIndicador(int $idIndicador): array
+    {
+        $stmt = $this->conexion->prepare(
+            'SELECT
+                id_catalogo,
+                codigo_evidencia,
+                titulo_corto,
+                descripcion,
+                nombre_archivo_base,
+                orden
+            FROM catalogo_evidencias
+            WHERE id_indicador = ?
+              AND activo = 1
+            ORDER BY orden ASC'
+        );
+
+        if (!$stmt) {
+            throw new \RuntimeException('No se pudo preparar la consulta.');
+        }
+
+        $stmt->bind_param('i', $idIndicador);
+        $stmt->execute();
+
+        $resultado = $stmt->get_result();
+        $evidencias = [];
+
+        while ($fila = $resultado->fetch_assoc()) {
+            $fila['id_catalogo'] = (int) $fila['id_catalogo'];
+            $fila['orden'] = (int) $fila['orden'];
+
+            $evidencias[] = $fila;
+        }
+
+        return $evidencias;
+    }
 }

@@ -73,8 +73,11 @@ interface CatalogoResponse {
 }
 
 export async function obtenerCatalogoEvidencias(idIndicador: number): Promise<CatalogoEvidencia[]> {
+  // Ruta de Slim (Parte 9 del plan de migración de PHP suelto -- ver
+  // plan_migracion_slim_legacy_v3.txt §3), reemplaza a
+  // api/catalogo/obtener_evidencias.php.
   const respuesta = await fetch(
-    `http://localhost/sistemacaces/api/catalogo/obtener_evidencias.php?id_indicador=${idIndicador}`,
+    `http://localhost/sistemacaces/public/catalogo/obtener-evidencias?id_indicador=${idIndicador}`,
     {
       credentials: 'include',
       headers: {
