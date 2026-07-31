@@ -227,6 +227,24 @@ final class SeguimientoSyllabusRepository
     }
 
     /**
+     * Cambia el estado de una evaluación. Reemplaza a
+     * api/administracion/cohortes/cambiar_estado.php (Parte 13 del plan de
+     * migración slim-legacy, ver plan_migracion_slim_legacy_v3.txt §3 Grupo
+     * E, última Parte del subgrupo de cohortes) -- mismo criterio del
+     * original: un simple UPDATE sin verificar antes si el
+     * `id_evaluacion` existe (si no existe, el UPDATE afecta 0 filas y
+     * mysqli lo sigue considerando éxito, no error -- comportamiento
+     * preservado tal cual, no se agrega una verificación de existencia que
+     * el original no tenía).
+     */
+    public function cambiarEstadoEvaluacion(int $idEvaluacion, string $estado): void
+    {
+        $stmt = $this->conexion->prepare('UPDATE evaluaciones SET estado = ? WHERE id_evaluacion = ?');
+        $stmt->bind_param('si', $estado, $idEvaluacion);
+        $stmt->execute();
+    }
+
+    /**
      * Cohortes con su evaluación asociada (si tiene) y cantidad de períodos
      * académicos cargados. Misma consulta exacta que la original de
      * api/administracion/cohortes/listar.php (Parte 11 del plan de

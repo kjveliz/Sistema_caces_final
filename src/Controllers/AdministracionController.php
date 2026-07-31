@@ -211,4 +211,79 @@ final class AdministracionController
 
         return $this->json($response, true, 'Cohorte y evaluación creadas correctamente.', ['datos' => $resultado]);
     }
+
+    /**
+     * POST /administracion/cohortes/cambiar-estado (JSON: id_evaluacion,
+     * estado) — requiere sesión + rol administrador. Parte 13 del plan de
+     * migración slim-legacy (ver plan_migracion_slim_legacy_v3.txt §3 Grupo
+     * E, última Parte del subgrupo de cohortes): reemplaza a
+     * api/administracion/cohortes/cambiar_estado.php. Mismas validaciones
+     * y mensajes que el original (`estado` limitado al enum de 3 valores,
+     * sin verificar antes si `id_evaluacion` existe -- ver nota en
+     * SeguimientoSyllabusRepository::cambiarEstadoEvaluacion()), mismo
+     * chequeo de rol a mano que cohortesCrear().
+     */
+    #[OA\Post(
+        path: '/administracion/cohortes/cambiar-estado',
+        summary: 'Cambia el estado de una evaluación.',
+        security: [['sesionPhp' => []]],
+        tags: ['Administración (Cohortes)'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['id_evaluacion', 'estado'],
+                properties: [
+                    new OA\Property(property: 'id_evaluacion', type: 'integer'),
+                    new OA\Property(property: 'estado', type: 'string', enum: ['Activa', 'Pendiente', 'Cerrada']),
+                ],
+            ),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Estado actualizado correctamente.',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'mensaje', type: 'string'),
+                ]),
+            ),
+            new OA\Response(response: 400, description: 'Los datos recibidos no son válidos.'),
+            new OA\Response(response: 401, description: 'La sesión no está activa.'),
+            new OA\Response(response: 403, description: 'No tiene permisos para cambiar el estado.'),
+            new OA\Response(response: 500, description: 'No se pudo actualizar la evaluación.'),
+        ],
+    )]
+    public function cohortesCambiarEstado(Request $request, Response $response): Response
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+
+        if (($_SESSION['rol'] ?? '') !== 'administrador') {
+            return $this->json($response, false, 'No tiene permisos para cambiar el estado.', [], 403);
+        }
+
+        $datos = $request->getParsedBody();
+
+        if (!is_array($datos)) {
+            $datos = [];
+        }
+
+        $idEvaluacion = (int) ($datos['id_evaluacion'] ?? 0);
+        $estado = trim((string) ($datos['estado'] ?? ''));
+
+        $estadosPermitidos = ['Activa', 'Pendiente', 'Cerrada'];
+
+        if ($idEvaluacion <= 0 || !in_array($estado, $estadosPermitidos, true)) {
+            return $this->json($response, false, 'Los datos recibidos no son válidos.', [], 400);
+        }
+
+        try {
+            $this->repositorio->cambiarEstadoEvaluacion($idEvaluacion, $estado);
+        } catch (Throwable $e) {
+            return $this->json($response, false, 'No se pudo actualizar la evaluación.', ['detalle' => $e->getMessage()], 500);
+        }
+
+        return $this->json($response, true, 'Estado actualizado correctamente.');
+    }
 }

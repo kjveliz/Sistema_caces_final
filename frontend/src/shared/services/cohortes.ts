@@ -93,7 +93,7 @@ export async function cambiarEstadoEvaluacion(
   estado: 'Activa' | 'Pendiente' | 'Cerrada',
 ): Promise<void> {
   const respuesta = await fetch(
-    'http://localhost/sistemacaces/api/administracion/cohortes/cambiar_estado.php',
+    'http://localhost/sistemacaces/public/administracion/cohortes/cambiar-estado',
     {
       method: 'POST',
       credentials: 'include',

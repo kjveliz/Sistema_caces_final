@@ -149,6 +149,80 @@
                 ]
             }
         },
+        "/administracion/cohortes/cambiar-estado": {
+            "post": {
+                "tags": [
+                    "Administración (Cohortes)"
+                ],
+                "summary": "Cambia el estado de una evaluación.",
+                "description": "POST /administracion/cohortes/cambiar-estado (JSON: id_evaluacion,\nestado) — requiere sesión + rol administrador. Parte 13 del plan de\nmigración slim-legacy (ver plan_migracion_slim_legacy_v3.txt §3 Grupo\nE, última Parte del subgrupo de cohortes): reemplaza a\napi/administracion/cohortes/cambiar_estado.php. Mismas validaciones\ny mensajes que el original (`estado` limitado al enum de 3 valores,\nsin verificar antes si `id_evaluacion` existe -- ver nota en\nSeguimientoSyllabusRepository::cambiarEstadoEvaluacion()), mismo\nchequeo de rol a mano que cohortesCrear().",
+                "operationId": "bd3008d98ef0259589df135b65bc361b",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id_evaluacion",
+                                    "estado"
+                                ],
+                                "properties": {
+                                    "id_evaluacion": {
+                                        "type": "integer"
+                                    },
+                                    "estado": {
+                                        "type": "string",
+                                        "enum": [
+                                            "Activa",
+                                            "Pendiente",
+                                            "Cerrada"
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Estado actualizado correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "mensaje": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Los datos recibidos no son válidos."
+                    },
+                    "401": {
+                        "description": "La sesión no está activa."
+                    },
+                    "403": {
+                        "description": "No tiene permisos para cambiar el estado."
+                    },
+                    "500": {
+                        "description": "No se pudo actualizar la evaluación."
+                    }
+                },
+                "security": [
+                    {
+                        "sesionPhp": []
+                    }
+                ]
+            }
+        },
         "/auth/login": {
             "post": {
                 "tags": [
