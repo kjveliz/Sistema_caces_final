@@ -61,7 +61,7 @@ export async function crearCohorteEvaluacion(
   parametros: CrearCohorteParams,
 ): Promise<CohorteEvaluacion> {
   const respuesta = await fetch(
-    'http://localhost/sistemacaces/api/administracion/cohortes/crear.php',
+    'http://localhost/sistemacaces/public/administracion/cohortes/crear',
     {
       method: 'POST',
       credentials: 'include',

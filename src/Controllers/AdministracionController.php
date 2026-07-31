@@ -8,6 +8,7 @@ use App\Repositories\SeguimientoSyllabusRepository;
 use OpenApi\Attributes as OA;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -79,5 +80,135 @@ final class AdministracionController
         }
 
         return $this->json($response, true, null, ['datos' => $datos]);
+    }
+
+    /**
+     * POST /administracion/cohortes/crear (JSON: id_carrera, nombre_cohorte,
+     * fecha_inicio, fecha_fin, estado) — requiere sesión + rol administrador.
+     * Parte 12 del plan de migración slim-legacy (ver
+     * plan_migracion_slim_legacy_v3.txt §3 Grupo E, segunda Parte del
+     * subgrupo de cohortes): reemplaza a
+     * api/administracion/cohortes/crear.php. Mismas validaciones y mensajes
+     * que el original (`nombre_cohorte` normalizado a mayúsculas sin
+     * caracteres fuera de A-Z0-9, `estado` limitado al enum de 3 valores,
+     * `fecha_fin` no puede ser anterior a `fecha_inicio`), mismo chequeo de
+     * rol a mano ($_SESSION['rol'] !== 'administrador', 403) -- el original
+     * ya lo hacía así, mismo patrón que CarrerasController::actualizar()/
+     * MallaCurricularController::guardar(). Reusa
+     * SeguimientoSyllabusRepository::crearCohorteConEvaluacion() en vez de
+     * un repository nuevo (ver §1 del plan).
+     */
+    #[OA\Post(
+        path: '/administracion/cohortes/crear',
+        summary: 'Crea una cohorte nueva y su evaluación asociada.',
+        security: [['sesionPhp' => []]],
+        tags: ['Administración (Cohortes)'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['id_carrera', 'nombre_cohorte', 'fecha_inicio', 'fecha_fin'],
+                properties: [
+                    new OA\Property(property: 'id_carrera', type: 'integer'),
+                    new OA\Property(property: 'nombre_cohorte', type: 'string'),
+                    new OA\Property(property: 'fecha_inicio', type: 'string', format: 'date'),
+                    new OA\Property(property: 'fecha_fin', type: 'string', format: 'date'),
+                    new OA\Property(property: 'estado', type: 'string', enum: ['Activa', 'Pendiente', 'Cerrada']),
+                ],
+            ),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Cohorte y evaluación creadas correctamente.',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'datos', type: 'object'),
+                ]),
+            ),
+            new OA\Response(response: 400, description: 'Complete correctamente todos los campos, o la fecha final es anterior a la inicial.'),
+            new OA\Response(response: 401, description: 'La sesión no está activa.'),
+            new OA\Response(response: 403, description: 'Solo un administrador puede crear cohortes.'),
+            new OA\Response(response: 404, description: 'La carrera seleccionada no existe.'),
+            new OA\Response(response: 409, description: 'Ya existe esa cohorte para la carrera seleccionada.'),
+            new OA\Response(response: 500, description: 'No se pudo crear la cohorte.'),
+        ],
+    )]
+    public function cohortesCrear(Request $request, Response $response): Response
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+
+        if (($_SESSION['rol'] ?? '') !== 'administrador') {
+            return $this->json($response, false, 'Solo un administrador puede crear cohortes.', [], 403);
+        }
+
+        $datos = $request->getParsedBody();
+
+        if (!is_array($datos)) {
+            $datos = [];
+        }
+
+        $idCarrera = (int) ($datos['id_carrera'] ?? 0);
+        // Mismo orden que el original: preg_replace (sensible a mayúsculas)
+        // ANTES de strtoupper -- cualquier letra minúscula del input se
+        // descarta en vez de preservarse y mayuscularse (ej.
+        // "cohorte-2027" queda "2027", no "COHORTE2027"). Hallazgo real
+        // detectado en esta Parte, preservado a propósito (no se corrige
+        // acá, ver plan §4 -- documentado además en la memoria del
+        // proyecto y cubierto por testNombreCohorteConMinusculasLasDescarta()).
+        $nombreCohorte = strtoupper((string) preg_replace(
+            '/[^A-Z0-9]/',
+            '',
+            trim((string) ($datos['nombre_cohorte'] ?? '')),
+        ));
+        $fechaInicio = trim((string) ($datos['fecha_inicio'] ?? ''));
+        $fechaFin = trim((string) ($datos['fecha_fin'] ?? ''));
+        $estado = trim((string) ($datos['estado'] ?? 'Pendiente'));
+
+        $estadosPermitidos = ['Activa', 'Pendiente', 'Cerrada'];
+
+        if (
+            $idCarrera <= 0
+            || $nombreCohorte === ''
+            || $fechaInicio === ''
+            || $fechaFin === ''
+            || !in_array($estado, $estadosPermitidos, true)
+        ) {
+            return $this->json($response, false, 'Complete correctamente todos los campos.', [], 400);
+        }
+
+        if ($fechaFin < $fechaInicio) {
+            return $this->json($response, false, 'La fecha final no puede ser anterior a la fecha inicial.', [], 400);
+        }
+
+        $idUsuario = (int) ($_SESSION['id_usuario'] ?? 0);
+
+        try {
+            $resultado = $this->repositorio->crearCohorteConEvaluacion(
+                $idCarrera,
+                $nombreCohorte,
+                $fechaInicio,
+                $fechaFin,
+                $estado,
+                $idUsuario,
+            );
+        } catch (RuntimeException $e) {
+            return $this->json($response, false, $e->getMessage(), [], 404);
+        } catch (Throwable $e) {
+            $codigo = $e->getCode() === 1062 ? 409 : 500;
+
+            return $this->json(
+                $response,
+                false,
+                $codigo === 409
+                    ? 'Ya existe esa cohorte para la carrera seleccionada.'
+                    : 'No se pudo crear la cohorte.',
+                ['detalle' => $e->getMessage()],
+                $codigo,
+            );
+        }
+
+        return $this->json($response, true, 'Cohorte y evaluación creadas correctamente.', ['datos' => $resultado]);
     }
 }

@@ -6,6 +6,7 @@ namespace App\Repositories;
 
 use mysqli;
 use RuntimeException;
+use Throwable;
 
 /**
  * Encapsula todo el SQL de I2 (Seguimiento Syllabus): antes disperso e
@@ -137,6 +138,92 @@ final class SeguimientoSyllabusRepository
         $stmt->execute();
 
         return (int) $stmt->insert_id;
+    }
+
+    /**
+     * Crea una cohorte y su evaluación asociada en una sola transacción.
+     * Reemplaza a api/administracion/cohortes/crear.php (Parte 12 del plan
+     * de migración slim-legacy, ver plan_migracion_slim_legacy_v3.txt §3
+     * Grupo E) -- a diferencia de crearCohorte() (usado por el flujo de
+     * carga de malla curricular en .xlsx, sin evaluación), este método
+     * además busca el nombre/código de la carrera (para armar
+     * `nombre_evaluacion` y devolverlos al frontend) e inserta la fila en
+     * `evaluaciones`, igual que el original. Reusa crearCohorte() para el
+     * INSERT de la cohorte en sí, en vez de duplicar esa consulta.
+     *
+     * Mismo criterio de errores que el original: si la carrera no existe,
+     * RuntimeException (el controller la traduce a 404); cualquier otro
+     * error de mysqli (incluyendo un eventual 1062 de duplicado) se deja
+     * propagar tal cual -- el controller distingue por código de error,
+     * igual que ya hace SeguimientoSyllabusController::cohorteEliminar()
+     * con el 1451.
+     *
+     * @return array{id_cohorte: int, nombre_cohorte: string, fecha_inicio: string, fecha_fin: string, id_carrera: int, carrera: string, codigo_carrera: string, id_evaluacion: int, nombre_evaluacion: string, estado: string}
+     */
+    public function crearCohorteConEvaluacion(
+        int $idCarrera,
+        string $nombreCohorte,
+        string $fechaInicio,
+        string $fechaFin,
+        string $estado,
+        int $idUsuario,
+    ): array {
+        $this->conexion->begin_transaction();
+
+        try {
+            $stmtCarrera = $this->conexion->prepare(
+                'SELECT nombre, codigo FROM carreras WHERE id_carrera = ? LIMIT 1',
+            );
+            $stmtCarrera->bind_param('i', $idCarrera);
+            $stmtCarrera->execute();
+            $carrera = $stmtCarrera->get_result()->fetch_assoc();
+
+            if (!$carrera) {
+                throw new RuntimeException('La carrera seleccionada no existe.');
+            }
+
+            $idCohorte = $this->crearCohorte($nombreCohorte, $idCarrera, $fechaInicio, $fechaFin);
+
+            $nombreEvaluacion = 'Evaluación ' . $carrera['nombre'] . ' ' . $nombreCohorte;
+
+            $stmtEvaluacion = $this->conexion->prepare(
+                'INSERT INTO evaluaciones
+                    (nombre_evaluacion, id_cohorte, fecha_inicio, fecha_fin, estado, id_usuario, id_carrera)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)',
+            );
+            $stmtEvaluacion->bind_param(
+                'sisssii',
+                $nombreEvaluacion,
+                $idCohorte,
+                $fechaInicio,
+                $fechaFin,
+                $estado,
+                $idUsuario,
+                $idCarrera,
+            );
+            $stmtEvaluacion->execute();
+
+            $idEvaluacion = (int) $stmtEvaluacion->insert_id;
+
+            $this->conexion->commit();
+        } catch (Throwable $e) {
+            $this->conexion->rollback();
+
+            throw $e;
+        }
+
+        return [
+            'id_cohorte' => $idCohorte,
+            'nombre_cohorte' => $nombreCohorte,
+            'fecha_inicio' => $fechaInicio,
+            'fecha_fin' => $fechaFin,
+            'id_carrera' => $idCarrera,
+            'carrera' => $carrera['nombre'],
+            'codigo_carrera' => $carrera['codigo'],
+            'id_evaluacion' => $idEvaluacion,
+            'nombre_evaluacion' => $nombreEvaluacion,
+            'estado' => $estado,
+        ];
     }
 
     /**

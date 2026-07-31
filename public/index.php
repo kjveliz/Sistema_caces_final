@@ -269,12 +269,15 @@ $app->group('/seguimiento-syllabus', function ($grupo) use ($seguimientoControll
 $administracionController = new AdministracionController($seguimientoRepositorio);
 
 // --- Rutas del Grupo E (Administración) ---------------------------------
-// Con SessionAuthMiddleware: el original
-// (api/administracion/cohortes/listar.php) ya valida $_SESSION['id_usuario']
-// a mano antes de esta Parte.
+// Con SessionAuthMiddleware: ambos originales
+// (api/administracion/cohortes/{listar,crear}.php) ya validaban
+// $_SESSION['id_usuario'] a mano antes de estas Partes. `crear` además exige
+// rol administrador (403), chequeado a mano dentro del controller (Parte 12,
+// mismo patrón que CarrerasController/MallaCurricularController).
 $app->group('/administracion', function ($grupo) use ($administracionController) {
     $grupo->group('/cohortes', function ($sub) use ($administracionController) {
         $sub->get('/listar', [$administracionController, 'cohortesListar'])->add(new SessionAuthMiddleware());
+        $sub->post('/crear', [$administracionController, 'cohortesCrear'])->add(new SessionAuthMiddleware());
     });
 });
 

@@ -56,6 +56,99 @@
                 ]
             }
         },
+        "/administracion/cohortes/crear": {
+            "post": {
+                "tags": [
+                    "Administración (Cohortes)"
+                ],
+                "summary": "Crea una cohorte nueva y su evaluación asociada.",
+                "description": "POST /administracion/cohortes/crear (JSON: id_carrera, nombre_cohorte,\nfecha_inicio, fecha_fin, estado) — requiere sesión + rol administrador.\nParte 12 del plan de migración slim-legacy (ver\nplan_migracion_slim_legacy_v3.txt §3 Grupo E, segunda Parte del\nsubgrupo de cohortes): reemplaza a\napi/administracion/cohortes/crear.php. Mismas validaciones y mensajes\nque el original (`nombre_cohorte` normalizado a mayúsculas sin\ncaracteres fuera de A-Z0-9, `estado` limitado al enum de 3 valores,\n`fecha_fin` no puede ser anterior a `fecha_inicio`), mismo chequeo de\nrol a mano ($_SESSION['rol'] !== 'administrador', 403) -- el original\nya lo hacía así, mismo patrón que CarrerasController::actualizar()/\nMallaCurricularController::guardar(). Reusa\nSeguimientoSyllabusRepository::crearCohorteConEvaluacion() en vez de\nun repository nuevo (ver §1 del plan).",
+                "operationId": "11e501bf56b1da18a04228334c688ccc",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id_carrera",
+                                    "nombre_cohorte",
+                                    "fecha_inicio",
+                                    "fecha_fin"
+                                ],
+                                "properties": {
+                                    "id_carrera": {
+                                        "type": "integer"
+                                    },
+                                    "nombre_cohorte": {
+                                        "type": "string"
+                                    },
+                                    "fecha_inicio": {
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "fecha_fin": {
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "estado": {
+                                        "type": "string",
+                                        "enum": [
+                                            "Activa",
+                                            "Pendiente",
+                                            "Cerrada"
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Cohorte y evaluación creadas correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Complete correctamente todos los campos, o la fecha final es anterior a la inicial."
+                    },
+                    "401": {
+                        "description": "La sesión no está activa."
+                    },
+                    "403": {
+                        "description": "Solo un administrador puede crear cohortes."
+                    },
+                    "404": {
+                        "description": "La carrera seleccionada no existe."
+                    },
+                    "409": {
+                        "description": "Ya existe esa cohorte para la carrera seleccionada."
+                    },
+                    "500": {
+                        "description": "No se pudo crear la cohorte."
+                    }
+                },
+                "security": [
+                    {
+                        "sesionPhp": []
+                    }
+                ]
+            }
+        },
         "/auth/login": {
             "post": {
                 "tags": [
