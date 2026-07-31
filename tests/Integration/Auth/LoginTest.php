@@ -9,9 +9,11 @@ use Tests\Integration\IntegrationTestCase;
 require_once __DIR__ . '/../IntegrationTestCase.php';
 
 /**
- * Tests de integración de api/auth/Login.php contra la BD de prueba
- * sembrada por los seeders de la Fase 2 (usuarios demo, contraseña
- * "CacesDemo2026!" -- ver db/seeds/UsuariosSeeder.php).
+ * Tests de integración de POST /auth/login (Parte 1 del plan de migración
+ * de PHP suelto a Slim -- ver plan_migracion_slim_legacy_v3.txt §3;
+ * reemplaza a api/auth/Login.php) contra la BD de prueba sembrada por los
+ * seeders de la Fase 2 (usuarios demo, contraseña "CacesDemo2026!" -- ver
+ * db/seeds/UsuariosSeeder.php).
  */
 final class LoginTest extends IntegrationTestCase
 {
@@ -44,7 +46,7 @@ final class LoginTest extends IntegrationTestCase
 
     public function testLoginSinCorreoNiContrasenaDevuelve400(): void
     {
-        $respuesta = $this->peticion('POST', '/api/auth/Login.php', ['json' => []]);
+        $respuesta = $this->peticion('POST', '/auth/login', ['json' => []]);
 
         $this->assertSame(400, $respuesta['status']);
         $this->assertFalse($respuesta['json']['ok']);
@@ -52,7 +54,7 @@ final class LoginTest extends IntegrationTestCase
 
     public function testLoginConMetodoGetDevuelve405(): void
     {
-        $respuesta = $this->peticion('GET', '/api/auth/Login.php');
+        $respuesta = $this->peticion('GET', '/auth/login');
 
         $this->assertSame(405, $respuesta['status']);
     }

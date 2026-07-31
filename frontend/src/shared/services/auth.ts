@@ -78,7 +78,11 @@ export async function iniciarSesion(
   correo: string,
   contrasena: string,
 ): Promise<LoginResponse & { usuario: UsuarioSesion }> {
-  const respuesta = await fetch('http://localhost/sistemacaces/api/auth/login.php', {
+  // Ruta de Slim (Parte 1 del plan de migración de PHP suelto -- ver
+  // plan_migracion_slim_legacy_v3.txt §3), reemplaza a
+  // api/auth/login.php. verificarSesion()/cerrarSesion() de abajo siguen
+  // apuntando al legacy hasta que se migren en las Partes 2 y 3.
+  const respuesta = await fetch('http://localhost/sistemacaces/public/auth/login', {
     method: 'POST',
     credentials: 'include',
     headers: {

@@ -37,9 +37,9 @@ use OpenApi\Attributes as OA;
     type: 'apiKey',
     name: 'PHPSESSID',
     in: 'cookie',
-    description: 'Sesión de PHP iniciada vía api/auth/Login.php (no migrado todavía). Requerida por los '
-        . 'endpoints protegidos con SessionAuthMiddleware: evidencia-subir de I2/I3, guardar de I4/I5, y '
-        . 'guardar de I1 (que además exige rol administrador, 403 si no lo es).',
+    description: 'Sesión de PHP iniciada vía POST /auth/login. Requerida por los endpoints protegidos con '
+        . 'SessionAuthMiddleware: evidencia-subir de I2/I3, guardar de I4/I5, y guardar de I1 (que además '
+        . 'exige rol administrador, 403 si no lo es).',
 )]
 final class Definition
 {

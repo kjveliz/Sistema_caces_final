@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Controllers\AuthController;
 use App\Controllers\CarrerasAlmacenamientoController;
 use App\Controllers\CarrerasController;
 use App\Controllers\EvidenciaAsignaturaVisorController;
@@ -13,6 +14,7 @@ use App\Controllers\TutoriasAcademicasController;
 use App\Infra\Database;
 use App\Middleware\CorsMiddleware;
 use App\Middleware\SessionAuthMiddleware;
+use App\Repositories\AuthRepository;
 use App\Repositories\CarrerasRepository;
 use App\Repositories\DesercionRepository;
 use App\Repositories\EvidenciaAsignaturaRepository;
@@ -29,6 +31,7 @@ use App\Services\TutoriasCalculoService;
 use App\Services\TutoriasValidacionPdfService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Slim\Exception\HttpMethodNotAllowedException;
 use Slim\Factory\AppFactory;
 use Slim\Psr7\Response as Psr7Response;
 
@@ -86,6 +89,26 @@ $errorMiddleware->setDefaultErrorHandler(function (
     return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
 });
 
+// Handler específico para método HTTP no soportado por la ruta (ej. GET a
+// una ruta que solo acepta POST). Sin esto, el handler por defecto de
+// arriba (genérico, siempre 500) también atrapaba este caso -- necesario
+// para que /auth/login (Parte 1 del plan de migración a Slim, ver
+// plan_migracion_slim_legacy_v3.txt §3) devuelva 405 igual que el
+// Login.php legacy, en vez de 500. Mismo formato {ok, mensaje} que el
+// resto del backend.
+$errorMiddleware->setErrorHandler(
+    HttpMethodNotAllowedException::class,
+    function (Request $request, Throwable $exception): Response {
+        $response = new Psr7Response(405);
+        $response->getBody()->write(json_encode([
+            'ok' => false,
+            'mensaje' => 'Método no permitido.',
+        ], JSON_UNESCAPED_UNICODE));
+
+        return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
+    }
+);
+
 // --- Composición manual de dependencias (sin contenedor DI: el proyecto no
 // lo tiene, y agregar uno sería sobre-ingeniería para este POC). Con 2
 // indicadores ya migrados (I3, I2), este bloque es el primer candidato a
@@ -99,6 +122,20 @@ $driveService = new GoogleDriveService();
 // carrera. $driveService se sigue usando tal cual para la validación de
 // archivo (formato, no depende del destino).
 $storageResolver = new EvidenciaStorageResolver($conexion, $driveService);
+
+// --- Auth (Grupo A del plan de migración de PHP suelto a Slim) ----------
+// Parte 1: reemplaza a api/auth/Login.php. Logout.php y Me.php (Partes 2 y
+// 3 del mismo grupo, ver plan_migracion_slim_legacy_v3.txt §3) siguen
+// siendo archivos sueltos por ahora -- coexisten con esta ruta nueva hasta
+// que se migren en sus propias Partes. Reusa $conexion ya abierta arriba,
+// igual que el resto de los controllers.
+$authRepositorio = new AuthRepository($conexion);
+$authController = new AuthController($authRepositorio);
+
+// --- Rutas de Auth (Grupo A) --------------------------------------------
+$app->group('/auth', function ($grupo) use ($authController) {
+    $grupo->post('/login', [$authController, 'login']);
+});
 
 // --- I3 (Tutorías Académicas) -------------------------------------------
 $tutoriasRepositorio = new TutoriasRepository($conexion);

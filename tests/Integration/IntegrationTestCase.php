@@ -257,10 +257,20 @@ abstract class IntegrationTestCase extends TestCase
         return ['status' => $status, 'body' => $body, 'json' => json_decode($body, true)];
     }
 
-    /** Loguea con un usuario demo del seeder y deja la cookie de sesión lista para las siguientes peticiones. */
+    /**
+     * Loguea con un usuario demo del seeder y deja la cookie de sesión lista
+     * para las siguientes peticiones. Apunta a /auth/login (ruta de Slim,
+     * Parte 1 del plan de migración de PHP suelto -- ver
+     * plan_migracion_slim_legacy_v3.txt §3), no al api/auth/Login.php
+     * legacy: la sesión que arranca es la misma ($_SESSION['id_usuario'] vía
+     * session_regenerate_id(true)) sin importar cuál de los dos la haya
+     * creado, así que este cambio no afecta a LogoutTest/MeTest, que siguen
+     * corriendo contra los archivos legacy de sus propias Partes (2 y 3)
+     * hasta que se migren.
+     */
     protected function loguearComo(string $correo, string $contrasena = 'CacesDemo2026!'): array
     {
-        return $this->peticion('POST', '/api/auth/Login.php', [
+        return $this->peticion('POST', '/auth/login', [
             'json' => ['correo' => $correo, 'contrasena' => $contrasena],
         ]);
     }

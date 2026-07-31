@@ -12,6 +12,566 @@
         }
     ],
     "paths": {
+        "/auth/login": {
+            "post": {
+                "tags": [
+                    "Autenticación"
+                ],
+                "summary": "Inicia sesión con correo y contraseña.",
+                "description": "POST /auth/login (JSON: correo, contrasena) — misma lógica exacta\r\nque api/auth/Login.php: valida credenciales, rechaza cuentas\r\ndesactivadas, y si todo está bien arranca la sesión de PHP\r\n($_SESSION['id_usuario']/['correo']/['rol']) con\r\nsession_regenerate_id(true), igual que el original.",
+                "operationId": "363e422b5a8c763fa1ea6fd03a77481d",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "correo",
+                                    "contrasena"
+                                ],
+                                "properties": {
+                                    "correo": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "contrasena": {
+                                        "type": "string",
+                                        "format": "password"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Inicio de sesión correcto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "mensaje": {
+                                            "type": "string"
+                                        },
+                                        "usuario": {
+                                            "properties": {
+                                                "id_usuario": {
+                                                    "type": "integer"
+                                                },
+                                                "nombres": {
+                                                    "type": "string"
+                                                },
+                                                "apellidos": {
+                                                    "type": "string"
+                                                },
+                                                "correo": {
+                                                    "type": "string"
+                                                },
+                                                "rol": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "administrador",
+                                                        "coordinador",
+                                                        "evaluador"
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Ingrese el correo y la contraseña."
+                    },
+                    "401": {
+                        "description": "Usuario o contraseña incorrectos."
+                    },
+                    "403": {
+                        "description": "La cuenta se encuentra desactivada."
+                    },
+                    "500": {
+                        "description": "No se pudo preparar la consulta."
+                    }
+                }
+            }
+        },
+        "/carreras/{id}/almacenamiento": {
+            "put": {
+                "tags": [
+                    "Carreras — almacenamiento"
+                ],
+                "summary": "Cambia el modo de almacenamiento (Drive/local) de una carrera y migra su evidencia ya subida al nuevo destino.",
+                "description": "PUT /carreras/{id}/almacenamiento (JSON: modo_almacenamiento, ruta_local?)\r\n— requiere sesión (SessionAuthMiddleware) + rol administrador o\r\ncoordinador. Migra TODA la evidencia ya subida de la carrera al\r\nnuevo destino antes de confirmar el cambio; ver\r\nEvidenciaMigradorService para el contrato síncrono/todo-o-nada.",
+                "operationId": "000072f1fe2f6a09525ea921d93ddbea",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "modo_almacenamiento"
+                                ],
+                                "properties": {
+                                    "modo_almacenamiento": {
+                                        "type": "string",
+                                        "enum": [
+                                            "drive",
+                                            "local"
+                                        ]
+                                    },
+                                    "ruta_local": {
+                                        "description": "Solo aplica si modo_almacenamiento es local; vacío/omitido usa la ruta local por defecto del sistema.",
+                                        "type": "string",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Almacenamiento migrado y actualizado correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Los datos enviados no son válidos, o no hay nada que migrar."
+                    },
+                    "401": {
+                        "description": "La sesión no está activa."
+                    },
+                    "403": {
+                        "description": "No tiene permisos para cambiar el almacenamiento de la carrera."
+                    },
+                    "404": {
+                        "description": "La carrera no existe o se encuentra desactivada."
+                    },
+                    "422": {
+                        "description": "La migración falló (se revirtió; la carrera queda como estaba) o la ruta local no es escribible."
+                    }
+                },
+                "security": [
+                    {
+                        "sesionPhp": []
+                    }
+                ]
+            }
+        },
+        "/carreras/listar": {
+            "get": {
+                "tags": [
+                    "Carreras (administración)"
+                ],
+                "summary": "Lista las carreras activas, con su malla curricular asociada si tiene.",
+                "description": "GET /carreras/listar",
+                "operationId": "a23c3a2dadf4d7d78864bdcdf043e1f9",
+                "responses": {
+                    "200": {
+                        "description": "Listado de carreras activas.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "No se pudieron consultar las carreras."
+                    }
+                }
+            }
+        },
+        "/carreras/crear": {
+            "post": {
+                "tags": [
+                    "Carreras (administración)"
+                ],
+                "summary": "Registra una carrera nueva.",
+                "description": "POST /carreras/crear (JSON: codigo, nombre, area_conocimiento, modalidad)",
+                "operationId": "8b2007350f6cd868200f33adf9e9529a",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "codigo",
+                                    "nombre",
+                                    "area_conocimiento",
+                                    "modalidad"
+                                ],
+                                "properties": {
+                                    "codigo": {
+                                        "type": "string"
+                                    },
+                                    "nombre": {
+                                        "type": "string"
+                                    },
+                                    "area_conocimiento": {
+                                        "type": "string"
+                                    },
+                                    "modalidad": {
+                                        "type": "string",
+                                        "enum": [
+                                            "Presencial",
+                                            "En línea",
+                                            "Híbrida"
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Carrera registrada correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Los datos enviados no son válidos."
+                    },
+                    "409": {
+                        "description": "Ya existe una carrera con ese código o nombre."
+                    },
+                    "422": {
+                        "description": "Faltan campos obligatorios, modalidad inválida, o código demasiado largo."
+                    },
+                    "500": {
+                        "description": "No se pudo registrar la carrera."
+                    }
+                }
+            }
+        },
+        "/carreras/actualizar": {
+            "post": {
+                "tags": [
+                    "Carreras (administración)"
+                ],
+                "summary": "Actualiza los datos de una carrera existente.",
+                "description": "POST /carreras/actualizar (JSON: id_carrera, codigo, nombre, area_conocimiento, modalidad) — requiere sesión + rol administrador.",
+                "operationId": "3701721ce7e9455d58261c84df7b2c83",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id_carrera",
+                                    "codigo",
+                                    "nombre",
+                                    "area_conocimiento",
+                                    "modalidad"
+                                ],
+                                "properties": {
+                                    "id_carrera": {
+                                        "type": "integer"
+                                    },
+                                    "codigo": {
+                                        "type": "string"
+                                    },
+                                    "nombre": {
+                                        "type": "string"
+                                    },
+                                    "area_conocimiento": {
+                                        "type": "string"
+                                    },
+                                    "modalidad": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Carrera actualizada correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "No se recibieron datos JSON válidos, o faltan campos obligatorios."
+                    },
+                    "401": {
+                        "description": "La sesión no está activa."
+                    },
+                    "403": {
+                        "description": "No tiene permisos para editar carreras."
+                    },
+                    "404": {
+                        "description": "La carrera no existe o se encuentra desactivada."
+                    },
+                    "409": {
+                        "description": "Ya existe otra carrera con ese código."
+                    },
+                    "500": {
+                        "description": "No se pudo actualizar la carrera."
+                    }
+                },
+                "security": [
+                    {
+                        "sesionPhp": []
+                    }
+                ]
+            }
+        },
+        "/carreras/eliminar": {
+            "post": {
+                "tags": [
+                    "Carreras (administración)"
+                ],
+                "summary": "Elimina permanentemente una carrera, si no tiene evaluaciones académicas relacionadas.",
+                "description": "POST /carreras/eliminar (JSON: id_carrera) — requiere sesión + rol administrador.",
+                "operationId": "5f472b4355bfc44a8171ee4838d03eda",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id_carrera"
+                                ],
+                                "properties": {
+                                    "id_carrera": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Carrera eliminada permanentemente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "El identificador de la carrera no es válido."
+                    },
+                    "401": {
+                        "description": "La sesión no está activa."
+                    },
+                    "403": {
+                        "description": "No tiene permisos para eliminar carreras."
+                    },
+                    "404": {
+                        "description": "La carrera no existe."
+                    },
+                    "409": {
+                        "description": "La carrera tiene evaluaciones académicas relacionadas y no puede eliminarse automáticamente."
+                    },
+                    "500": {
+                        "description": "No se pudo eliminar permanentemente la carrera."
+                    }
+                },
+                "security": [
+                    {
+                        "sesionPhp": []
+                    }
+                ]
+            }
+        },
+        "/carreras/eliminar-forzada": {
+            "post": {
+                "tags": [
+                    "Carreras (administración)"
+                ],
+                "summary": "Elimina forzadamente una carrera y toda su cadena relacionada (evaluaciones, cohortes, períodos, asignaturas, evidencia). Herramienta de desarrollo/pruebas.",
+                "description": "POST /carreras/eliminar-forzada (JSON: id_carrera) — requiere sesión +\r\nrol administrador. Herramienta de desarrollo/pruebas: a diferencia de\r\neliminar(), NO se bloquea por contarEvaluaciones() -- borra en\r\ncascada evaluaciones, cohortes, períodos, asignaturas y evidencia\r\nrelacionada (ver CarrerasRepository::eliminarForzadaEnCascada()).\r\nSolo borra filas de la BD; los archivos ya subidos a Drive/local\r\nquedan huérfanos a propósito. Misma restricción de acceso que\r\neliminar() (rol administrador), sin ninguna restricción adicional\r\nsobre qué carreras admite.",
+                "operationId": "f492639047de50c4f39a9e8d0717ca28",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id_carrera"
+                                ],
+                                "properties": {
+                                    "id_carrera": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Carrera y toda su cadena relacionada eliminadas permanentemente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "El identificador de la carrera no es válido."
+                    },
+                    "401": {
+                        "description": "La sesión no está activa."
+                    },
+                    "403": {
+                        "description": "No tiene permisos para eliminar carreras."
+                    },
+                    "404": {
+                        "description": "La carrera no existe."
+                    },
+                    "500": {
+                        "description": "No se pudo eliminar forzadamente la carrera."
+                    }
+                },
+                "security": [
+                    {
+                        "sesionPhp": []
+                    }
+                ]
+            }
+        },
+        "/evidencia-asignatura/ver": {
+            "get": {
+                "tags": [
+                    "Evidencia de asignatura — visor"
+                ],
+                "summary": "Sirve el contenido de una evidencia de evidencia_asignatura (I2/I3), sin importar si está en Drive o en almacenamiento local.",
+                "description": "GET /evidencia-asignatura/ver?id_evidencia_asig= — requiere sesión\r\n(SessionAuthMiddleware, 401). Sirve el contenido real del archivo\r\n(PDF o CSV), sin importar si terminó en Google Drive o en\r\nalmacenamiento local.",
+                "operationId": "4b58bdbea71f5ec965ed4f5bb797b7f6",
+                "parameters": [
+                    {
+                        "name": "id_evidencia_asig",
+                        "in": "query",
+                        "description": "ID de la fila en evidencia_asignatura.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Contenido del archivo (Content-Type según la extensión real: PDF, CSV, imagen, Office, etc.)."
+                    },
+                    "400": {
+                        "description": "Parámetro id_evidencia_asig es requerido."
+                    },
+                    "401": {
+                        "description": "La sesión no está activa."
+                    },
+                    "404": {
+                        "description": "La evidencia no existe, o el archivo ya no se pudo encontrar en su origen."
+                    },
+                    "500": {
+                        "description": "No se pudo leer el archivo desde su origen."
+                    }
+                },
+                "security": [
+                    {
+                        "sesionPhp": []
+                    }
+                ]
+            }
+        },
         "/malla-curricular/obtener": {
             "get": {
                 "tags": [
@@ -141,6 +701,221 @@
                 ]
             }
         },
+        "/seguimiento-syllabus/cohortes": {
+            "post": {
+                "tags": [
+                    "I2 - Seguimiento Syllabus"
+                ],
+                "summary": "Crea una cohorte para una carrera.",
+                "description": "Parte del flujo de carga de malla curricular en .xlsx al crear una carrera nueva (ver plan_malla_curricular_xlsx.txt §7 Parte 2). A diferencia de `asignaturas`, este endpoint no hace get-or-create: cada llamada crea una fila nueva en `cohortes`.",
+                "operationId": "8afbd2ab17737897ef4754dbe4a76f4c",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "nombre_cohorte",
+                                    "id_carrera"
+                                ],
+                                "properties": {
+                                    "nombre_cohorte": {
+                                        "type": "string"
+                                    },
+                                    "id_carrera": {
+                                        "type": "integer"
+                                    },
+                                    "fecha_inicio": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "nullable": true
+                                    },
+                                    "fecha_fin": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "ID de la cohorte creada.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "properties": {
+                                                "id_cohorte": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "nombre_cohorte e id_carrera son requeridos."
+                    },
+                    "401": {
+                        "description": "La sesión no está activa."
+                    },
+                    "404": {
+                        "description": "La carrera indicada no existe."
+                    }
+                }
+            }
+        },
+        "/seguimiento-syllabus/cohortes/{id}": {
+            "delete": {
+                "tags": [
+                    "I2 - Seguimiento Syllabus"
+                ],
+                "summary": "Borra en cascada una cohorte (evidencia DOC.SYL.01 asociada, asignaturas, períodos y evaluación).",
+                "description": "DELETE /seguimiento-syllabus/cohortes/{id} — borra en cascada una\r\ncohorte creada por el flujo de malla curricular en .xlsx (ver\r\nplan_malla_curricular_xlsx.txt §9.5 Parte A). Pensado como\r\nrollback cuando falla un paso posterior (crear períodos o\r\nasignaturas) del mismo flujo, y como acción manual de limpieza en\r\n\"Gestión de cohortes\".",
+                "operationId": "1b00bf2365c50ef0ecf1dada427507a8",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cohorte y todo lo asociado borrados correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "properties": {
+                                                "periodos_borrados": {
+                                                    "type": "integer"
+                                                },
+                                                "asignaturas_borradas": {
+                                                    "type": "integer"
+                                                },
+                                                "evidencia_borrada": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "El identificador de la cohorte no es válido."
+                    },
+                    "401": {
+                        "description": "La sesión no está activa."
+                    },
+                    "404": {
+                        "description": "La cohorte indicada no existe."
+                    },
+                    "409": {
+                        "description": "La cohorte tiene datos reales asociados (evidencia de asignatura, seguimiento, syllabus o tutorías) y no puede borrarse automáticamente."
+                    },
+                    "500": {
+                        "description": "No se pudo borrar la cohorte."
+                    }
+                },
+                "security": [
+                    {
+                        "sesionPhp": []
+                    }
+                ]
+            }
+        },
+        "/seguimiento-syllabus/cohortes/eliminar-forzada": {
+            "post": {
+                "tags": [
+                    "I2 - Seguimiento Syllabus"
+                ],
+                "summary": "Elimina forzadamente una cohorte y toda su cadena relacionada, aunque tenga evidencia real. Herramienta de desarrollo/pruebas.",
+                "description": "POST /seguimiento-syllabus/cohortes/eliminar-forzada (json: id_cohorte) — borra una\r\ncohorte y toda su cadena relacionada aunque tenga evidencia real, es decir, aunque\r\n`cohorteEliminar()` hubiera devuelto 409. Mismo criterio que\r\n`CarrerasController::eliminarForzada()` (herramienta de desarrollo/pruebas, exige rol\r\nadministrador, sin ninguna restricción adicional sobre qué cohortes admite).",
+                "operationId": "4f1784a6444341cfc67dd9628de746cc",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id_cohorte"
+                                ],
+                                "properties": {
+                                    "id_cohorte": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Cohorte y toda su cadena relacionada eliminadas permanentemente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "El identificador de la cohorte no es válido."
+                    },
+                    "401": {
+                        "description": "La sesión no está activa."
+                    },
+                    "403": {
+                        "description": "No tiene permisos para eliminar cohortes."
+                    },
+                    "404": {
+                        "description": "La cohorte indicada no existe."
+                    },
+                    "500": {
+                        "description": "No se pudo eliminar forzadamente la cohorte."
+                    }
+                },
+                "security": [
+                    {
+                        "sesionPhp": []
+                    }
+                ]
+            }
+        },
         "/seguimiento-syllabus/periodos": {
             "get": {
                 "tags": [
@@ -184,6 +959,84 @@
                     },
                     "400": {
                         "description": "Parámetro id_cohorte es requerido."
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "I2 - Seguimiento Syllabus"
+                ],
+                "summary": "Crea un período académico (PAO) para una cohorte.",
+                "description": "Parte del flujo de carga de malla curricular en .xlsx al crear una carrera nueva (ver plan_malla_curricular_xlsx.txt §7 Parte 3). `orden` es requerido: `GET /periodos` ya ordena por esta columna.",
+                "operationId": "f1833cd09b580d12bfb9ff65f3960bc4",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id_cohorte",
+                                    "nombre",
+                                    "orden"
+                                ],
+                                "properties": {
+                                    "id_cohorte": {
+                                        "type": "integer"
+                                    },
+                                    "nombre": {
+                                        "type": "string"
+                                    },
+                                    "orden": {
+                                        "type": "integer"
+                                    },
+                                    "fecha_inicio": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "nullable": true
+                                    },
+                                    "fecha_fin": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "ID del período académico creado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "properties": {
+                                                "id_periodoacademico": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "id_cohorte, nombre y orden son requeridos."
+                    },
+                    "401": {
+                        "description": "La sesión no está activa."
+                    },
+                    "404": {
+                        "description": "La cohorte indicada no existe."
                     }
                 }
             }
@@ -260,6 +1113,11 @@
                                     "docente": {
                                         "type": "string",
                                         "nullable": true
+                                    },
+                                    "modulo": {
+                                        "description": "Agrupador visual A/B/C (no entra en la clave de get-or-create; si la asignatura ya existía, se actualiza con este valor).",
+                                        "type": "string",
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -292,7 +1150,10 @@
                         }
                     },
                     "400": {
-                        "description": "id_periodo y nombre son requeridos."
+                        "description": "id_periodo y nombre son requeridos, o modulo tiene más de 1 caracter."
+                    },
+                    "401": {
+                        "description": "La sesión no está activa."
                     }
                 }
             }
@@ -605,7 +1466,7 @@
                         "description": "No se pudo guardar la evidencia."
                     },
                     "502": {
-                        "description": "No se pudo subir el archivo a Google Drive."
+                        "description": "No se pudo subir el archivo de evidencia (Google Drive o almacenamiento local, según la carrera)."
                     }
                 },
                 "security": [
@@ -1175,7 +2036,7 @@
                 "tags": [
                     "I3 - Tutorías Académicas"
                 ],
-                "summary": "Sube el PDF de evidencia de un tipo de tutoría (EF1/EF2/EF3), lo valida y lo sube a Drive.",
+                "summary": "Sube la evidencia de un tipo de tutoría (EF1/EF2/EF3 en CSV, EF4 en PDF), la valida y la sube a Drive.",
                 "description": "POST /tutorias-academicas/evidencia-subir (multipart: id_asignatura, tipo, archivo) — requiere sesión.",
                 "operationId": "cd379565343f7b04afedb632ef544a81",
                 "requestBody": {
@@ -1193,11 +2054,13 @@
                                         "type": "integer"
                                     },
                                     "tipo": {
+                                        "description": "plan_tutorias/registro_tutorias/informe_tutorias son CSV (EF1/EF2/EF3); evidencia_atencion es PDF (EF4).",
                                         "type": "string",
                                         "enum": [
-                                            "EF1",
-                                            "EF2",
-                                            "EF3"
+                                            "plan_tutorias",
+                                            "registro_tutorias",
+                                            "informe_tutorias",
+                                            "evidencia_atencion"
                                         ]
                                     },
                                     "archivo": {
@@ -1212,7 +2075,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Evidencia subida, validada contra el PDF y guardada (con sus puntos de validación).",
+                        "description": "Evidencia subida, validada (CSV o PDF según el tipo) y guardada (con sus puntos de validación).",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1239,10 +2102,10 @@
                         "description": "Asignatura no encontrada."
                     },
                     "422": {
-                        "description": "No se pudo leer o validar el contenido del PDF."
+                        "description": "No se pudo leer o validar el contenido del archivo."
                     },
                     "502": {
-                        "description": "No se pudo subir el PDF a Google Drive."
+                        "description": "No se pudo subir el archivo de evidencia (Google Drive o almacenamiento local, según la carrera)."
                     }
                 },
                 "security": [
@@ -1257,13 +2120,29 @@
         "securitySchemes": {
             "sesionPhp": {
                 "type": "apiKey",
-                "description": "Sesión de PHP iniciada vía api/auth/Login.php (no migrado todavía). Requerida por los endpoints protegidos con SessionAuthMiddleware: evidencia-subir de I2/I3, guardar de I4/I5, y guardar de I1 (que además exige rol administrador, 403 si no lo es).",
+                "description": "Sesión de PHP iniciada vía POST /auth/login. Requerida por los endpoints protegidos con SessionAuthMiddleware: evidencia-subir de I2/I3, guardar de I4/I5, y guardar de I1 (que además exige rol administrador, 403 si no lo es).",
                 "name": "PHPSESSID",
                 "in": "cookie"
             }
         }
     },
     "tags": [
+        {
+            "name": "Autenticación",
+            "description": "te).\r\n\r\nOJO — desvío intencional del formato {ok, mensaje, datos} que usan el\r\nresto de los controllers ya migrados: login() sigue devolviendo la clave\r\n\"usuario\" (no \"datos\"), igual que el Login.php original, porque\r\nfrontend/src/shared/services/auth.ts y tests/Integration/Auth/*.php ya\r\nleen esa clave específica. Cambiarla a \"datos\" sería tocar un contrato\r\nque ningún llamador pidió cambiar (fuera de alcance del plan, ver §4:\r\n\"NO se toca la lógica de negocio de ningún endpoint más allá de lo\r\n * estrictamente necesario para moverlo de arquitectura\")."
+        },
+        {
+            "name": "Carreras — almacenamiento",
+            "description": "ce.\r\n\r\nRestringido a administrador/coordinador, mismo patrón de chequeo de rol\r\nen el controller (vía $_SESSION['rol']) que ya usa CarrerasController\r\npara actualizar()/eliminar(), pero con `in_array` en vez de una sola\r\ncomparación porque acá SÍ son dos roles permitidos (ver plan §3.2)."
+        },
+        {
+            "name": "Carreras (administración)",
+            "description": "a en sí.\r\n\r\nMismas asimetrías del código original, preservadas a propósito (no se\r\ncorrigen acá, fuera de alcance de esta migración): crear() no exige\r\nsesión ni rol; actualizar() y eliminar() sí exigen sesión (401, vía\r\nSessionAuthMiddleware) y rol administrador (403, chequeado acá dentro,\r\nmismo patrón que MallaCurricularController::guardar())."
+        },
+        {
+            "name": "Evidencia de asignatura — visor",
+            "description": "/§68.2.\r\n\r\nMismo criterio que `ver_archivo.php` para decidir el origen real\r\n(EvidenciaStorageResolver::resolverParaDescarga(), por la FORMA de\r\n`url_archivo`, no por el `modo_almacenamiento` actual de la carrera:\r\nuna evidencia ya subida sigue viviendo donde se subió aunque después\r\nse cambie el interruptor sin volver a migrar). A diferencia de\r\n`ver_archivo.php`, acá no hace falta duplicar la llamada cruda a la\r\nAPI de Drive: `EvidenciaStorageInterface::descargarContenido()` ya\r\nes el método del contrato común, implementado tanto por\r\nGoogleDriveService como por AlmacenamientoLocalService."
+        },
         {
             "name": "I1 - Malla Curricular",
             "description": "uardar).\r\n\r\nLos otros 4 endpoints de api/carreras/ (listar/crear/actualizar/\r\neliminar) son administración genérica de la entidad Carrera, no del\r\nindicador I1 en sí, y quedan fuera del alcance de esta migración -- ver\r\nMallaCurricularRepository.\r\n\r\nA diferencia de todos los indicadores ya migrados, guardar() exige rol\r\n\"administrador\" además de sesión activa (403 si no lo es), tal como\r\nhacía guardar_malla.php original. SessionAuthMiddleware solo cubre el\r\n401 (sesión no activa); el chequeo de rol se hace acá porque ningún\r\notro indicador lo necesita y agregarlo al middleware compartido\r\nsignificaría una condición que solo aplicaría a esta única ruta.\r\n\r\nLas anotaciones OpenAPI de cada método (Fase 3, hallazgo 1.2.7) se\r\ngeneran a openapi.json con `composer generate-openapi` -- ver\r\nsrc/OpenApi/Definition.php para la info general del documento. Igual\r\nque con I2/I4, la regeneración de openapi.json en sí queda pendiente de\r\nesta sesión (requiere Composer con acceso a packagist.org, no\r\ndisponible en el sandbox de Claude)."
