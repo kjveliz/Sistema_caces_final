@@ -23,14 +23,14 @@ final class LogoutTest extends IntegrationTestCase
         $login = $this->loguearComo('administrador@demo.local');
         $this->assertSame(200, $login['status']);
 
-        $antesDeLogout = $this->peticion('GET', '/api/auth/Me.php');
+        $antesDeLogout = $this->peticion('GET', '/auth/me');
         $this->assertSame(200, $antesDeLogout['status']);
 
         $logout = $this->peticion('POST', '/auth/logout');
         $this->assertSame(200, $logout['status']);
         $this->assertTrue($logout['json']['ok']);
 
-        $despuesDeLogout = $this->peticion('GET', '/api/auth/Me.php');
+        $despuesDeLogout = $this->peticion('GET', '/auth/me');
         $this->assertSame(401, $despuesDeLogout['status']);
     }
 

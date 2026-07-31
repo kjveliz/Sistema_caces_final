@@ -33,7 +33,9 @@ interface MeResponse {
  */
 export async function verificarSesion(): Promise<UsuarioSesion | null> {
   try {
-    const respuesta = await fetch('http://localhost/sistemacaces/api/auth/Me.php', {
+    // Ruta de Slim (Parte 3 del plan de migración de PHP suelto -- ver
+    // plan_migracion_slim_legacy_v3.txt §3), reemplaza a api/auth/Me.php.
+    const respuesta = await fetch('http://localhost/sistemacaces/public/auth/me', {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -83,9 +85,9 @@ export async function iniciarSesion(
 ): Promise<LoginResponse & { usuario: UsuarioSesion }> {
   // Ruta de Slim (Parte 1 del plan de migración de PHP suelto -- ver
   // plan_migracion_slim_legacy_v3.txt §3), reemplaza a
-  // api/auth/login.php. cerrarSesion() de arriba ya apunta también a Slim
-  // (Parte 2); verificarSesion() sigue en el legacy hasta que Me.php se
-  // migre en la Parte 3.
+  // api/auth/login.php. cerrarSesion() y verificarSesion() de arriba ya
+  // apuntan también a Slim (Partes 2 y 3) -- el Grupo A del plan queda
+  // completo con esto.
   const respuesta = await fetch('http://localhost/sistemacaces/public/auth/login', {
     method: 'POST',
     credentials: 'include',

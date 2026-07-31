@@ -18,7 +18,7 @@
                     "Autenticación"
                 ],
                 "summary": "Inicia sesión con correo y contraseña.",
-                "description": "POST /auth/login (JSON: correo, contrasena) — misma lógica exacta\r\nque api/auth/Login.php: valida credenciales, rechaza cuentas\r\ndesactivadas, y si todo está bien arranca la sesión de PHP\r\n($_SESSION['id_usuario']/['correo']/['rol']) con\r\nsession_regenerate_id(true), igual que el original.",
+                "description": "POST /auth/login (JSON: correo, contrasena) — misma lógica exacta\nque api/auth/Login.php: valida credenciales, rechaza cuentas\ndesactivadas, y si todo está bien arranca la sesión de PHP\n($_SESSION['id_usuario']/['correo']/['rol']) con\nsession_regenerate_id(true), igual que el original.",
                 "operationId": "363e422b5a8c763fa1ea6fd03a77481d",
                 "requestBody": {
                     "required": true,
@@ -109,7 +109,7 @@
                     "Autenticación"
                 ],
                 "summary": "Cierra la sesión activa (si la hay).",
-                "description": "POST /auth/logout — misma lógica exacta que api/auth/Logout.php\r\n(Parte 2 del Grupo A): destruye la sesión de PHP, incluida la cookie\r\ndel navegador, y siempre devuelve 200/ok aunque no haya sesión\r\nactiva (llamar a logout sin sesión no es un error). Sin\r\nSessionAuthMiddleware a propósito: el original nunca valida\r\n$_SESSION['id_usuario'] antes de destruir, mismo criterio del plan\r\nde no tocar lógica de negocio al migrar arquitectura.",
+                "description": "POST /auth/logout — misma lógica exacta que api/auth/Logout.php\n(Parte 2 del Grupo A): destruye la sesión de PHP, incluida la cookie\ndel navegador, y siempre devuelve 200/ok aunque no haya sesión\nactiva (llamar a logout sin sesión no es un error). Sin\nSessionAuthMiddleware a propósito: el original nunca valida\n$_SESSION['id_usuario'] antes de destruir, mismo criterio del plan\nde no tocar lógica de negocio al migrar arquitectura.",
                 "operationId": "e39ef4c513f6d25e947a67cab73e4b5b",
                 "responses": {
                     "200": {
@@ -133,13 +133,68 @@
                 }
             }
         },
+        "/auth/me": {
+            "get": {
+                "tags": [
+                    "Autenticación"
+                ],
+                "summary": "Devuelve el usuario de la sesión activa.",
+                "description": "GET /auth/me — misma lógica exacta que api/auth/Me.php (Parte 3 del\nGrupo A, última del grupo): devuelve el usuario de la sesión activa.\nEl chequeo de \"hay sesión\" (401 si no) lo hace SessionAuthMiddleware\nen la ruta -- mismo mensaje exacto que el original. Acá solo queda\nel segundo chequeo, propio de este endpoint: el usuario pudo haber\nsido eliminado o desactivado después de loguearse (ej. un\nadministrador lo desactiva mientras la cookie del navegador sigue\nviva) -- en ese caso también se invalida la sesión y se devuelve\n401, igual que el original.",
+                "operationId": "e915e82da771b3c813134c1fa5d9c4cf",
+                "responses": {
+                    "200": {
+                        "description": "Sesión activa.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "usuario": {
+                                            "properties": {
+                                                "id_usuario": {
+                                                    "type": "integer"
+                                                },
+                                                "nombres": {
+                                                    "type": "string"
+                                                },
+                                                "apellidos": {
+                                                    "type": "string"
+                                                },
+                                                "correo": {
+                                                    "type": "string"
+                                                },
+                                                "rol": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "administrador",
+                                                        "coordinador",
+                                                        "evaluador"
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "La sesión no está activa."
+                    }
+                }
+            }
+        },
         "/carreras/{id}/almacenamiento": {
             "put": {
                 "tags": [
                     "Carreras — almacenamiento"
                 ],
                 "summary": "Cambia el modo de almacenamiento (Drive/local) de una carrera y migra su evidencia ya subida al nuevo destino.",
-                "description": "PUT /carreras/{id}/almacenamiento (JSON: modo_almacenamiento, ruta_local?)\r\n— requiere sesión (SessionAuthMiddleware) + rol administrador o\r\ncoordinador. Migra TODA la evidencia ya subida de la carrera al\r\nnuevo destino antes de confirmar el cambio; ver\r\nEvidenciaMigradorService para el contrato síncrono/todo-o-nada.",
+                "description": "PUT /carreras/{id}/almacenamiento (JSON: modo_almacenamiento, ruta_local?)\n— requiere sesión (SessionAuthMiddleware) + rol administrador o\ncoordinador. Migra TODA la evidencia ya subida de la carrera al\nnuevo destino antes de confirmar el cambio; ver\nEvidenciaMigradorService para el contrato síncrono/todo-o-nada.",
                 "operationId": "000072f1fe2f6a09525ea921d93ddbea",
                 "parameters": [
                     {
@@ -497,7 +552,7 @@
                     "Carreras (administración)"
                 ],
                 "summary": "Elimina forzadamente una carrera y toda su cadena relacionada (evaluaciones, cohortes, períodos, asignaturas, evidencia). Herramienta de desarrollo/pruebas.",
-                "description": "POST /carreras/eliminar-forzada (JSON: id_carrera) — requiere sesión +\r\nrol administrador. Herramienta de desarrollo/pruebas: a diferencia de\r\neliminar(), NO se bloquea por contarEvaluaciones() -- borra en\r\ncascada evaluaciones, cohortes, períodos, asignaturas y evidencia\r\nrelacionada (ver CarrerasRepository::eliminarForzadaEnCascada()).\r\nSolo borra filas de la BD; los archivos ya subidos a Drive/local\r\nquedan huérfanos a propósito. Misma restricción de acceso que\r\neliminar() (rol administrador), sin ninguna restricción adicional\r\nsobre qué carreras admite.",
+                "description": "POST /carreras/eliminar-forzada (JSON: id_carrera) — requiere sesión +\nrol administrador. Herramienta de desarrollo/pruebas: a diferencia de\neliminar(), NO se bloquea por contarEvaluaciones() -- borra en\ncascada evaluaciones, cohortes, períodos, asignaturas y evidencia\nrelacionada (ver CarrerasRepository::eliminarForzadaEnCascada()).\nSolo borra filas de la BD; los archivos ya subidos a Drive/local\nquedan huérfanos a propósito. Misma restricción de acceso que\neliminar() (rol administrador), sin ninguna restricción adicional\nsobre qué carreras admite.",
                 "operationId": "f492639047de50c4f39a9e8d0717ca28",
                 "requestBody": {
                     "required": true,
@@ -565,7 +620,7 @@
                     "Evidencia de asignatura — visor"
                 ],
                 "summary": "Sirve el contenido de una evidencia de evidencia_asignatura (I2/I3), sin importar si está en Drive o en almacenamiento local.",
-                "description": "GET /evidencia-asignatura/ver?id_evidencia_asig= — requiere sesión\r\n(SessionAuthMiddleware, 401). Sirve el contenido real del archivo\r\n(PDF o CSV), sin importar si terminó en Google Drive o en\r\nalmacenamiento local.",
+                "description": "GET /evidencia-asignatura/ver?id_evidencia_asig= — requiere sesión\n(SessionAuthMiddleware, 401). Sirve el contenido real del archivo\n(PDF o CSV), sin importar si terminó en Google Drive o en\nalmacenamiento local.",
                 "operationId": "4b58bdbea71f5ec965ed4f5bb797b7f6",
                 "parameters": [
                     {
@@ -813,7 +868,7 @@
                     "I2 - Seguimiento Syllabus"
                 ],
                 "summary": "Borra en cascada una cohorte (evidencia DOC.SYL.01 asociada, asignaturas, períodos y evaluación).",
-                "description": "DELETE /seguimiento-syllabus/cohortes/{id} — borra en cascada una\r\ncohorte creada por el flujo de malla curricular en .xlsx (ver\r\nplan_malla_curricular_xlsx.txt §9.5 Parte A). Pensado como\r\nrollback cuando falla un paso posterior (crear períodos o\r\nasignaturas) del mismo flujo, y como acción manual de limpieza en\r\n\"Gestión de cohortes\".",
+                "description": "DELETE /seguimiento-syllabus/cohortes/{id} — borra en cascada una\ncohorte creada por el flujo de malla curricular en .xlsx (ver\nplan_malla_curricular_xlsx.txt §9.5 Parte A). Pensado como\nrollback cuando falla un paso posterior (crear períodos o\nasignaturas) del mismo flujo, y como acción manual de limpieza en\n\"Gestión de cohortes\".",
                 "operationId": "1b00bf2365c50ef0ecf1dada427507a8",
                 "parameters": [
                     {
@@ -884,7 +939,7 @@
                     "I2 - Seguimiento Syllabus"
                 ],
                 "summary": "Elimina forzadamente una cohorte y toda su cadena relacionada, aunque tenga evidencia real. Herramienta de desarrollo/pruebas.",
-                "description": "POST /seguimiento-syllabus/cohortes/eliminar-forzada (json: id_cohorte) — borra una\r\ncohorte y toda su cadena relacionada aunque tenga evidencia real, es decir, aunque\r\n`cohorteEliminar()` hubiera devuelto 409. Mismo criterio que\r\n`CarrerasController::eliminarForzada()` (herramienta de desarrollo/pruebas, exige rol\r\nadministrador, sin ninguna restricción adicional sobre qué cohortes admite).",
+                "description": "POST /seguimiento-syllabus/cohortes/eliminar-forzada (json: id_cohorte) — borra una\ncohorte y toda su cadena relacionada aunque tenga evidencia real, es decir, aunque\n`cohorteEliminar()` hubiera devuelto 409. Mismo criterio que\n`CarrerasController::eliminarForzada()` (herramienta de desarrollo/pruebas, exige rol\nadministrador, sin ninguna restricción adicional sobre qué cohortes admite).",
                 "operationId": "4f1784a6444341cfc67dd9628de746cc",
                 "requestBody": {
                     "required": true,
@@ -2159,39 +2214,39 @@
     "tags": [
         {
             "name": "Autenticación",
-            "description": "te).\r\n\r\nOJO — desvío intencional del formato {ok, mensaje, datos} que usan el\r\nresto de los controllers ya migrados: login() sigue devolviendo la clave\r\n\"usuario\" (no \"datos\"), igual que el Login.php original, porque\r\nfrontend/src/shared/services/auth.ts y tests/Integration/Auth/*.php ya\r\nleen esa clave específica. Cambiarla a \"datos\" sería tocar un contrato\r\nque ningún llamador pidió cambiar (fuera de alcance del plan, ver §4:\r\n\"NO se toca la lógica de negocio de ningún endpoint más allá de lo\r\n * estrictamente necesario para moverlo de arquitectura\")."
+            "description": "OJO — desvío intencional del formato {ok, mensaje, datos} que usan el\nresto de los controllers ya migrados: login() sigue devolviendo la clave\n\"usuario\" (no \"datos\"), igual que el Login.php original, porque\nfrontend/src/shared/services/auth.ts y tests/Integration/Auth/*.php ya\nleen esa clave específica. Cambiarla a \"datos\" sería tocar un contrato\nque ningún llamador pidió cambiar (fuera de alcance del plan, ver §4:\n\"NO se toca la lógica de negocio de ningún endpoint más allá de lo\n * estrictamente necesario para moverlo de arquitectura\")."
         },
         {
             "name": "Carreras — almacenamiento",
-            "description": "ce.\r\n\r\nRestringido a administrador/coordinador, mismo patrón de chequeo de rol\r\nen el controller (vía $_SESSION['rol']) que ya usa CarrerasController\r\npara actualizar()/eliminar(), pero con `in_array` en vez de una sola\r\ncomparación porque acá SÍ son dos roles permitidos (ver plan §3.2)."
+            "description": "Restringido a administrador/coordinador, mismo patrón de chequeo de rol\nen el controller (vía $_SESSION['rol']) que ya usa CarrerasController\npara actualizar()/eliminar(), pero con `in_array` en vez de una sola\ncomparación porque acá SÍ son dos roles permitidos (ver plan §3.2)."
         },
         {
             "name": "Carreras (administración)",
-            "description": "a en sí.\r\n\r\nMismas asimetrías del código original, preservadas a propósito (no se\r\ncorrigen acá, fuera de alcance de esta migración): crear() no exige\r\nsesión ni rol; actualizar() y eliminar() sí exigen sesión (401, vía\r\nSessionAuthMiddleware) y rol administrador (403, chequeado acá dentro,\r\nmismo patrón que MallaCurricularController::guardar())."
+            "description": "Mismas asimetrías del código original, preservadas a propósito (no se\ncorrigen acá, fuera de alcance de esta migración): crear() no exige\nsesión ni rol; actualizar() y eliminar() sí exigen sesión (401, vía\nSessionAuthMiddleware) y rol administrador (403, chequeado acá dentro,\nmismo patrón que MallaCurricularController::guardar())."
         },
         {
             "name": "Evidencia de asignatura — visor",
-            "description": "/§68.2.\r\n\r\nMismo criterio que `ver_archivo.php` para decidir el origen real\r\n(EvidenciaStorageResolver::resolverParaDescarga(), por la FORMA de\r\n`url_archivo`, no por el `modo_almacenamiento` actual de la carrera:\r\nuna evidencia ya subida sigue viviendo donde se subió aunque después\r\nse cambie el interruptor sin volver a migrar). A diferencia de\r\n`ver_archivo.php`, acá no hace falta duplicar la llamada cruda a la\r\nAPI de Drive: `EvidenciaStorageInterface::descargarContenido()` ya\r\nes el método del contrato común, implementado tanto por\r\nGoogleDriveService como por AlmacenamientoLocalService."
+            "description": "Mismo criterio que `ver_archivo.php` para decidir el origen real\n(EvidenciaStorageResolver::resolverParaDescarga(), por la FORMA de\n`url_archivo`, no por el `modo_almacenamiento` actual de la carrera:\nuna evidencia ya subida sigue viviendo donde se subió aunque después\nse cambie el interruptor sin volver a migrar). A diferencia de\n`ver_archivo.php`, acá no hace falta duplicar la llamada cruda a la\nAPI de Drive: `EvidenciaStorageInterface::descargarContenido()` ya\nes el método del contrato común, implementado tanto por\nGoogleDriveService como por AlmacenamientoLocalService."
         },
         {
             "name": "I1 - Malla Curricular",
-            "description": "uardar).\r\n\r\nLos otros 4 endpoints de api/carreras/ (listar/crear/actualizar/\r\neliminar) son administración genérica de la entidad Carrera, no del\r\nindicador I1 en sí, y quedan fuera del alcance de esta migración -- ver\r\nMallaCurricularRepository.\r\n\r\nA diferencia de todos los indicadores ya migrados, guardar() exige rol\r\n\"administrador\" además de sesión activa (403 si no lo es), tal como\r\nhacía guardar_malla.php original. SessionAuthMiddleware solo cubre el\r\n401 (sesión no activa); el chequeo de rol se hace acá porque ningún\r\notro indicador lo necesita y agregarlo al middleware compartido\r\nsignificaría una condición que solo aplicaría a esta única ruta.\r\n\r\nLas anotaciones OpenAPI de cada método (Fase 3, hallazgo 1.2.7) se\r\ngeneran a openapi.json con `composer generate-openapi` -- ver\r\nsrc/OpenApi/Definition.php para la info general del documento. Igual\r\nque con I2/I4, la regeneración de openapi.json en sí queda pendiente de\r\nesta sesión (requiere Composer con acceso a packagist.org, no\r\ndisponible en el sandbox de Claude)."
+            "description": "Los otros 4 endpoints de api/carreras/ (listar/crear/actualizar/\neliminar) son administración genérica de la entidad Carrera, no del\nindicador I1 en sí, y quedan fuera del alcance de esta migración -- ver\nMallaCurricularRepository.\n\nA diferencia de todos los indicadores ya migrados, guardar() exige rol\n\"administrador\" además de sesión activa (403 si no lo es), tal como\nhacía guardar_malla.php original. SessionAuthMiddleware solo cubre el\n401 (sesión no activa); el chequeo de rol se hace acá porque ningún\notro indicador lo necesita y agregarlo al middleware compartido\nsignificaría una condición que solo aplicaría a esta única ruta.\n\nLas anotaciones OpenAPI de cada método (Fase 3, hallazgo 1.2.7) se\ngeneran a openapi.json con `composer generate-openapi` -- ver\nsrc/OpenApi/Definition.php para la info general del documento. Igual\nque con I2/I4, la regeneración de openapi.json en sí queda pendiente de\nesta sesión (requiere Composer con acceso a packagist.org, no\ndisponible en el sandbox de Claude)."
         },
         {
             "name": "I2 - Seguimiento Syllabus",
-            "description": " I3).\r\n\r\n'materias_encuesta.php' (deprecado, ver MEMORIA v18) NO se migra: ya\r\ndevolvía una lista vacía sin lógica real y, confirmado contra\r\nfrontend/src/services/seguimientoSyllabus.ts, ningún llamador del\r\nfrontend lo usa.\r\n\r\nLas anotaciones OpenAPI de cada método (Fase 3, hallazgo 1.2.7) se\r\ngeneran a openapi.json con `composer generate-openapi` — ver\r\nsrc/OpenApi/Definition.php para la info general del documento. Único\r\nendpoint protegido: evidencia-subir (SessionAuthMiddleware, 401), igual\r\nchequeo que evidencia-subir de I3 y guardar de I4/I5."
+            "description": "'materias_encuesta.php' (deprecado, ver MEMORIA v18) NO se migra: ya\ndevolvía una lista vacía sin lógica real y, confirmado contra\nfrontend/src/services/seguimientoSyllabus.ts, ningún llamador del\nfrontend lo usa.\n\nLas anotaciones OpenAPI de cada método (Fase 3, hallazgo 1.2.7) se\ngeneran a openapi.json con `composer generate-openapi` — ver\nsrc/OpenApi/Definition.php para la info general del documento. Único\nendpoint protegido: evidencia-subir (SessionAuthMiddleware, 401), igual\nchequeo que evidencia-subir de I3 y guardar de I4/I5."
         },
         {
             "name": "I4 - Tasa de Deserción",
-            "description": "/v64).\r\n\r\nIgual que I5, I4 no maneja subida de evidencia PDF a Google Drive en sus\r\npropios endpoints: eso lo hacen los endpoints genéricos api/evidencias/*\r\n+ api/google_drive/*, que no se tocan en esta migración. Por eso no hay\r\ndependencia de GoogleDriveService aquí.\r\n\r\nLa escritura cruzada I5→I4 (subir el PDF de matriculados de primer nivel\r\nde I5 también registra el dato inicial de I4) vive en el frontend\r\n(EvidenceUploadView.tsx, procesarPdf()), no en este controlador -- ver\r\nMEMORIA §14.3. No se toca en esta migración; solo cambia la URL base que\r\nese código ya llama (guardarDatoDesercion() en\r\nfrontend/src/services/evidencias.ts), actualizada junto con este\r\ncontrolador.\r\n\r\nLas anotaciones OpenAPI de cada método (Fase 3, hallazgo 1.2.7) se\r\ngeneran a openapi.json con `composer generate-openapi` -- ver\r\nsrc/OpenApi/Definition.php para la info general del documento. Nota:\r\nigual que con I2 (ver MEMORIA v67 §44.7 punto 1), la regeneración de\r\nopenapi.json en sí queda pendiente de esta sesión (requiere Composer con\r\nacceso a packagist.org, no disponible en el sandbox de Claude)."
+            "description": "Igual que I5, I4 no maneja subida de evidencia PDF a Google Drive en sus\npropios endpoints: eso lo hacen los endpoints genéricos api/evidencias/*\n+ api/google_drive/*, que no se tocan en esta migración. Por eso no hay\ndependencia de GoogleDriveService aquí.\n\nLa escritura cruzada I5→I4 (subir el PDF de matriculados de primer nivel\nde I5 también registra el dato inicial de I4) vive en el frontend\n(EvidenceUploadView.tsx, procesarPdf()), no en este controlador -- ver\nMEMORIA §14.3. No se toca en esta migración; solo cambia la URL base que\nese código ya llama (guardarDatoDesercion() en\nfrontend/src/services/evidencias.ts), actualizada junto con este\ncontrolador.\n\nLas anotaciones OpenAPI de cada método (Fase 3, hallazgo 1.2.7) se\ngeneran a openapi.json con `composer generate-openapi` -- ver\nsrc/OpenApi/Definition.php para la info general del documento. Nota:\nigual que con I2 (ver MEMORIA v67 §44.7 punto 1), la regeneración de\nopenapi.json en sí queda pendiente de esta sesión (requiere Composer con\nacceso a packagist.org, no disponible en el sandbox de Claude)."
         },
         {
             "name": "I5 - Tasa de Titulación",
-            "description": "ora).\r\n\r\nA diferencia de I3, I5 no maneja subida de evidencia PDF a Google Drive\r\nen sus propios endpoints: eso lo hacen los endpoints genéricos\r\napi/evidencias/* + api/google_drive/*, que no se tocan en esta\r\nmigración. Por eso no hay dependencia de GoogleDriveService aquí.\r\n\r\nLas anotaciones OpenAPI de cada método (Fase 3, hallazgo 1.2.7) se\r\ngeneran a openapi.json con `composer generate-openapi` — ver\r\nsrc/OpenApi/Definition.php para la info general del documento."
+            "description": "A diferencia de I3, I5 no maneja subida de evidencia PDF a Google Drive\nen sus propios endpoints: eso lo hacen los endpoints genéricos\napi/evidencias/* + api/google_drive/*, que no se tocan en esta\nmigración. Por eso no hay dependencia de GoogleDriveService aquí.\n\nLas anotaciones OpenAPI de cada método (Fase 3, hallazgo 1.2.7) se\ngeneran a openapi.json con `composer generate-openapi` — ver\nsrc/OpenApi/Definition.php para la info general del documento."
         },
         {
             "name": "I3 - Tutorías Académicas",
-            "description": "2.1).\r\n\r\nLas anotaciones OpenAPI de cada método (Fase 3, hallazgo 1.2.7) se\r\ngeneran a openapi.json con `composer generate-openapi` — ver\r\nsrc/OpenApi/Definition.php para la info general del documento."
+            "description": "Las anotaciones OpenAPI de cada método (Fase 3, hallazgo 1.2.7) se\ngeneran a openapi.json con `composer generate-openapi` — ver\nsrc/OpenApi/Definition.php para la info general del documento."
         }
     ]
 }

@@ -12,10 +12,10 @@ use Throwable;
 
 /**
  * Controlador del Grupo A (Autenticación) del plan de migración de PHP
- * suelto a Slim (ver plan_migracion_slim_legacy_v3.txt §1/§3). Arrancó en
- * la Parte 1 reemplazando a api/auth/Login.php; logout() se agrega en la
- * Parte 2 (reemplaza a api/auth/Logout.php); me() llega en la Parte 3
- * (mismo criterio de siempre: Controller nuevo por grupo, no por Parte).
+ * suelto a Slim (ver plan_migracion_slim_legacy_v3.txt §1/§3). Completo:
+ * login() (Parte 1, reemplaza a Login.php), logout() (Parte 2, reemplaza a
+ * Logout.php) y me() (Parte 3, reemplaza a Me.php) -- las 3 Partes del
+ * grupo.
  *
  * OJO — desvío intencional del formato {ok, mensaje, datos} que usan el
  * resto de los controllers ya migrados: login() sigue devolviendo la clave
@@ -186,5 +186,74 @@ final class AuthController
         session_destroy();
 
         return $this->json($response, true, 'Sesión cerrada correctamente.');
+    }
+
+    /**
+     * GET /auth/me — misma lógica exacta que api/auth/Me.php (Parte 3 del
+     * Grupo A, última del grupo): devuelve el usuario de la sesión activa.
+     * El chequeo de "hay sesión" (401 si no) lo hace SessionAuthMiddleware
+     * en la ruta -- mismo mensaje exacto que el original. Acá solo queda
+     * el segundo chequeo, propio de este endpoint: el usuario pudo haber
+     * sido eliminado o desactivado después de loguearse (ej. un
+     * administrador lo desactiva mientras la cookie del navegador sigue
+     * viva) -- en ese caso también se invalida la sesión y se devuelve
+     * 401, igual que el original.
+     */
+    #[OA\Get(
+        path: '/auth/me',
+        summary: 'Devuelve el usuario de la sesión activa.',
+        tags: ['Autenticación'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Sesión activa.',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'usuario', properties: [
+                        new OA\Property(property: 'id_usuario', type: 'integer'),
+                        new OA\Property(property: 'nombres', type: 'string'),
+                        new OA\Property(property: 'apellidos', type: 'string'),
+                        new OA\Property(property: 'correo', type: 'string'),
+                        new OA\Property(property: 'rol', type: 'string', enum: ['administrador', 'coordinador', 'evaluador']),
+                    ], type: 'object'),
+                ]),
+            ),
+            new OA\Response(response: 401, description: 'La sesión no está activa.'),
+        ],
+    )]
+    public function me(Request $request, Response $response): Response
+    {
+        $idSesion = (int) ($_SESSION['id_usuario'] ?? 0);
+
+        try {
+            $usuario = $this->repositorio->usuarioPorId($idSesion);
+        } catch (Throwable $e) {
+            return $this->json($response, false, 'No se pudo preparar la consulta.', ['detalle' => $e->getMessage()], 500);
+        }
+
+        if (!$usuario || $usuario['activo'] !== 1) {
+            $_SESSION = [];
+            session_destroy();
+
+            return $this->json($response, false, 'La sesión no está activa.', [], 401);
+        }
+
+        // A diferencia de login()/logout(), el Me.php original NO incluye
+        // la clave "mensaje" en la respuesta exitosa -- se arma a mano acá
+        // en vez de reusar json() para no agregar "mensaje": null de más
+        // (mismo criterio de "misma lógica exacta" del resto de esta
+        // migración).
+        $response->getBody()->write(json_encode([
+            'ok' => true,
+            'usuario' => [
+                'id_usuario' => $usuario['id_usuario'],
+                'nombres' => $usuario['nombres'],
+                'apellidos' => $usuario['apellidos'],
+                'correo' => $usuario['correo'],
+                'rol' => $usuario['rol'],
+            ],
+        ], JSON_UNESCAPED_UNICODE));
+
+        return $response->withHeader('Content-Type', 'application/json; charset=utf-8')->withStatus(200);
     }
 }

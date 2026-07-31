@@ -28,7 +28,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // sesión desde el backend en vez de arrancar siempre en null: el usuario
   // sigue en memoria de React, pero la fuente de verdad de si la sesión
   // sigue activa es la cookie PHPSESSID que ya maneja el backend (ver
-  // api/auth/Me.php), no localStorage/sessionStorage.
+  // verificarSesion() en shared/services/auth.ts, GET /auth/me), no
+  // localStorage/sessionStorage.
   useEffect(() => {
     let cancelado = false;
 
