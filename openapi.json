@@ -1024,6 +1024,115 @@
                 ]
             }
         },
+        "/evidencias/preparar-pdf": {
+            "post": {
+                "tags": [
+                    "Evidencias (I1/I4/I5)"
+                ],
+                "summary": "Valida un archivo (PDF o CSV según el slot) y genera su nombre técnico final.",
+                "description": "POST /evidencias/preparar-pdf (multipart: archivo, id_catalogo,\ncodigo_carrera, cohorte, criterio, indicador) — misma lógica exacta\nque api/evidencias/preparar_pdf.php: valida el archivo subido (PDF en\ngeneral, CSV solo para el slot DOC.SEG.05 -- identificado por\ncodigo_evidencia de servidor, no por lo que mande el cliente, mismo\ncriterio que el original) y arma el nombre técnico\nCARRERA.COHORTE.C{criterio}.{indicador}.{orden}.{base}.{ext} que\ndespués usa subirPdfGoogleDrive() para el nombre final. No requiere\nsesión, mismo criterio que el original (no valida\n$_SESSION['id_usuario']). Parte 8 del plan de migración de PHP suelto\na Slim (quinta y última del Grupo B).",
+                "operationId": "8535860058a5755e0a826e30a9c7576d",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "archivo",
+                                    "id_catalogo",
+                                    "codigo_carrera",
+                                    "cohorte",
+                                    "criterio",
+                                    "indicador"
+                                ],
+                                "properties": {
+                                    "archivo": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    },
+                                    "id_catalogo": {
+                                        "type": "integer"
+                                    },
+                                    "codigo_carrera": {
+                                        "type": "string",
+                                        "example": "DESSOF"
+                                    },
+                                    "cohorte": {
+                                        "type": "string",
+                                        "example": "A2026"
+                                    },
+                                    "criterio": {
+                                        "type": "integer"
+                                    },
+                                    "indicador": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Archivo validado y nombre técnico generado correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "mensaje": {
+                                            "type": "string"
+                                        },
+                                        "datos": {
+                                            "properties": {
+                                                "id_catalogo": {
+                                                    "type": "integer"
+                                                },
+                                                "codigo_evidencia": {
+                                                    "type": "string"
+                                                },
+                                                "titulo_corto": {
+                                                    "type": "string"
+                                                },
+                                                "descripcion": {
+                                                    "type": "string"
+                                                },
+                                                "nombre_original": {
+                                                    "type": "string"
+                                                },
+                                                "nombre_generado": {
+                                                    "type": "string"
+                                                },
+                                                "tipo": {
+                                                    "type": "string"
+                                                },
+                                                "tamano": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Faltan datos, no se recibió archivo, error al recibirlo, supera 25 MB, o no es un PDF/CSV válido."
+                    },
+                    "404": {
+                        "description": "La evidencia seleccionada no existe o está inactiva."
+                    },
+                    "500": {
+                        "description": "No se pudo preparar la consulta."
+                    }
+                }
+            }
+        },
         "/malla-curricular/obtener": {
             "get": {
                 "tags": [
@@ -2597,7 +2706,7 @@
         },
         {
             "name": "Evidencias (I1/I4/I5)",
-            "description": "Parte 5 agrega compartidas() (reemplaza a\napi/evidencias/obtener_compartidas.php). Parte 6 agrega\nleerMatriculados() (reemplaza a api/evidencias/leer_matriculados.php) --\na diferencia de las dos anteriores, no usa EvidenciasRepository (no toca\nBD, es puramente lectura de PDF -> datos), por eso el constructor sigue\npidiendo el repositorio aunque este método no lo use. Parte 7 agrega\nguardar() (reemplaza a api/evidencias/guardar_evidencia.php), cuarta y\núltima Parte del Grupo B -- vuelve a usar EvidenciasRepository."
+            "description": "Parte 5 agrega compartidas() (reemplaza a\napi/evidencias/obtener_compartidas.php). Parte 6 agrega\nleerMatriculados() (reemplaza a api/evidencias/leer_matriculados.php) --\na diferencia de las dos anteriores, no usa EvidenciasRepository (no toca\nBD, es puramente lectura de PDF -> datos), por eso el constructor sigue\npidiendo el repositorio aunque este método no lo use. Parte 7 agrega\nguardar() (reemplaza a api/evidencias/guardar_evidencia.php), cuarta\nParte del Grupo B -- vuelve a usar EvidenciasRepository. Parte 8 agrega\nprepararPdf() (reemplaza a api/evidencias/preparar_pdf.php), quinta y\núltima Parte del Grupo B."
         },
         {
             "name": "I1 - Malla Curricular",

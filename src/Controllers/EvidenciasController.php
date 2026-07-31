@@ -24,8 +24,10 @@ use Throwable;
  * a diferencia de las dos anteriores, no usa EvidenciasRepository (no toca
  * BD, es puramente lectura de PDF -> datos), por eso el constructor sigue
  * pidiendo el repositorio aunque este método no lo use. Parte 7 agrega
- * guardar() (reemplaza a api/evidencias/guardar_evidencia.php), cuarta y
- * última Parte del Grupo B -- vuelve a usar EvidenciasRepository.
+ * guardar() (reemplaza a api/evidencias/guardar_evidencia.php), cuarta
+ * Parte del Grupo B -- vuelve a usar EvidenciasRepository. Parte 8 agrega
+ * prepararPdf() (reemplaza a api/evidencias/preparar_pdf.php), quinta y
+ * última Parte del Grupo B.
  */
 #[OA\Tag(name: 'Evidencias (I1/I4/I5)')]
 final class EvidenciasController
@@ -435,6 +437,183 @@ final class EvidenciasController
         return $this->json($response, true, 'Evidencia guardada correctamente.', [
             'id_evidencia' => $resultado['id_evidencia'],
             'relaciones_compartidas' => $resultado['relaciones_compartidas'],
+        ]);
+    }
+
+    /**
+     * POST /evidencias/preparar-pdf (multipart: archivo, id_catalogo,
+     * codigo_carrera, cohorte, criterio, indicador) — misma lógica exacta
+     * que api/evidencias/preparar_pdf.php: valida el archivo subido (PDF en
+     * general, CSV solo para el slot DOC.SEG.05 -- identificado por
+     * codigo_evidencia de servidor, no por lo que mande el cliente, mismo
+     * criterio que el original) y arma el nombre técnico
+     * CARRERA.COHORTE.C{criterio}.{indicador}.{orden}.{base}.{ext} que
+     * después usa subirPdfGoogleDrive() para el nombre final. No requiere
+     * sesión, mismo criterio que el original (no valida
+     * $_SESSION['id_usuario']). Parte 8 del plan de migración de PHP suelto
+     * a Slim (quinta y última del Grupo B).
+     */
+    #[OA\Post(
+        path: '/evidencias/preparar-pdf',
+        summary: 'Valida un archivo (PDF o CSV según el slot) y genera su nombre técnico final.',
+        tags: ['Evidencias (I1/I4/I5)'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: 'multipart/form-data',
+                schema: new OA\Schema(
+                    required: ['archivo', 'id_catalogo', 'codigo_carrera', 'cohorte', 'criterio', 'indicador'],
+                    properties: [
+                        new OA\Property(property: 'archivo', type: 'string', format: 'binary'),
+                        new OA\Property(property: 'id_catalogo', type: 'integer'),
+                        new OA\Property(property: 'codigo_carrera', type: 'string', example: 'DESSOF'),
+                        new OA\Property(property: 'cohorte', type: 'string', example: 'A2026'),
+                        new OA\Property(property: 'criterio', type: 'integer'),
+                        new OA\Property(property: 'indicador', type: 'integer'),
+                    ],
+                ),
+            ),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Archivo validado y nombre técnico generado correctamente.',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'mensaje', type: 'string'),
+                    new OA\Property(property: 'datos', type: 'object', properties: [
+                        new OA\Property(property: 'id_catalogo', type: 'integer'),
+                        new OA\Property(property: 'codigo_evidencia', type: 'string'),
+                        new OA\Property(property: 'titulo_corto', type: 'string'),
+                        new OA\Property(property: 'descripcion', type: 'string'),
+                        new OA\Property(property: 'nombre_original', type: 'string'),
+                        new OA\Property(property: 'nombre_generado', type: 'string'),
+                        new OA\Property(property: 'tipo', type: 'string'),
+                        new OA\Property(property: 'tamano', type: 'integer'),
+                    ]),
+                ]),
+            ),
+            new OA\Response(response: 400, description: 'Faltan datos, no se recibió archivo, error al recibirlo, supera 25 MB, o no es un PDF/CSV válido.'),
+            new OA\Response(response: 404, description: 'La evidencia seleccionada no existe o está inactiva.'),
+            new OA\Response(response: 500, description: 'No se pudo preparar la consulta.'),
+        ],
+    )]
+    public function prepararPdf(Request $request, Response $response): Response
+    {
+        $datos = $request->getParsedBody();
+        $datos = is_array($datos) ? $datos : [];
+
+        $idCatalogo = (int) ($datos['id_catalogo'] ?? 0);
+
+        $codigoCarrera = strtoupper((string) preg_replace(
+            '/[^A-Z0-9]/',
+            '',
+            trim((string) ($datos['codigo_carrera'] ?? '')),
+        ));
+
+        $cohorte = strtoupper((string) preg_replace(
+            '/[^A-Z0-9]/',
+            '',
+            trim((string) ($datos['cohorte'] ?? '')),
+        ));
+
+        $criterio = (int) ($datos['criterio'] ?? 0);
+        $indicador = (int) ($datos['indicador'] ?? 0);
+
+        if (
+            $idCatalogo <= 0
+            || $codigoCarrera === ''
+            || $cohorte === ''
+            || $criterio <= 0
+            || $indicador <= 0
+        ) {
+            return $this->json($response, false, 'Faltan datos para procesar el archivo.', [], 400);
+        }
+
+        $archivosSubidos = $request->getUploadedFiles();
+
+        if (!isset($archivosSubidos['archivo'])) {
+            return $this->json($response, false, 'No se recibió ningún archivo.', [], 400);
+        }
+
+        $archivoSubido = $archivosSubidos['archivo'];
+
+        if ($archivoSubido->getError() !== UPLOAD_ERR_OK) {
+            return $this->json($response, false, 'Ocurrió un error al recibir el archivo.', [], 400);
+        }
+
+        $tamanoMaximo = 25 * 1024 * 1024;
+
+        if ($archivoSubido->getSize() > $tamanoMaximo) {
+            return $this->json($response, false, 'El archivo no debe superar los 25 MB.', [], 400);
+        }
+
+        try {
+            $catalogo = $this->repositorio->obtenerCatalogoParaPreparar($idCatalogo);
+        } catch (Throwable $e) {
+            return $this->json($response, false, 'No se pudo preparar la consulta.', ['detalle' => $e->getMessage()], 500);
+        }
+
+        if (!$catalogo) {
+            return $this->json($response, false, 'La evidencia seleccionada no existe o está inactiva.', [], 404);
+        }
+
+        // Único slot que hoy espera CSV en vez de PDF. Se identifica por
+        // codigo_evidencia (dato de servidor, no lo que mande el cliente)
+        // para no depender de que el frontend mande el tipo correcto.
+        $esCsv = $catalogo['codigo_evidencia'] === 'DOC.SEG.05';
+
+        $nombreOriginal = $archivoSubido->getClientFilename() ?? '';
+        $extension = strtolower(pathinfo($nombreOriginal, PATHINFO_EXTENSION));
+
+        $rutaTemporal = $archivoSubido->getStream()->getMetadata('uri') ?? '';
+        $tipoMime = (new \finfo(FILEINFO_MIME_TYPE))->file($rutaTemporal);
+
+        if ($esCsv) {
+            $mimeCsvValidos = [
+                'text/csv',
+                'application/csv',
+                'application/vnd.ms-excel',
+                'text/plain',
+            ];
+
+            if ($extension !== 'csv' || !in_array($tipoMime, $mimeCsvValidos, true)) {
+                return $this->json($response, false, 'Solo se aceptan archivos CSV válidos.', [], 400);
+            }
+        } else {
+            if ($extension !== 'pdf' || $tipoMime !== 'application/pdf') {
+                return $this->json($response, false, 'Solo se aceptan archivos PDF válidos.', [], 400);
+            }
+        }
+
+        $nombreBase = preg_replace('/[^A-Za-z0-9_]/', '_', $catalogo['nombre_archivo_base']);
+        $nombreBase = preg_replace('/_+/', '_', $nombreBase);
+        $nombreBase = trim($nombreBase, '_');
+
+        $numeroEvidencia = $catalogo['orden'];
+
+        $nombreGenerado = sprintf(
+            '%s.%s.C%d.%d.%d.%s.%s',
+            $codigoCarrera,
+            $cohorte,
+            $criterio,
+            $indicador,
+            $numeroEvidencia,
+            $nombreBase,
+            $esCsv ? 'csv' : 'pdf',
+        );
+
+        return $this->json($response, true, ($esCsv ? 'CSV' : 'PDF') . ' validado y nombre generado correctamente.', [
+            'datos' => [
+                'id_catalogo' => $idCatalogo,
+                'codigo_evidencia' => $catalogo['codigo_evidencia'],
+                'titulo_corto' => $catalogo['titulo_corto'],
+                'descripcion' => $catalogo['descripcion'],
+                'nombre_original' => $nombreOriginal,
+                'nombre_generado' => $nombreGenerado,
+                'tipo' => $tipoMime,
+                'tamano' => $archivoSubido->getSize(),
+            ],
         ]);
     }
 }

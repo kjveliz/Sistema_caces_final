@@ -17,6 +17,8 @@ use mysqli;
  * agrega obtenerCompartidas() (reemplaza a
  * api/evidencias/obtener_compartidas.php). Parte 7 agrega
  * guardarEvidencia() (reemplaza a api/evidencias/guardar_evidencia.php).
+ * Parte 8 agrega obtenerCatalogoParaPreparar() (reemplaza a
+ * api/evidencias/preparar_pdf.php), quinta y última Parte del Grupo B.
  */
 final class EvidenciasRepository
 {
@@ -318,5 +320,48 @@ final class EvidenciasRepository
             'id_evidencia' => $idEvidencia,
             'relaciones_compartidas' => $relacionesCompartidas,
         ];
+    }
+
+    /**
+     * Misma consulta exacta (mismas columnas, mismo WHERE con activo = 1)
+     * que el SELECT original de api/evidencias/preparar_pdf.php: busca el
+     * catálogo por id para validar el archivo subido y armar el nombre
+     * técnico del archivo. Parte 8 del plan de migración de PHP suelto a
+     * Slim (quinta y última del Grupo B).
+     *
+     * @return array{codigo_evidencia: string, titulo_corto: string, descripcion: string, nombre_archivo_base: string, orden: int}|null
+     */
+    public function obtenerCatalogoParaPreparar(int $idCatalogo): ?array
+    {
+        $stmt = $this->conexion->prepare(
+            'SELECT
+                codigo_evidencia,
+                titulo_corto,
+                descripcion,
+                nombre_archivo_base,
+                orden
+            FROM catalogo_evidencias
+            WHERE id_catalogo = ?
+              AND activo = 1
+            LIMIT 1'
+        );
+
+        if (!$stmt) {
+            throw new \RuntimeException('No se pudo preparar la consulta.');
+        }
+
+        $stmt->bind_param('i', $idCatalogo);
+        $stmt->execute();
+
+        $resultado = $stmt->get_result();
+        $catalogo = $resultado->fetch_assoc();
+
+        if (!$catalogo) {
+            return null;
+        }
+
+        $catalogo['orden'] = (int) $catalogo['orden'];
+
+        return $catalogo;
     }
 }

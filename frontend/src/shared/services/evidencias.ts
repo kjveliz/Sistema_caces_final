@@ -22,6 +22,9 @@ interface PrepararPdfParams {
   indicador: number;
 }
 
+// Ruta de Slim (Parte 8 del plan de migración de PHP suelto -- ver
+// plan_migracion_slim_legacy_v3.txt §3), reemplaza a
+// api/evidencias/preparar_pdf.php. Quinta y última Parte del Grupo B.
 export async function prepararPdf({
   archivo,
   idCatalogo,
@@ -39,7 +42,7 @@ export async function prepararPdf({
   formulario.append('criterio', String(criterio));
   formulario.append('indicador', String(indicador));
 
-  const respuesta = await fetch('http://localhost/sistemacaces/api/evidencias/preparar_pdf.php', {
+  const respuesta = await fetch('http://localhost/sistemacaces/public/evidencias/preparar-pdf', {
     method: 'POST',
     credentials: 'include',
     body: formulario,
