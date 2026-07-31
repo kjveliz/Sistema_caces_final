@@ -23,7 +23,9 @@ use Throwable;
  * leerMatriculados() (reemplaza a api/evidencias/leer_matriculados.php) --
  * a diferencia de las dos anteriores, no usa EvidenciasRepository (no toca
  * BD, es puramente lectura de PDF -> datos), por eso el constructor sigue
- * pidiendo el repositorio aunque este método no lo use.
+ * pidiendo el repositorio aunque este método no lo use. Parte 7 agrega
+ * guardar() (reemplaza a api/evidencias/guardar_evidencia.php), cuarta y
+ * última Parte del Grupo B -- vuelve a usar EvidenciasRepository.
  */
 #[OA\Tag(name: 'Evidencias (I1/I4/I5)')]
 final class EvidenciasController
@@ -328,6 +330,111 @@ final class EvidenciasController
                 'periodo' => $periodo,
                 'cohorte_detectada' => $cohorte,
             ],
+        ]);
+    }
+
+    /**
+     * POST /evidencias/guardar (JSON: id_catalogo, id_evaluacion,
+     * codigo_evidencia, descripcion, nombre_archivo, tipo, url_archivo) --
+     * requiere sesión, mismo criterio que el original (session_start() +
+     * chequeo de $_SESSION['id_usuario'], acá delegado a
+     * SessionAuthMiddleware). Misma lógica exacta que
+     * api/evidencias/guardar_evidencia.php: inserta o actualiza la
+     * evidencia (según la unique key evaluación+catálogo), la relaciona
+     * con su indicador de origen y, si existen reglas activas en
+     * compartir_catalogo, la comparte automáticamente con otros
+     * indicadores. Parte 7 del Grupo B (cuarta y última del grupo).
+     *
+     * OJO -- desvío intencional del helper json() de arriba, mismo criterio
+     * que guardadas()/compartidas() (Partes 4/5): el original NO envuelve
+     * la respuesta exitosa en "datos" (trae "id_evidencia" y
+     * "relaciones_compartidas" como claves de primer nivel, junto a "ok" y
+     * "mensaje") -- se preserva tal cual.
+     */
+    #[OA\Post(
+        path: '/evidencias/guardar',
+        summary: 'Crea o actualiza una evidencia y la relaciona/comparte automáticamente con sus indicadores.',
+        security: [['sesionPhp' => []]],
+        tags: ['Evidencias (I1/I4/I5)'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: [
+                    'id_catalogo', 'id_evaluacion', 'codigo_evidencia',
+                    'descripcion', 'nombre_archivo', 'tipo', 'url_archivo',
+                ],
+                properties: [
+                    new OA\Property(property: 'id_catalogo', type: 'integer'),
+                    new OA\Property(property: 'id_evaluacion', type: 'integer'),
+                    new OA\Property(property: 'codigo_evidencia', type: 'string', example: 'DOC.SYL.01'),
+                    new OA\Property(property: 'descripcion', type: 'string'),
+                    new OA\Property(property: 'nombre_archivo', type: 'string'),
+                    new OA\Property(property: 'tipo', type: 'string', example: 'application/pdf'),
+                    new OA\Property(property: 'url_archivo', type: 'string'),
+                ],
+            ),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Evidencia guardada correctamente, con el id final y cuántas relaciones de compartición se crearon.',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'mensaje', type: 'string'),
+                    new OA\Property(property: 'id_evidencia', type: 'integer'),
+                    new OA\Property(property: 'relaciones_compartidas', type: 'integer'),
+                ]),
+            ),
+            new OA\Response(response: 400, description: 'Faltan datos obligatorios para registrar la evidencia.'),
+            new OA\Response(response: 401, description: 'La sesión no está activa.'),
+            new OA\Response(response: 500, description: 'No se pudo completar el registro de la evidencia.'),
+        ],
+    )]
+    public function guardar(Request $request, Response $response): Response
+    {
+        $datos = $request->getParsedBody();
+        $datos = is_array($datos) ? $datos : [];
+
+        $idCatalogo = (int) ($datos['id_catalogo'] ?? 0);
+        $idEvaluacion = (int) ($datos['id_evaluacion'] ?? 0);
+        $codigoEvidencia = trim((string) ($datos['codigo_evidencia'] ?? ''));
+        $descripcion = trim((string) ($datos['descripcion'] ?? ''));
+        $nombreArchivo = trim((string) ($datos['nombre_archivo'] ?? ''));
+        $tipo = trim((string) ($datos['tipo'] ?? ''));
+        $urlArchivo = trim((string) ($datos['url_archivo'] ?? ''));
+
+        $idUsuario = (int) ($_SESSION['id_usuario'] ?? 0);
+
+        if (
+            $idCatalogo <= 0
+            || $idEvaluacion <= 0
+            || $codigoEvidencia === ''
+            || $descripcion === ''
+            || $nombreArchivo === ''
+            || $tipo === ''
+            || $urlArchivo === ''
+        ) {
+            return $this->json($response, false, 'Faltan datos obligatorios para registrar la evidencia.', [], 400);
+        }
+
+        try {
+            $resultado = $this->repositorio->guardarEvidencia(
+                $idCatalogo,
+                $idEvaluacion,
+                $codigoEvidencia,
+                $descripcion,
+                $nombreArchivo,
+                $tipo,
+                $urlArchivo,
+                $idUsuario,
+            );
+        } catch (Throwable $e) {
+            return $this->json($response, false, 'No se pudo completar el registro de la evidencia.', ['detalle' => $e->getMessage()], 500);
+        }
+
+        return $this->json($response, true, 'Evidencia guardada correctamente.', [
+            'id_evidencia' => $resultado['id_evidencia'],
+            'relaciones_compartidas' => $resultado['relaciones_compartidas'],
         ]);
     }
 }

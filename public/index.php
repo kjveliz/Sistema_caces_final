@@ -165,10 +165,14 @@ $evidenciasController = new EvidenciasController($evidenciasRepositorio);
 // por caso en las Partes 7-8). /evidencias/leer-matriculados (Parte 6)
 // tampoco valida sesión, mismo criterio: el original
 // (api/evidencias/leer_matriculados.php) no valida $_SESSION['id_usuario'].
+// POST /evidencias/guardar (Parte 7, cuarta y última del Grupo B) SÍ lleva
+// SessionAuthMiddleware: el original (api/evidencias/guardar_evidencia.php)
+// sí valida $_SESSION['id_usuario'] antes de escribir en la BD.
 $app->group('/evidencias', function ($grupo) use ($evidenciasController) {
     $grupo->get('/guardadas', [$evidenciasController, 'guardadas']);
     $grupo->get('/compartidas', [$evidenciasController, 'compartidas']);
     $grupo->post('/leer-matriculados', [$evidenciasController, 'leerMatriculados']);
+    $grupo->post('/guardar', [$evidenciasController, 'guardar'])->add(new SessionAuthMiddleware());
 });
 
 // --- I3 (Tutorías Académicas) -------------------------------------------

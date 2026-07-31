@@ -150,8 +150,12 @@ interface GuardarEvidenciaResponse {
   ok: boolean;
   mensaje: string;
   id_evidencia?: number;
+  relaciones_compartidas?: number;
 }
 
+// Ruta de Slim (Parte 7 del plan de migración de PHP suelto -- ver
+// plan_migracion_slim_legacy_v3.txt §3), reemplaza a
+// api/evidencias/guardar_evidencia.php. Cuarta y última Parte del Grupo B.
 export async function guardarEvidencia({
   idCatalogo,
   idEvaluacion,
@@ -162,7 +166,7 @@ export async function guardarEvidencia({
   urlArchivo,
 }: GuardarEvidenciaParams): Promise<GuardarEvidenciaResponse> {
   const respuesta = await fetch(
-    'http://localhost/sistemacaces/api/evidencias/guardar_evidencia.php',
+    'http://localhost/sistemacaces/public/evidencias/guardar',
     {
       method: 'POST',
       credentials: 'include',

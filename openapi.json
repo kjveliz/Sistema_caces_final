@@ -930,6 +930,100 @@
                 }
             }
         },
+        "/evidencias/guardar": {
+            "post": {
+                "tags": [
+                    "Evidencias (I1/I4/I5)"
+                ],
+                "summary": "Crea o actualiza una evidencia y la relaciona/comparte automáticamente con sus indicadores.",
+                "description": "POST /evidencias/guardar (JSON: id_catalogo, id_evaluacion,\ncodigo_evidencia, descripcion, nombre_archivo, tipo, url_archivo) --\nrequiere sesión, mismo criterio que el original (session_start() +\nchequeo de $_SESSION['id_usuario'], acá delegado a\nSessionAuthMiddleware). Misma lógica exacta que\napi/evidencias/guardar_evidencia.php: inserta o actualiza la\nevidencia (según la unique key evaluación+catálogo), la relaciona\ncon su indicador de origen y, si existen reglas activas en\ncompartir_catalogo, la comparte automáticamente con otros\nindicadores. Parte 7 del Grupo B (cuarta y última del grupo).\n\nOJO -- desvío intencional del helper json() de arriba, mismo criterio\nque guardadas()/compartidas() (Partes 4/5): el original NO envuelve\nla respuesta exitosa en \"datos\" (trae \"id_evidencia\" y\n\"relaciones_compartidas\" como claves de primer nivel, junto a \"ok\" y\n\"mensaje\") -- se preserva tal cual.",
+                "operationId": "1f1efe403c13fa25a3c42f017c9d8eeb",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id_catalogo",
+                                    "id_evaluacion",
+                                    "codigo_evidencia",
+                                    "descripcion",
+                                    "nombre_archivo",
+                                    "tipo",
+                                    "url_archivo"
+                                ],
+                                "properties": {
+                                    "id_catalogo": {
+                                        "type": "integer"
+                                    },
+                                    "id_evaluacion": {
+                                        "type": "integer"
+                                    },
+                                    "codigo_evidencia": {
+                                        "type": "string",
+                                        "example": "DOC.SYL.01"
+                                    },
+                                    "descripcion": {
+                                        "type": "string"
+                                    },
+                                    "nombre_archivo": {
+                                        "type": "string"
+                                    },
+                                    "tipo": {
+                                        "type": "string",
+                                        "example": "application/pdf"
+                                    },
+                                    "url_archivo": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Evidencia guardada correctamente, con el id final y cuántas relaciones de compartición se crearon.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "mensaje": {
+                                            "type": "string"
+                                        },
+                                        "id_evidencia": {
+                                            "type": "integer"
+                                        },
+                                        "relaciones_compartidas": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Faltan datos obligatorios para registrar la evidencia."
+                    },
+                    "401": {
+                        "description": "La sesión no está activa."
+                    },
+                    "500": {
+                        "description": "No se pudo completar el registro de la evidencia."
+                    }
+                },
+                "security": [
+                    {
+                        "sesionPhp": []
+                    }
+                ]
+            }
+        },
         "/malla-curricular/obtener": {
             "get": {
                 "tags": [
@@ -2503,7 +2597,7 @@
         },
         {
             "name": "Evidencias (I1/I4/I5)",
-            "description": "Parte 5 agrega compartidas() (reemplaza a\napi/evidencias/obtener_compartidas.php). Parte 6 agrega\nleerMatriculados() (reemplaza a api/evidencias/leer_matriculados.php) --\na diferencia de las dos anteriores, no usa EvidenciasRepository (no toca\nBD, es puramente lectura de PDF -> datos), por eso el constructor sigue\npidiendo el repositorio aunque este método no lo use."
+            "description": "Parte 5 agrega compartidas() (reemplaza a\napi/evidencias/obtener_compartidas.php). Parte 6 agrega\nleerMatriculados() (reemplaza a api/evidencias/leer_matriculados.php) --\na diferencia de las dos anteriores, no usa EvidenciasRepository (no toca\nBD, es puramente lectura de PDF -> datos), por eso el constructor sigue\npidiendo el repositorio aunque este método no lo use. Parte 7 agrega\nguardar() (reemplaza a api/evidencias/guardar_evidencia.php), cuarta y\núltima Parte del Grupo B -- vuelve a usar EvidenciasRepository."
         },
         {
             "name": "I1 - Malla Curricular",

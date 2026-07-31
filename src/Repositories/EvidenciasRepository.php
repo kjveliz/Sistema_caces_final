@@ -15,7 +15,8 @@ use mysqli;
  * leer_matriculados.php, guardar_evidencia.php, preparar_pdf.php) suman
  * métodos acá en vez de crear un repository nuevo por archivo. Parte 5
  * agrega obtenerCompartidas() (reemplaza a
- * api/evidencias/obtener_compartidas.php).
+ * api/evidencias/obtener_compartidas.php). Parte 7 agrega
+ * guardarEvidencia() (reemplaza a api/evidencias/guardar_evidencia.php).
  */
 final class EvidenciasRepository
 {
@@ -149,5 +150,173 @@ final class EvidenciasRepository
         }
 
         return $evidencias;
+    }
+
+    /**
+     * Inserta la evidencia si no existe para esa evaluación/catálogo (según
+     * `uk_evidencia_evaluacion_catalogo`, misma unique key que ya usaba el
+     * original) o la actualiza si ya existe -- mismo INSERT ... ON
+     * DUPLICATE KEY UPDATE ... id_evidencia = LAST_INSERT_ID(id_evidencia)
+     * que api/evidencias/guardar_evidencia.php, para que insert_id
+     * devuelva el id correcto tanto en el caso de inserción como en el de
+     * actualización. Relaciona la evidencia con su indicador de origen
+     * (catalogo_evidencias) y, si existen reglas activas de compartición en
+     * `compartir_catalogo`, la comparte automáticamente con los
+     * indicadores destino -- misma transacción de 3 queries, mismo orden y
+     * mismos nombres de columnas que el original. Parte 7 del plan de
+     * migración de PHP suelto a Slim (cuarta y última del Grupo B).
+     *
+     * @return array{id_evidencia: int, relaciones_compartidas: int}
+     */
+    public function guardarEvidencia(
+        int $idCatalogo,
+        int $idEvaluacion,
+        string $codigoEvidencia,
+        string $descripcion,
+        string $nombreArchivo,
+        string $tipo,
+        string $urlArchivo,
+        int $idUsuario,
+    ): array {
+        $this->conexion->begin_transaction();
+
+        try {
+            /*
+                Inserta la evidencia si no existe.
+                Si ya existe para la misma evaluación y catálogo,
+                actualiza el registro.
+            */
+            $sqlEvidencia = "
+                INSERT INTO evidencias (
+                    id_catalogo,
+                    id_evaluacion,
+                    codigo_evidencia,
+                    descripcion,
+                    nombre_archivo,
+                    tipo,
+                    url_archivo,
+                    fecha_subida,
+                    id_usuario
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), ?)
+
+                ON DUPLICATE KEY UPDATE
+                    codigo_evidencia = VALUES(codigo_evidencia),
+                    descripcion = VALUES(descripcion),
+                    nombre_archivo = VALUES(nombre_archivo),
+                    tipo = VALUES(tipo),
+                    url_archivo = VALUES(url_archivo),
+                    fecha_subida = NOW(),
+                    id_usuario = VALUES(id_usuario),
+                    id_evidencia = LAST_INSERT_ID(id_evidencia)
+            ";
+
+            $stmtEvidencia = $this->conexion->prepare($sqlEvidencia);
+
+            if (!$stmtEvidencia) {
+                throw new \RuntimeException(
+                    'No se pudo preparar el registro de la evidencia: ' . $this->conexion->error
+                );
+            }
+
+            $stmtEvidencia->bind_param(
+                'iisssssi',
+                $idCatalogo,
+                $idEvaluacion,
+                $codigoEvidencia,
+                $descripcion,
+                $nombreArchivo,
+                $tipo,
+                $urlArchivo,
+                $idUsuario,
+            );
+
+            if (!$stmtEvidencia->execute()) {
+                throw new \RuntimeException(
+                    'No se pudo guardar la evidencia: ' . $stmtEvidencia->error
+                );
+            }
+
+            $idEvidencia = (int) $stmtEvidencia->insert_id;
+
+            /*
+                Relacionar la evidencia con su indicador de origen,
+                obtenido desde catalogo_evidencias.
+            */
+            $sqlOrigen = "
+                INSERT IGNORE INTO indicador_evidencia (
+                    id_indicador,
+                    id_evidencia
+                )
+                SELECT
+                    id_indicador,
+                    ?
+                FROM catalogo_evidencias
+                WHERE id_catalogo = ?
+                  AND activo = 1
+            ";
+
+            $stmtOrigen = $this->conexion->prepare($sqlOrigen);
+
+            if (!$stmtOrigen) {
+                throw new \RuntimeException(
+                    'No se pudo preparar la relación con el indicador de origen: ' . $this->conexion->error
+                );
+            }
+
+            $stmtOrigen->bind_param('ii', $idEvidencia, $idCatalogo);
+
+            if (!$stmtOrigen->execute()) {
+                throw new \RuntimeException(
+                    'No se pudo relacionar la evidencia con su indicador de origen: ' . $stmtOrigen->error
+                );
+            }
+
+            /*
+                Buscar reglas activas de compartición y relacionar
+                automáticamente la misma evidencia con otros indicadores.
+            */
+            $sqlCompartidas = "
+                INSERT IGNORE INTO indicador_evidencia (
+                    id_indicador,
+                    id_evidencia
+                )
+                SELECT
+                    id_indicador_destino,
+                    ?
+                FROM compartir_catalogo
+                WHERE id_catalogo_origen = ?
+                  AND activo = 1
+            ";
+
+            $stmtCompartidas = $this->conexion->prepare($sqlCompartidas);
+
+            if (!$stmtCompartidas) {
+                throw new \RuntimeException(
+                    'No se pudo preparar la compartición automática: ' . $this->conexion->error
+                );
+            }
+
+            $stmtCompartidas->bind_param('ii', $idEvidencia, $idCatalogo);
+
+            if (!$stmtCompartidas->execute()) {
+                throw new \RuntimeException(
+                    'No se pudo compartir la evidencia automáticamente: ' . $stmtCompartidas->error
+                );
+            }
+
+            $relacionesCompartidas = (int) $stmtCompartidas->affected_rows;
+
+            $this->conexion->commit();
+        } catch (\Throwable $e) {
+            $this->conexion->rollback();
+
+            throw $e;
+        }
+
+        return [
+            'id_evidencia' => $idEvidencia,
+            'relaciones_compartidas' => $relacionesCompartidas,
+        ];
     }
 }
