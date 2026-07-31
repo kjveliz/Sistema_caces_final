@@ -223,6 +223,53 @@
                 ]
             }
         },
+        "/administracion/usuarios/listar": {
+            "get": {
+                "tags": [
+                    "Administración (Usuarios)"
+                ],
+                "summary": "Lista los usuarios del sistema.",
+                "description": "GET /administracion/usuarios/listar — requiere sesión activa y rol\nadministrador. Parte 14 del plan de migración slim-legacy (ver\nplan_migracion_slim_legacy_v3.txt §3 Grupo E, primera Parte del\nsubgrupo de usuarios): reemplaza a\napi/administracion/usuarios/listar.php. A diferencia de\ncohortesListar() (que sólo exige sesión activa, sin chequeo de rol),\nel original de usuarios/listar.php SÍ valida\n$_SESSION['rol'] === 'administrador' (403) además de la sesión —\ndiferencia real entre los dos endpoints, preservada tal cual: el 401\nlo sigue resolviendo SessionAuthMiddleware en la ruta (igual que\ncohortesListar), y el 403 de rol se chequea acá a mano, mismo patrón\nque cohortesCrear()/cohortesCambiarEstado(). Usa UsuariosRepository\nnuevo (no existía nada que cubriera la tabla `usuarios` para un\nlistado completo -- AuthRepository sólo resuelve un usuario por vez).",
+                "operationId": "43c63c0f04efc5342dec29f1bdb7f04b",
+                "responses": {
+                    "200": {
+                        "description": "Usuarios registrados, ordenados por apellidos y nombres.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "La sesión no está activa."
+                    },
+                    "403": {
+                        "description": "No tiene permisos para consultar usuarios."
+                    },
+                    "500": {
+                        "description": "No se pudieron consultar los usuarios."
+                    }
+                },
+                "security": [
+                    {
+                        "sesionPhp": []
+                    }
+                ]
+            }
+        },
         "/auth/login": {
             "post": {
                 "tags": [
@@ -2967,8 +3014,10 @@
     },
     "tags": [
         {
-            "name": "Administración (Cohortes)",
-            "description": "El subgrupo de cohortes (Partes 11-13) extiende SeguimientoSyllabusRepository\nen vez de crear un repository nuevo: pega directo contra la tabla\n`cohortes`, mismo dominio que ya cubren\nSeguimientoSyllabusRepository::crearCohorte()/cohorteExiste() (ver §1 del\nplan). El subgrupo de usuarios (Partes 14-16) va a necesitar un\nUsuariosRepository nuevo (no hay nada existente que cubra esa tabla) --\nse agrega como dependencia de este mismo Controller cuando arranque la\nParte 14, no antes."
+            "name": "Administración (Cohortes)"
+        },
+        {
+            "name": "Administración (Usuarios)"
         },
         {
             "name": "Autenticación",
