@@ -12,6 +12,50 @@
         }
     ],
     "paths": {
+        "/administracion/cohortes/listar": {
+            "get": {
+                "tags": [
+                    "Administración (Cohortes)"
+                ],
+                "summary": "Lista las cohortes con su evaluación asociada y cantidad de períodos cargados.",
+                "description": "GET /administracion/cohortes/listar — requiere sesión activa. Parte 11\ndel plan de migración slim-legacy (ver plan_migracion_slim_legacy_v3.txt\n§3 Grupo E, primera Parte): reemplaza a\napi/administracion/cohortes/listar.php. Mismo chequeo de sesión que\nel original ($_SESSION['id_usuario']), ahora vía SessionAuthMiddleware\nen la ruta (public/index.php) en vez de a mano dentro del archivo.",
+                "operationId": "eaff65762d43648923cee20c138c5a27",
+                "responses": {
+                    "200": {
+                        "description": "Cohortes con evaluación asociada (si tiene) y total de períodos académicos.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "La sesión no está activa."
+                    },
+                    "500": {
+                        "description": "No se pudieron consultar las cohortes."
+                    }
+                },
+                "security": [
+                    {
+                        "sesionPhp": []
+                    }
+                ]
+            }
+        },
         "/auth/login": {
             "post": {
                 "tags": [
@@ -2755,6 +2799,10 @@
         }
     },
     "tags": [
+        {
+            "name": "Administración (Cohortes)",
+            "description": "El subgrupo de cohortes (Partes 11-13) extiende SeguimientoSyllabusRepository\nen vez de crear un repository nuevo: pega directo contra la tabla\n`cohortes`, mismo dominio que ya cubren\nSeguimientoSyllabusRepository::crearCohorte()/cohorteExiste() (ver §1 del\nplan). El subgrupo de usuarios (Partes 14-16) va a necesitar un\nUsuariosRepository nuevo (no hay nada existente que cubra esa tabla) --\nse agrega como dependencia de este mismo Controller cuando arranque la\nParte 14, no antes."
+        },
         {
             "name": "Autenticación",
             "description": "OJO — desvío intencional del formato {ok, mensaje, datos} que usan el\nresto de los controllers ya migrados: login() sigue devolviendo la clave\n\"usuario\" (no \"datos\"), igual que el Login.php original, porque\nfrontend/src/shared/services/auth.ts y tests/Integration/Auth/*.php ya\nleen esa clave específica. Cambiarla a \"datos\" sería tocar un contrato\nque ningún llamador pidió cambiar (fuera de alcance del plan, ver §4:\n\"NO se toca la lógica de negocio de ningún endpoint más allá de lo\n * estrictamente necesario para moverlo de arquitectura\")."

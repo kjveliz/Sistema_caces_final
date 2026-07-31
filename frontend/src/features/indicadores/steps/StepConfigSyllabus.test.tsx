@@ -92,7 +92,7 @@ function mockFetchSecuencial() {
         json: () => Promise.resolve(cuerpo),
       } as Response);
 
-    if (url.includes('/cohortes/listar.php')) return responder(cohortesResponse);
+    if (url.includes('/administracion/cohortes/listar')) return responder(cohortesResponse);
     if (url.includes('/periodos?id_cohorte=')) return responder(periodosResponse);
     if (url.includes('/asignaturas?id_periodo=')) return responder(asignaturasResponse);
 

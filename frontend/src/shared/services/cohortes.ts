@@ -11,8 +11,8 @@ export interface CohorteEvaluacion {
   estado: string | null;
   // Cantidad de períodos académicos (PAO) que ya tiene cargados esta
   // cohorte. 0 => sin malla curricular todavía. Viene de un LEFT JOIN
-  // agregado en listar.php sobre periodo_academico (ver conversación del
-  // 30 jul 2026, columna "Malla" en Gestión de cohortes).
+  // sobre periodo_academico en SeguimientoSyllabusRepository::cohortesConEvaluacion()
+  // (ver conversación del 30 jul 2026, columna "Malla" en Gestión de cohortes).
   total_periodos: number;
 }
 
@@ -38,7 +38,7 @@ interface CrearResponse {
 
 export async function listarCohortesEvaluaciones(): Promise<CohorteEvaluacion[]> {
   const respuesta = await fetch(
-    'http://localhost/sistemacaces/api/administracion/cohortes/listar.php',
+    'http://localhost/sistemacaces/public/administracion/cohortes/listar',
     {
       method: 'GET',
       credentials: 'include',

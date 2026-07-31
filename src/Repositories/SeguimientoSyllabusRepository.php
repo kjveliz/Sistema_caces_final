@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repositories;
 
 use mysqli;
+use RuntimeException;
 
 /**
  * Encapsula todo el SQL de I2 (Seguimiento Syllabus): antes disperso e
@@ -136,6 +137,78 @@ final class SeguimientoSyllabusRepository
         $stmt->execute();
 
         return (int) $stmt->insert_id;
+    }
+
+    /**
+     * Cohortes con su evaluación asociada (si tiene) y cantidad de períodos
+     * académicos cargados. Misma consulta exacta que la original de
+     * api/administracion/cohortes/listar.php (Parte 11 del plan de
+     * migración slim-legacy, ver plan_migracion_slim_legacy_v3.txt §3
+     * Grupo E) -- este subgrupo extiende SeguimientoSyllabusRepository en
+     * vez de crear un repository nuevo, mismo dominio (`cohortes`) que ya
+     * cubren crearCohorte()/cohorteExiste(). El casteo a int de
+     * id_cohorte/id_carrera/id_evaluacion/total_periodos se preserva tal
+     * cual estaba en el original (mysqli devuelve todo como string salvo
+     * que se use el driver nativo) para no cambiar el tipo que recibe el
+     * frontend (frontend/src/shared/services/cohortes.ts espera number).
+     *
+     * @return array<int, array{id_cohorte: int, nombre_cohorte: string, fecha_inicio: string|null, fecha_fin: string|null, id_carrera: int, carrera: string, codigo_carrera: string, id_evaluacion: int|null, nombre_evaluacion: string|null, estado: string|null, total_periodos: int}>
+     */
+    public function cohortesConEvaluacion(): array
+    {
+        $sql = "
+            SELECT
+                co.id_cohorte,
+                co.nombre_cohorte,
+                co.fecha_inicio,
+                co.fecha_fin,
+                co.id_carrera,
+                ca.nombre AS carrera,
+                ca.codigo AS codigo_carrera,
+                ev.id_evaluacion,
+                ev.nombre_evaluacion,
+                ev.estado,
+                pa.total_periodos
+            FROM cohortes co
+            INNER JOIN carreras ca
+                ON ca.id_carrera = co.id_carrera
+            LEFT JOIN evaluaciones ev
+                ON ev.id_cohorte = co.id_cohorte
+               AND ev.id_carrera = co.id_carrera
+            LEFT JOIN (
+                SELECT id_cohorte, COUNT(*) AS total_periodos
+                FROM periodo_academico
+                GROUP BY id_cohorte
+            ) pa
+                ON pa.id_cohorte = co.id_cohorte
+            ORDER BY co.fecha_inicio DESC, ca.nombre ASC
+        ";
+
+        $resultado = $this->conexion->query($sql);
+
+        if (!$resultado) {
+            throw new RuntimeException($this->conexion->error);
+        }
+
+        $datos = [];
+
+        while ($fila = $resultado->fetch_assoc()) {
+            $datos[] = [
+                'id_cohorte' => (int) $fila['id_cohorte'],
+                'nombre_cohorte' => $fila['nombre_cohorte'],
+                'fecha_inicio' => $fila['fecha_inicio'],
+                'fecha_fin' => $fila['fecha_fin'],
+                'id_carrera' => (int) $fila['id_carrera'],
+                'carrera' => $fila['carrera'],
+                'codigo_carrera' => $fila['codigo_carrera'],
+                'id_evaluacion' => $fila['id_evaluacion'] !== null ? (int) $fila['id_evaluacion'] : null,
+                'nombre_evaluacion' => $fila['nombre_evaluacion'],
+                'estado' => $fila['estado'],
+                'total_periodos' => $fila['total_periodos'] !== null ? (int) $fila['total_periodos'] : 0,
+            ];
+        }
+
+        return $datos;
     }
 
     /**

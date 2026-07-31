@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Controllers\AdministracionController;
 use App\Controllers\AuthController;
 use App\Controllers\CarrerasAlmacenamientoController;
 use App\Controllers\CarrerasController;
@@ -255,6 +256,26 @@ $app->group('/seguimiento-syllabus', function ($grupo) use ($seguimientoControll
     $grupo->get('/evidencia-listar', [$seguimientoController, 'evidenciaListar']);
     $grupo->get('/encuesta-detalle', [$seguimientoController, 'encuestaDetalle']);
     $grupo->post('/evidencia-subir', [$seguimientoController, 'evidenciaSubir'])->add(new SessionAuthMiddleware());
+});
+
+// --- Grupo E del plan de migración de PHP suelto a Slim (Administración) -
+// Fase 3b (plan_migracion_slim_legacy_v3.txt §3). Arranca en la Parte 11 con
+// GET /administracion/cohortes/listar (reemplaza a
+// api/administracion/cohortes/listar.php). Reusa $seguimientoRepositorio ya
+// abierto arriba para I2 (mismo dominio `cohortes`, ver §1 del plan) en vez
+// de crear un repository nuevo -- el subgrupo de usuarios (Partes 14-16) sí
+// va a necesitar uno nuevo (UsuariosRepository), que se agrega como
+// dependencia de este mismo controller recién en la Parte 14.
+$administracionController = new AdministracionController($seguimientoRepositorio);
+
+// --- Rutas del Grupo E (Administración) ---------------------------------
+// Con SessionAuthMiddleware: el original
+// (api/administracion/cohortes/listar.php) ya valida $_SESSION['id_usuario']
+// a mano antes de esta Parte.
+$app->group('/administracion', function ($grupo) use ($administracionController) {
+    $grupo->group('/cohortes', function ($sub) use ($administracionController) {
+        $sub->get('/listar', [$administracionController, 'cohortesListar'])->add(new SessionAuthMiddleware());
+    });
 });
 
 // --- Composición de dependencias de I5 (Tasa de Titulación) ------------
