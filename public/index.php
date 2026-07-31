@@ -162,10 +162,13 @@ $evidenciasController = new EvidenciasController($evidenciasRepositorio);
 // a propósito: ni obtener_evidencias_guardadas.php ni
 // obtener_compartidas.php originales validan sesión activa (a diferencia
 // de otros endpoints de este mismo grupo, que sí lo hacen — revisar caso
-// por caso en las Partes 6-8).
+// por caso en las Partes 7-8). /evidencias/leer-matriculados (Parte 6)
+// tampoco valida sesión, mismo criterio: el original
+// (api/evidencias/leer_matriculados.php) no valida $_SESSION['id_usuario'].
 $app->group('/evidencias', function ($grupo) use ($evidenciasController) {
     $grupo->get('/guardadas', [$evidenciasController, 'guardadas']);
     $grupo->get('/compartidas', [$evidenciasController, 'compartidas']);
+    $grupo->post('/leer-matriculados', [$evidenciasController, 'leerMatriculados']);
 });
 
 // --- I3 (Tutorías Académicas) -------------------------------------------

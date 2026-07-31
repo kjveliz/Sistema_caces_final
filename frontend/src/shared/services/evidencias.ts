@@ -395,8 +395,11 @@ export async function leerMatriculadosPdf(archivo: File): Promise<LecturaMatricu
 
   formulario.append('archivo', archivo);
 
+  // Ruta de Slim (Parte 6 del plan de migración de PHP suelto -- ver
+  // plan_migracion_slim_legacy_v3.txt §3), reemplaza a
+  // api/evidencias/leer_matriculados.php.
   const respuesta = await fetch(
-    'http://localhost/sistemacaces/api/evidencias/leer_matriculados.php',
+    'http://localhost/sistemacaces/public/evidencias/leer-matriculados',
     {
       method: 'POST',
       credentials: 'include',

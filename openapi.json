@@ -859,6 +859,77 @@
                 }
             }
         },
+        "/evidencias/leer-matriculados": {
+            "post": {
+                "tags": [
+                    "Evidencias (I1/I4/I5)"
+                ],
+                "summary": "Extrae de un PDF el total de alumnos matriculados, el período y la cohorte detectada.",
+                "description": "POST /evidencias/leer-matriculados (multipart: archivo) — misma\nlógica exacta que api/evidencias/leer_matriculados.php: extrae de un\nPDF el total de alumnos matriculados (con los mismos 3 patrones de\n\"total reportado\", en el mismo orden, y el mismo respaldo de contar\nidentificaciones de 10 dígitos si ninguno matchea), más el período y\nla cohorte si se pueden inferir del texto. No usa\nEvidenciasRepository: no hay BD de por medio, es solo texto -> datos\n(mismo criterio que TitulacionCalculoService/DesercionCalculoService,\npero sin extraer un Service aparte porque este endpoint no comparte\nla lógica de extracción con esos otros dos -- misma decisión de \"no\n     * sobre-diseñar\" del plan, §2 punto 2).\n\nA propósito, a diferencia de TasaDesercionController::leerPdf() (que\nsí valida extensión + mime), acá solo se valida el mime, igual que el\noriginal: no se agrega la validación de extensión porque el original\nno la tenía.",
+                "operationId": "8cfdeee1ccba01b5641cedfa6d52d972",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "archivo"
+                                ],
+                                "properties": {
+                                    "archivo": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Total de matriculados detectado, más período y cohorte si se pudieron inferir del texto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "mensaje": {
+                                            "type": "string"
+                                        },
+                                        "datos": {
+                                            "properties": {
+                                                "matriculados": {
+                                                    "type": "integer"
+                                                },
+                                                "periodo": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "cohorte_detectada": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "No se recibió el PDF, no se pudo recibir el archivo, o no es un PDF válido."
+                    },
+                    "500": {
+                        "description": "No se pudo leer el contenido del PDF."
+                    }
+                }
+            }
+        },
         "/malla-curricular/obtener": {
             "get": {
                 "tags": [
@@ -2432,7 +2503,7 @@
         },
         {
             "name": "Evidencias (I1/I4/I5)",
-            "description": "Parte 5 agrega compartidas() (reemplaza a\napi/evidencias/obtener_compartidas.php)."
+            "description": "Parte 5 agrega compartidas() (reemplaza a\napi/evidencias/obtener_compartidas.php). Parte 6 agrega\nleerMatriculados() (reemplaza a api/evidencias/leer_matriculados.php) --\na diferencia de las dos anteriores, no usa EvidenciasRepository (no toca\nBD, es puramente lectura de PDF -> datos), por eso el constructor sigue\npidiendo el repositorio aunque este método no lo use."
         },
         {
             "name": "I1 - Malla Curricular",
