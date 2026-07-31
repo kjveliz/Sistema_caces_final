@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Repositories\SeguimientoSyllabusRepository;
+use App\Repositories\UsuariosRepository;
 use OpenApi\Attributes as OA;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -22,16 +23,18 @@ use Throwable;
  * en vez de crear un repository nuevo: pega directo contra la tabla
  * `cohortes`, mismo dominio que ya cubren
  * SeguimientoSyllabusRepository::crearCohorte()/cohorteExiste() (ver §1 del
- * plan). El subgrupo de usuarios (Partes 14-16) va a necesitar un
- * UsuariosRepository nuevo (no hay nada existente que cubra esa tabla) --
- * se agrega como dependencia de este mismo Controller cuando arranque la
- * Parte 14, no antes.
+ * plan). El subgrupo de usuarios (Partes 14-16) usa un UsuariosRepository
+ * nuevo (no había nada existente que cubriera esa tabla para un listado
+ * completo -- AuthRepository sólo resuelve un usuario por vez), agregado
+ * como segunda dependencia de este mismo Controller a partir de la Parte 14.
  */
 #[OA\Tag(name: 'Administración (Cohortes)')]
+#[OA\Tag(name: 'Administración (Usuarios)')]
 final class AdministracionController
 {
     public function __construct(
         private readonly SeguimientoSyllabusRepository $repositorio,
+        private readonly UsuariosRepository $usuariosRepositorio,
     ) {
     }
 
@@ -285,5 +288,59 @@ final class AdministracionController
         }
 
         return $this->json($response, true, 'Estado actualizado correctamente.');
+    }
+
+    /**
+     * GET /administracion/usuarios/listar — requiere sesión activa y rol
+     * administrador. Parte 14 del plan de migración slim-legacy (ver
+     * plan_migracion_slim_legacy_v3.txt §3 Grupo E, primera Parte del
+     * subgrupo de usuarios): reemplaza a
+     * api/administracion/usuarios/listar.php. A diferencia de
+     * cohortesListar() (que sólo exige sesión activa, sin chequeo de rol),
+     * el original de usuarios/listar.php SÍ valida
+     * $_SESSION['rol'] === 'administrador' (403) además de la sesión —
+     * diferencia real entre los dos endpoints, preservada tal cual: el 401
+     * lo sigue resolviendo SessionAuthMiddleware en la ruta (igual que
+     * cohortesListar), y el 403 de rol se chequea acá a mano, mismo patrón
+     * que cohortesCrear()/cohortesCambiarEstado(). Usa UsuariosRepository
+     * nuevo (no existía nada que cubriera la tabla `usuarios` para un
+     * listado completo -- AuthRepository sólo resuelve un usuario por vez).
+     */
+    #[OA\Get(
+        path: '/administracion/usuarios/listar',
+        summary: 'Lista los usuarios del sistema.',
+        security: [['sesionPhp' => []]],
+        tags: ['Administración (Usuarios)'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Usuarios registrados, ordenados por apellidos y nombres.',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'datos', type: 'array', items: new OA\Items(type: 'object')),
+                ]),
+            ),
+            new OA\Response(response: 401, description: 'La sesión no está activa.'),
+            new OA\Response(response: 403, description: 'No tiene permisos para consultar usuarios.'),
+            new OA\Response(response: 500, description: 'No se pudieron consultar los usuarios.'),
+        ],
+    )]
+    public function usuariosListar(Request $request, Response $response): Response
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+
+        if (($_SESSION['rol'] ?? '') !== 'administrador') {
+            return $this->json($response, false, 'No tiene permisos para consultar usuarios.', [], 403);
+        }
+
+        try {
+            $datos = $this->usuariosRepositorio->listar();
+        } catch (Throwable $e) {
+            return $this->json($response, false, 'No se pudieron consultar los usuarios.', ['detalle' => $e->getMessage()], 500);
+        }
+
+        return $this->json($response, true, null, ['datos' => $datos]);
     }
 }

@@ -27,6 +27,7 @@ use App\Repositories\MallaCurricularRepository;
 use App\Repositories\SeguimientoSyllabusRepository;
 use App\Repositories\TitulacionRepository;
 use App\Repositories\TutoriasRepository;
+use App\Repositories\UsuariosRepository;
 use App\Services\EncuestaEvidenciaService;
 use App\Services\EvidenciaMigradorService;
 use App\Services\EvidenciaStorageResolver;
@@ -263,25 +264,32 @@ $app->group('/seguimiento-syllabus', function ($grupo) use ($seguimientoControll
 // GET /administracion/cohortes/listar (reemplaza a
 // api/administracion/cohortes/listar.php). Reusa $seguimientoRepositorio ya
 // abierto arriba para I2 (mismo dominio `cohortes`, ver §1 del plan) en vez
-// de crear un repository nuevo -- el subgrupo de usuarios (Partes 14-16) sí
-// va a necesitar uno nuevo (UsuariosRepository), que se agrega como
-// dependencia de este mismo controller recién en la Parte 14.
-$administracionController = new AdministracionController($seguimientoRepositorio);
+// de crear un repository nuevo. El subgrupo de usuarios (Partes 14-16) sí
+// necesita uno nuevo (UsuariosRepository), agregado acá como segunda
+// dependencia del controller a partir de la Parte 14.
+$usuariosRepositorio = new UsuariosRepository($conexion);
+$administracionController = new AdministracionController($seguimientoRepositorio, $usuariosRepositorio);
 
 // --- Rutas del Grupo E (Administración) ---------------------------------
-// Con SessionAuthMiddleware: los 3 originales
-// (api/administracion/cohortes/{listar,crear,cambiar_estado}.php) ya
-// validaban $_SESSION['id_usuario'] a mano antes de estas Partes. `crear` y
-// `cambiar-estado` además exigen rol administrador (403), chequeado a mano
-// dentro del controller (Partes 12/13, mismo patrón que
-// CarrerasController/MallaCurricularController). Con la Parte 13 se cierra
-// el subgrupo de cohortes del Grupo E (Partes 11-13); el subgrupo de
-// usuarios (Partes 14-16) arranca aparte, con UsuariosRepository nuevo.
+// Con SessionAuthMiddleware: los 6 originales
+// (api/administracion/{cohortes,usuarios}/{listar,crear,cambiar_estado}.php)
+// ya validaban $_SESSION['id_usuario'] a mano antes de estas Partes. `crear`
+// y `cambiar-estado` de cohortes además exigen rol administrador (403),
+// chequeado a mano dentro del controller (Partes 12/13, mismo patrón que
+// CarrerasController/MallaCurricularController). Con la Parte 13 se cerró el
+// subgrupo de cohortes del Grupo E (Partes 11-13); el subgrupo de usuarios
+// arranca en la Parte 14 con GET /administracion/usuarios/listar, que a
+// diferencia de cohortes/listar SÍ exige rol administrador (403) además de
+// sesión activa -- mismo comportamiento que el original, preservado tal cual
+// (ver AdministracionController::usuariosListar()).
 $app->group('/administracion', function ($grupo) use ($administracionController) {
     $grupo->group('/cohortes', function ($sub) use ($administracionController) {
         $sub->get('/listar', [$administracionController, 'cohortesListar'])->add(new SessionAuthMiddleware());
         $sub->post('/crear', [$administracionController, 'cohortesCrear'])->add(new SessionAuthMiddleware());
         $sub->post('/cambiar-estado', [$administracionController, 'cohortesCambiarEstado'])->add(new SessionAuthMiddleware());
+    });
+    $grupo->group('/usuarios', function ($sub) use ($administracionController) {
+        $sub->get('/listar', [$administracionController, 'usuariosListar'])->add(new SessionAuthMiddleware());
     });
 });
 
