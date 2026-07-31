@@ -118,13 +118,16 @@ export async function obtenerEvaluacion(
   codigoCarrera: string,
   cohorte: string,
 ): Promise<EvaluacionResponse> {
+  // Ruta de Slim (Parte 10 del plan de migración de PHP suelto -- ver
+  // plan_migracion_slim_legacy_v3.txt §3), reemplaza a
+  // api/evaluaciones/obtener_evaluacion.php.
   const parametros = new URLSearchParams({
     codigo_carrera: codigoCarrera,
     cohorte,
   });
 
   const respuesta = await fetch(
-    `http://localhost/sistemacaces/api/evaluaciones/obtener_evaluacion.php?${parametros.toString()}`,
+    `http://localhost/sistemacaces/public/evaluaciones/obtener-evaluacion?${parametros.toString()}`,
     {
       credentials: 'include',
       headers: {

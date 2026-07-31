@@ -19,6 +19,7 @@ use App\Middleware\SessionAuthMiddleware;
 use App\Repositories\AuthRepository;
 use App\Repositories\CarrerasRepository;
 use App\Repositories\DesercionRepository;
+use App\Repositories\EvaluacionesRepository;
 use App\Repositories\EvidenciaAsignaturaRepository;
 use App\Repositories\EvidenciasRepository;
 use App\Repositories\MallaCurricularRepository;
@@ -189,11 +190,23 @@ $app->group('/evidencias', function ($grupo) use ($evidenciasController) {
 // abierto arriba para el Grupo B, misma tabla catalogo_evidencias) en vez
 // de crear un repository nuevo. El grupo '/catalogo' se crea acá, en la
 // primera Parte de este bloque. Sin SessionAuthMiddleware: el original no
-// valida $_SESSION['id_usuario'].
-$miscelaneosController = new MiscelaneosController($evidenciasRepositorio);
+// valida $_SESSION['id_usuario']. Parte 10 agrega GET
+// /evaluaciones/obtener-evaluacion (reemplaza a
+// api/evaluaciones/obtener_evaluacion.php) — a diferencia de la Parte 9,
+// esta sí necesita un repository nuevo (EvaluacionesRepository, ver nota
+// en el docblock del repository) porque ninguno existente cubre este
+// SELECT. Grupo '/evaluaciones' nuevo también, sin SessionAuthMiddleware:
+// el original tampoco valida sesión. Con esta Parte se completa el
+// Grupo C (2/2 Partes de código).
+$evaluacionesRepositorio = new EvaluacionesRepository($conexion);
+$miscelaneosController = new MiscelaneosController($evidenciasRepositorio, $evaluacionesRepositorio);
 
 $app->group('/catalogo', function ($grupo) use ($miscelaneosController) {
     $grupo->get('/obtener-evidencias', [$miscelaneosController, 'obtenerEvidencias']);
+});
+
+$app->group('/evaluaciones', function ($grupo) use ($miscelaneosController) {
+    $grupo->get('/obtener-evaluacion', [$miscelaneosController, 'obtenerEvaluacion']);
 });
 
 // --- I3 (Tutorías Académicas) -------------------------------------------

@@ -1290,6 +1290,45 @@
                 }
             }
         },
+        "/evaluaciones/obtener-evaluacion": {
+            "get": {
+                "tags": [
+                    "Misceláneos"
+                ],
+                "summary": "Obtiene la evaluación más reciente de una carrera y cohorte.",
+                "description": "GET /evaluaciones/obtener-evaluacion?codigo_carrera=&cohorte= —\nmisma lógica exacta que api/evaluaciones/obtener_evaluacion.php:\nbusca la evaluación más reciente (id_evaluacion DESC) para una\ncarrera y cohorte dadas, normalizando codigo_carrera y cohorte a\nmayúsculas y sin espacios igual que el original (el original hace\nesa normalización con strtoupper/preg_replace inline; acá se hace\nen el Controller antes de llamar al Repository, no en el Repository,\npara que el Repository quede como el resto -- solo SQL).",
+                "operationId": "20b7555b04547eff996e40322ee6c682",
+                "parameters": [
+                    {
+                        "name": "codigo_carrera",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "cohorte",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Evaluación encontrada."
+                    },
+                    "400": {
+                        "description": "Falta el código de carrera o la cohorte."
+                    },
+                    "404": {
+                        "description": "No existe evaluación para la carrera y cohorte."
+                    }
+                }
+            }
+        },
         "/seguimiento-syllabus/cohortes": {
             "post": {
                 "tags": [

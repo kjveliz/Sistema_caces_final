@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Repositories\EvaluacionesRepository;
 use App\Repositories\EvidenciasRepository;
 use OpenApi\Attributes as OA;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -19,16 +20,20 @@ use Throwable;
  * repository nuevo para esta Parte, ver criterio del plan §2.2). La
  * Parte 10 (api/evaluaciones/obtener_evaluacion.php) suma un método acá
  * también, mismo patrón de "un Controller por grupo, no por Parte" ya
- * usado en AuthController y EvidenciasController — aunque a diferencia de
- * esos dos, este Controller termina inyectando dos repositories distintos
- * en su constructor, porque las dos Partes de este grupo (misceláneos, por
- * definición) no comparten dominio de datos.
+ * usado en AuthController y EvidenciasController — con este Controller
+ * quedan inyectados dos repositories distintos en el constructor, porque
+ * las dos Partes de este grupo (misceláneos, por definición) no comparten
+ * dominio de datos: EvaluacionesRepository es un repository nuevo (no hay
+ * ninguno existente con este SELECT — CarrerasRepository y
+ * SeguimientoSyllabusRepository solo tocan `evaluaciones` para DELETE en
+ * cascada), a diferencia de la Parte 9 que reusó EvidenciasRepository.
  */
 #[OA\Tag(name: 'Misceláneos')]
 final class MiscelaneosController
 {
     public function __construct(
         private readonly EvidenciasRepository $evidenciasRepositorio,
+        private readonly EvaluacionesRepository $evaluacionesRepositorio,
     ) {
     }
 
@@ -88,6 +93,69 @@ final class MiscelaneosController
         $response->getBody()->write(json_encode([
             'ok' => true,
             'datos' => $evidencias,
+        ], JSON_UNESCAPED_UNICODE));
+
+        return $response->withHeader('Content-Type', 'application/json; charset=utf-8')->withStatus(200);
+    }
+
+    /**
+     * GET /evaluaciones/obtener-evaluacion?codigo_carrera=&cohorte= —
+     * misma lógica exacta que api/evaluaciones/obtener_evaluacion.php:
+     * busca la evaluación más reciente (id_evaluacion DESC) para una
+     * carrera y cohorte dadas, normalizando codigo_carrera y cohorte a
+     * mayúsculas y sin espacios igual que el original (el original hace
+     * esa normalización con strtoupper/preg_replace inline; acá se hace
+     * en el Controller antes de llamar al Repository, no en el Repository,
+     * para que el Repository quede como el resto -- solo SQL).
+     */
+    #[OA\Get(
+        path: '/evaluaciones/obtener-evaluacion',
+        summary: 'Obtiene la evaluación más reciente de una carrera y cohorte.',
+        tags: ['Misceláneos'],
+        parameters: [
+            new OA\Parameter(
+                name: 'codigo_carrera',
+                in: 'query',
+                required: true,
+                schema: new OA\Schema(type: 'string'),
+            ),
+            new OA\Parameter(
+                name: 'cohorte',
+                in: 'query',
+                required: true,
+                schema: new OA\Schema(type: 'string'),
+            ),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Evaluación encontrada.'),
+            new OA\Response(response: 400, description: 'Falta el código de carrera o la cohorte.'),
+            new OA\Response(response: 404, description: 'No existe evaluación para la carrera y cohorte.'),
+        ],
+    )]
+    public function obtenerEvaluacion(Request $request, Response $response): Response
+    {
+        $params = $request->getQueryParams();
+
+        $codigoCarrera = strtoupper(trim((string) ($params['codigo_carrera'] ?? '')));
+        $cohorte = strtoupper(preg_replace('/\s+/', '', trim((string) ($params['cohorte'] ?? ''))) ?? '');
+
+        if ($codigoCarrera === '' || $cohorte === '') {
+            return $this->json($response, false, 'Debe enviar el código de la carrera y la cohorte.', [], 400);
+        }
+
+        try {
+            $evaluacion = $this->evaluacionesRepositorio->obtenerPorCarreraYCohorte($codigoCarrera, $cohorte);
+        } catch (Throwable $e) {
+            return $this->json($response, false, 'No se pudo preparar la consulta.', ['detalle' => $e->getMessage()], 500);
+        }
+
+        if (!$evaluacion) {
+            return $this->json($response, false, 'No existe una evaluación para la carrera y cohorte seleccionadas.', [], 404);
+        }
+
+        $response->getBody()->write(json_encode([
+            'ok' => true,
+            'datos' => $evaluacion,
         ], JSON_UNESCAPED_UNICODE));
 
         return $response->withHeader('Content-Type', 'application/json; charset=utf-8')->withStatus(200);
