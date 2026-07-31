@@ -657,6 +657,104 @@
                 ]
             }
         },
+        "/evidencias/guardadas": {
+            "get": {
+                "tags": [
+                    "Evidencias (I1/I4/I5)"
+                ],
+                "summary": "Lista las evidencias ya guardadas de una evaluación para un indicador.",
+                "description": "GET /evidencias/guardadas?id_evaluacion=&id_indicador= — misma\nlógica exacta que api/evidencias/obtener_evidencias_guardadas.php:\nlista las evidencias ya guardadas de una evaluación para un\nindicador dado, cruzando con su fila en catalogo_evidencias.\n\nOJO — desvío intencional del helper json() de arriba, mismo criterio\nque AuthController::me() (Parte 3): el original NO incluye la clave\n\"mensaje\" en la respuesta exitosa (solo \"ok\" y \"datos\") — se arma a\nmano para no agregar \"mensaje\": null de más. En los casos de error sí\nse usa json(), igual que el original sí trae \"mensaje\" en esos casos.",
+                "operationId": "5d554bf2d5dc2e95877e66c1e9d332a1",
+                "parameters": [
+                    {
+                        "name": "id_evaluacion",
+                        "in": "query",
+                        "description": "ID de la evaluación.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "id_indicador",
+                        "in": "query",
+                        "description": "ID del indicador (catalogo_evidencias.id_indicador).",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de evidencias guardadas (puede venir vacía si no hay ninguna todavía).",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id_evidencia": {
+                                                        "type": "integer"
+                                                    },
+                                                    "id_catalogo": {
+                                                        "type": "integer"
+                                                    },
+                                                    "id_evaluacion": {
+                                                        "type": "integer"
+                                                    },
+                                                    "codigo_evidencia": {
+                                                        "type": "string"
+                                                    },
+                                                    "descripcion": {
+                                                        "type": "string"
+                                                    },
+                                                    "nombre_archivo": {
+                                                        "type": "string"
+                                                    },
+                                                    "tipo": {
+                                                        "type": "string",
+                                                        "nullable": true
+                                                    },
+                                                    "url_archivo": {
+                                                        "type": "string"
+                                                    },
+                                                    "fecha_subida": {
+                                                        "type": "string"
+                                                    },
+                                                    "titulo_corto": {
+                                                        "type": "string"
+                                                    },
+                                                    "nombre_archivo_base": {
+                                                        "type": "string"
+                                                    },
+                                                    "orden": {
+                                                        "type": "integer"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Debe enviar la evaluación y el indicador."
+                    },
+                    "500": {
+                        "description": "No se pudo preparar la consulta."
+                    }
+                }
+            }
+        },
         "/malla-curricular/obtener": {
             "get": {
                 "tags": [
@@ -2227,6 +2325,9 @@
         {
             "name": "Evidencia de asignatura — visor",
             "description": "Mismo criterio que `ver_archivo.php` para decidir el origen real\n(EvidenciaStorageResolver::resolverParaDescarga(), por la FORMA de\n`url_archivo`, no por el `modo_almacenamiento` actual de la carrera:\nuna evidencia ya subida sigue viviendo donde se subió aunque después\nse cambie el interruptor sin volver a migrar). A diferencia de\n`ver_archivo.php`, acá no hace falta duplicar la llamada cruda a la\nAPI de Drive: `EvidenciaStorageInterface::descargarContenido()` ya\nes el método del contrato común, implementado tanto por\nGoogleDriveService como por AlmacenamientoLocalService."
+        },
+        {
+            "name": "Evidencias (I1/I4/I5)"
         },
         {
             "name": "I1 - Malla Curricular",

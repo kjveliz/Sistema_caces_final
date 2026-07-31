@@ -6,6 +6,7 @@ use App\Controllers\AuthController;
 use App\Controllers\CarrerasAlmacenamientoController;
 use App\Controllers\CarrerasController;
 use App\Controllers\EvidenciaAsignaturaVisorController;
+use App\Controllers\EvidenciasController;
 use App\Controllers\MallaCurricularController;
 use App\Controllers\SeguimientoSyllabusController;
 use App\Controllers\TasaDesercionController;
@@ -18,6 +19,7 @@ use App\Repositories\AuthRepository;
 use App\Repositories\CarrerasRepository;
 use App\Repositories\DesercionRepository;
 use App\Repositories\EvidenciaAsignaturaRepository;
+use App\Repositories\EvidenciasRepository;
 use App\Repositories\MallaCurricularRepository;
 use App\Repositories\SeguimientoSyllabusRepository;
 use App\Repositories\TitulacionRepository;
@@ -140,6 +142,27 @@ $app->group('/auth', function ($grupo) use ($authController) {
     $grupo->post('/login', [$authController, 'login']);
     $grupo->post('/logout', [$authController, 'logout']);
     $grupo->get('/me', [$authController, 'me'])->add(new SessionAuthMiddleware());
+});
+
+// --- Evidencias genéricas (Grupo B del plan de migración de PHP suelto a
+// Slim, usadas por I1/I4/I5) ----------------------------------------------
+// Arranca en la Parte 4 (plan_migracion_slim_legacy_v3.txt §3) con
+// GET /evidencias/guardadas (reemplaza a
+// api/evidencias/obtener_evidencias_guardadas.php). Reusa $conexion ya
+// abierta arriba, igual que el resto de los controllers. El grupo
+// '/evidencias' se crea acá, en la primera Parte del bloque, y se le van
+// agregando rutas en las Partes 5-8 (obtener_compartidas, leer_matriculados,
+// guardar_evidencia, preparar_pdf).
+$evidenciasRepositorio = new EvidenciasRepository($conexion);
+$evidenciasController = new EvidenciasController($evidenciasRepositorio);
+
+// --- Rutas de Evidencias genéricas (Grupo B) -----------------------------
+// /evidencias/guardadas sin SessionAuthMiddleware a propósito: el
+// obtener_evidencias_guardadas.php original no valida sesión activa (a
+// diferencia de otros endpoints de este mismo grupo, que sí lo hacen —
+// revisar caso por caso en las Partes 5-8).
+$app->group('/evidencias', function ($grupo) use ($evidenciasController) {
+    $grupo->get('/guardadas', [$evidenciasController, 'guardadas']);
 });
 
 // --- I3 (Tutorías Académicas) -------------------------------------------

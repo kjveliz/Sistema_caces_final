@@ -221,8 +221,11 @@ export async function obtenerEvidenciasGuardadas(
     id_indicador: String(idIndicador),
   });
 
+  // Ruta de Slim (Parte 4 del plan de migración de PHP suelto -- ver
+  // plan_migracion_slim_legacy_v3.txt §3), reemplaza a
+  // api/evidencias/obtener_evidencias_guardadas.php.
   const respuesta = await fetch(
-    `http://localhost/sistemacaces/api/evidencias/obtener_evidencias_guardadas.php?${parametros.toString()}`,
+    `http://localhost/sistemacaces/public/evidencias/guardadas?${parametros.toString()}`,
     {
       credentials: 'include',
       headers: {
