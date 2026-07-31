@@ -276,7 +276,7 @@ export async function obtenerEvidenciasCompartidas(
   });
 
   const respuesta = await fetch(
-    `http://localhost/sistemacaces/api/evidencias/obtener_compartidas.php?${parametros.toString()}`,
+    `http://localhost/sistemacaces/public/evidencias/compartidas?${parametros.toString()}`,
     {
       credentials: 'include',
       headers: {

@@ -755,6 +755,110 @@
                 }
             }
         },
+        "/evidencias/compartidas": {
+            "get": {
+                "tags": [
+                    "Evidencias (I1/I4/I5)"
+                ],
+                "summary": "Lista las evidencias de otros indicadores ya compartidas con el indicador destino.",
+                "description": "GET /evidencias/compartidas?id_evaluacion=&id_indicador_destino= —\nmisma lógica exacta que api/evidencias/obtener_compartidas.php:\nlista las evidencias de la evaluación que ya están compartidas con\nel indicador destino (vía indicador_evidencia) pero cuyo indicador\nde origen es distinto al destino.\n\nOJO — mismo desvío intencional que guardadas() (Parte 4): el\noriginal NO incluye \"mensaje\" en la respuesta exitosa, solo \"ok\" y\n\"datos\" — se arma a mano para no agregar \"mensaje\": null de más. En\nlos casos de error sí se usa json(), igual que el original.",
+                "operationId": "1d0e9ecdff6f8a1bcd0b86bbd8dd094a",
+                "parameters": [
+                    {
+                        "name": "id_evaluacion",
+                        "in": "query",
+                        "description": "ID de la evaluación.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "id_indicador_destino",
+                        "in": "query",
+                        "description": "ID del indicador destino (catalogo_evidencias.id_indicador) que quiere reutilizar evidencia de otro indicador.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de evidencias compartidas (puede venir vacía si no hay ninguna todavía).",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id_evidencia": {
+                                                        "type": "integer"
+                                                    },
+                                                    "id_catalogo": {
+                                                        "type": "integer"
+                                                    },
+                                                    "id_evaluacion": {
+                                                        "type": "integer"
+                                                    },
+                                                    "codigo_evidencia": {
+                                                        "type": "string"
+                                                    },
+                                                    "descripcion": {
+                                                        "type": "string"
+                                                    },
+                                                    "nombre_archivo": {
+                                                        "type": "string"
+                                                    },
+                                                    "tipo": {
+                                                        "type": "string",
+                                                        "nullable": true
+                                                    },
+                                                    "url_archivo": {
+                                                        "type": "string"
+                                                    },
+                                                    "fecha_subida": {
+                                                        "type": "string"
+                                                    },
+                                                    "titulo_corto": {
+                                                        "type": "string"
+                                                    },
+                                                    "nombre_archivo_base": {
+                                                        "type": "string"
+                                                    },
+                                                    "orden": {
+                                                        "type": "integer"
+                                                    },
+                                                    "id_indicador_origen": {
+                                                        "type": "integer"
+                                                    },
+                                                    "indicador_origen": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Debe enviar la evaluación y el indicador destino."
+                    },
+                    "500": {
+                        "description": "No se pudo preparar la consulta."
+                    }
+                }
+            }
+        },
         "/malla-curricular/obtener": {
             "get": {
                 "tags": [
@@ -2327,7 +2431,8 @@
             "description": "Mismo criterio que `ver_archivo.php` para decidir el origen real\n(EvidenciaStorageResolver::resolverParaDescarga(), por la FORMA de\n`url_archivo`, no por el `modo_almacenamiento` actual de la carrera:\nuna evidencia ya subida sigue viviendo donde se subió aunque después\nse cambie el interruptor sin volver a migrar). A diferencia de\n`ver_archivo.php`, acá no hace falta duplicar la llamada cruda a la\nAPI de Drive: `EvidenciaStorageInterface::descargarContenido()` ya\nes el método del contrato común, implementado tanto por\nGoogleDriveService como por AlmacenamientoLocalService."
         },
         {
-            "name": "Evidencias (I1/I4/I5)"
+            "name": "Evidencias (I1/I4/I5)",
+            "description": "Parte 5 agrega compartidas() (reemplaza a\napi/evidencias/obtener_compartidas.php)."
         },
         {
             "name": "I1 - Malla Curricular",

@@ -152,17 +152,20 @@ $app->group('/auth', function ($grupo) use ($authController) {
 // abierta arriba, igual que el resto de los controllers. El grupo
 // '/evidencias' se crea acá, en la primera Parte del bloque, y se le van
 // agregando rutas en las Partes 5-8 (obtener_compartidas, leer_matriculados,
-// guardar_evidencia, preparar_pdf).
+// guardar_evidencia, preparar_pdf). Parte 5 agrega GET /evidencias/compartidas
+// (reemplaza a api/evidencias/obtener_compartidas.php).
 $evidenciasRepositorio = new EvidenciasRepository($conexion);
 $evidenciasController = new EvidenciasController($evidenciasRepositorio);
 
 // --- Rutas de Evidencias genéricas (Grupo B) -----------------------------
-// /evidencias/guardadas sin SessionAuthMiddleware a propósito: el
-// obtener_evidencias_guardadas.php original no valida sesión activa (a
-// diferencia de otros endpoints de este mismo grupo, que sí lo hacen —
-// revisar caso por caso en las Partes 5-8).
+// /evidencias/guardadas y /evidencias/compartidas sin SessionAuthMiddleware
+// a propósito: ni obtener_evidencias_guardadas.php ni
+// obtener_compartidas.php originales validan sesión activa (a diferencia
+// de otros endpoints de este mismo grupo, que sí lo hacen — revisar caso
+// por caso en las Partes 6-8).
 $app->group('/evidencias', function ($grupo) use ($evidenciasController) {
     $grupo->get('/guardadas', [$evidenciasController, 'guardadas']);
+    $grupo->get('/compartidas', [$evidenciasController, 'compartidas']);
 });
 
 // --- I3 (Tutorías Académicas) -------------------------------------------
