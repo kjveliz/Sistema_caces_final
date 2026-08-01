@@ -33,25 +33,22 @@ composer require --dev robmorgan/phinx
 
 ## 3. Crear una base de datos de prueba vacía (NO uses `evaluacion_caces`)
 
-En phpMyAdmin o por línea de comandos, creá una base nueva y vacía, por ejemplo `evaluacion_caces_test`.
-Después copiá tu `.env` a algo como `.env.test` (o editá temporalmente `DB_NAME` en tu `.env`) para apuntar
-`phinx.php` a esa base de prueba. **No corras el primer `phinx migrate` contra tu base real.**
+En phpMyAdmin o por línea de comandos, creá una base nueva y vacía llamada exactamente
+`evaluacion_caces_test` (ese nombre ya está fijo en el entorno `testing` de `phinx.php`, mismo
+host/usuario/clave que tu `.env` normal). No hace falta editar tu `.env` ni crear un `.env.test`
+aparte — el entorno `testing` apunta solo a esa base, sin tocar `evaluacion_caces`.
 
-Si usás un `.env` separado para la prueba, indicaselo a Phinx así:
+Corré Phinx indicando ese entorno:
 
 ```bash
-vendor/bin/phinx migrate -e local
+vendor/bin/phinx migrate -e testing
 ```
-
-(`local` es el nombre del entorno en `phinx.php`; si armaste un `.env.test` aparte, necesitás cargarlo antes
-de correr el comando — la forma más simple es editar temporalmente `DB_NAME` en tu `.env` normal, correr la
-prueba, y devolverlo a `evaluacion_caces` después).
 
 ## 4. Verificar en vivo — este es el criterio de "hecho" del plan
 
 ```bash
-vendor/bin/phinx migrate
-vendor/bin/phinx seed:run
+vendor/bin/phinx migrate -e testing
+vendor/bin/phinx seed:run -e testing
 ```
 
 Con la base de prueba vacía, esperado:
@@ -67,7 +64,7 @@ tabla/columna/constraint no le gustó) y lo corrijo antes de que toques tu base 
 ## 5. Si todo salió bien, probá el rollback (opcional pero recomendado)
 
 ```bash
-vendor/bin/phinx rollback
+vendor/bin/phinx rollback -e testing
 ```
 
 Debería borrar las 20 tablas en el orden inverso correcto, sin errores. Esto confirma que el `change()` de
