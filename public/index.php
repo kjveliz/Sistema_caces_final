@@ -420,9 +420,15 @@ $googleDriveController = new GoogleDriveController($evidenciasRepositorio, $stor
 // (api/google_drive/subir_archivo.php) tampoco validaba
 // $_SESSION['id_usuario'] -- ver docblock de
 // GoogleDriveController::subirArchivo().
+//
+// GET /google-drive/conectar — sin SessionAuthMiddleware (Parte 22): el
+// original (api/google_drive/conectar.php) tampoco validaba sesión -- lo
+// abre manualmente el administrador desde su navegador, no el SPA vía
+// fetch() -- ver docblock de GoogleDriveController::conectar().
 $app->group('/google-drive', function ($grupo) use ($googleDriveController) {
     $grupo->get('/ver-archivo', [$googleDriveController, 'verArchivo'])->add(new SessionAuthMiddleware());
     $grupo->post('/subir-archivo', [$googleDriveController, 'subirArchivo']);
+    $grupo->get('/conectar', [$googleDriveController, 'conectar']);
 });
 
 // --- Visor de evidencia_asignatura (I2/I3) -- parte 1 del paso 6 de -----

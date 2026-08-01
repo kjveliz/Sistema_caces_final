@@ -7,6 +7,7 @@ namespace App\Controllers;
 use App\Repositories\EvidenciasRepository;
 use App\Services\AlmacenamientoLocalService;
 use App\Services\EvidenciaStorageResolver;
+use App\Services\GoogleDriveClienteFactory;
 use App\Services\MimeTypePorExtension;
 use OpenApi\Attributes as OA;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -39,7 +40,16 @@ use Throwable;
  * con GoogleDriveService::subirArchivoCatalogo() y
  * AlmacenamientoLocalService::subirArchivo() (sesión 1, ver MEMORIA §143.2)
  * vía $storageResolver, ya inyectado para verArchivo().
+ *
+ * conectar() (Parte 22) suma el tercer método del grupo: reemplaza a
+ * api/google_drive/conectar.php, el disparador manual (desde el navegador
+ * del administrador, no desde fetch()) del flujo de autorización OAuth de
+ * Google. Es la Parte previa a la última del plan (callback.php, Parte 23)
+ * -- se prueba aislada primero porque el redirect_uri que arma
+ * GoogleDriveClienteFactory sigue apuntando al callback legacy todavía sin
+ * migrar (ver docblock de conectar() para el detalle).
  */
+
 #[OA\Tag(name: 'Google Drive')]
 final class GoogleDriveController
 {
@@ -327,5 +337,58 @@ final class GoogleDriveController
                 'indicador' => $indicador,
             ],
         ]);
+    }
+
+    /**
+     * GET /google-drive/conectar — redirect real (302) hacia la pantalla
+     * de consentimiento OAuth de Google, no JSON (mismo criterio del plan
+     * §2 punto 3). Puerto 1:1 de api/google_drive/conectar.php (Parte 22):
+     * arma la URL de autorización vía
+     * GoogleDriveClienteFactory::crear()->createAuthUrl() y la devuelve
+     * como header Location + status 302 -- Slim expresa el redirect así,
+     * a diferencia del script original que hacía header()+exit() directo.
+     *
+     * Sin SessionAuthMiddleware: el original tampoco validaba sesión (lo
+     * abre manualmente el administrador desde su navegador, vía
+     * window.open() en StorageSettingsModal.tsx -- no es un fetch() del
+     * SPA, ver frontend actualizado).
+     *
+     * El redirect_uri que arma GoogleDriveClienteFactory::crear() sigue
+     * apuntando a la URL legacy de callback.php
+     * (api/google_drive/callback.php), todavía sin migrar (Parte 23, la
+     * última del plan). No se cambia acá: Google Cloud Console tiene
+     * registrado ese redirect_uri exacto, y apuntar ya al futuro
+     * /google-drive/callback antes de migrar (y probar) callback.php
+     * dejaría el flujo de conexión real roto a mitad de camino -- por eso
+     * el plan (Fase 4, §3) prueba conectar.php aislado primero, con el
+     * callback legacy todavía sirviendo.
+     *
+     * Seam de testing (mismo criterio que GoogleDriveService::
+     * subirArchivo() y demás métodos del grupo): bajo APP_ENV=testing se
+     * evita crear el cliente real de Google (no hay credenciales.json de
+     * prueba disponibles) y se redirige a una URL fake determinística.
+     */
+    #[OA\Get(
+        path: '/google-drive/conectar',
+        summary: 'Redirige a la pantalla de consentimiento OAuth de Google para conectar Google Drive.',
+        tags: ['Google Drive'],
+        responses: [
+            new OA\Response(response: 302, description: 'Redirect hacia la pantalla de autorización de Google.'),
+        ],
+    )]
+    public function conectar(Request $request, Response $response): Response
+    {
+        if ((getenv('APP_ENV') ?: '') === 'testing') {
+            return $response
+                ->withHeader('Location', 'https://accounts.google.com/o/oauth2/fake-test-double')
+                ->withStatus(302);
+        }
+
+        $cliente = GoogleDriveClienteFactory::crear();
+        $authUrl = $cliente->createAuthUrl();
+
+        return $response
+            ->withHeader('Location', $authUrl)
+            ->withStatus(302);
     }
 }

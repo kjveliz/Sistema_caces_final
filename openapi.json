@@ -1720,6 +1720,21 @@
                 }
             }
         },
+        "/google-drive/conectar": {
+            "get": {
+                "tags": [
+                    "Google Drive"
+                ],
+                "summary": "Redirige a la pantalla de consentimiento OAuth de Google para conectar Google Drive.",
+                "description": "GET /google-drive/conectar — redirect real (302) hacia la pantalla\nde consentimiento OAuth de Google, no JSON (mismo criterio del plan\n§2 punto 3). Puerto 1:1 de api/google_drive/conectar.php (Parte 22):\narma la URL de autorización vía\nGoogleDriveClienteFactory::crear()->createAuthUrl() y la devuelve\ncomo header Location + status 302 -- Slim expresa el redirect así,\na diferencia del script original que hacía header()+exit() directo.\n\nSin SessionAuthMiddleware: el original tampoco validaba sesión (lo\nabre manualmente el administrador desde su navegador, vía\nwindow.open() en StorageSettingsModal.tsx -- no es un fetch() del\nSPA, ver frontend actualizado).\n\nEl redirect_uri que arma GoogleDriveClienteFactory::crear() sigue\napuntando a la URL legacy de callback.php\n(api/google_drive/callback.php), todavía sin migrar (Parte 23, la\núltima del plan). No se cambia acá: Google Cloud Console tiene\nregistrado ese redirect_uri exacto, y apuntar ya al futuro\n/google-drive/callback antes de migrar (y probar) callback.php\ndejaría el flujo de conexión real roto a mitad de camino -- por eso\nel plan (Fase 4, §3) prueba conectar.php aislado primero, con el\ncallback legacy todavía sirviendo.\n\nSeam de testing (mismo criterio que GoogleDriveService::\nsubirArchivo() y demás métodos del grupo): bajo APP_ENV=testing se\nevita crear el cliente real de Google (no hay credenciales.json de\nprueba disponibles) y se redirige a una URL fake determinística.",
+                "operationId": "2a74f9adbedd59542a716b136b61e812",
+                "responses": {
+                    "302": {
+                        "description": "Redirect hacia la pantalla de autorización de Google."
+                    }
+                }
+            }
+        },
         "/malla-curricular/obtener": {
             "get": {
                 "tags": [
@@ -3370,7 +3385,7 @@
         },
         {
             "name": "Google Drive",
-            "description": "verArchivo() reutiliza EvidenciaStorageResolver::resolverParaDescarga()\n+ EvidenciaStorageInterface::descargarContenido() en vez de duplicar la\nllamada cruda a la API de Drive que tenía el original -- mismo patrón\nque EvidenciaAsignaturaVisorController::ver() (paso 6 del plan de\ninterruptor de almacenamiento), que ya resuelve exactamente esta misma\nbifurcación (Drive vs almacenamiento local) para evidencia_asignatura.\nA diferencia de ese controller, el formato de respuesta de éxito no es\nJSON (mismo criterio del plan, §2 punto 3): sirve los bytes reales del\narchivo con su Content-Type propio.\n\nsubirArchivo() (Parte 21, sesión 2) suma el segundo método del grupo:\nreemplaza a api/google_drive/subir_archivo.php, el endpoint genérico de\nsubida compartido por I1/I4/I5 (y 3 slots evaluation-wide de I2). Wiring\ncon GoogleDriveService::subirArchivoCatalogo() y\nAlmacenamientoLocalService::subirArchivo() (sesión 1, ver MEMORIA §143.2)\nvía $storageResolver, ya inyectado para verArchivo()."
+            "description": "verArchivo() reutiliza EvidenciaStorageResolver::resolverParaDescarga()\n+ EvidenciaStorageInterface::descargarContenido() en vez de duplicar la\nllamada cruda a la API de Drive que tenía el original -- mismo patrón\nque EvidenciaAsignaturaVisorController::ver() (paso 6 del plan de\ninterruptor de almacenamiento), que ya resuelve exactamente esta misma\nbifurcación (Drive vs almacenamiento local) para evidencia_asignatura.\nA diferencia de ese controller, el formato de respuesta de éxito no es\nJSON (mismo criterio del plan, §2 punto 3): sirve los bytes reales del\narchivo con su Content-Type propio.\n\nsubirArchivo() (Parte 21, sesión 2) suma el segundo método del grupo:\nreemplaza a api/google_drive/subir_archivo.php, el endpoint genérico de\nsubida compartido por I1/I4/I5 (y 3 slots evaluation-wide de I2). Wiring\ncon GoogleDriveService::subirArchivoCatalogo() y\nAlmacenamientoLocalService::subirArchivo() (sesión 1, ver MEMORIA §143.2)\nvía $storageResolver, ya inyectado para verArchivo().\n\nconectar() (Parte 22) suma el tercer método del grupo: reemplaza a\napi/google_drive/conectar.php, el disparador manual (desde el navegador\ndel administrador, no desde fetch()) del flujo de autorización OAuth de\nGoogle. Es la Parte previa a la última del plan (callback.php, Parte 23)\n-- se prueba aislada primero porque el redirect_uri que arma\nGoogleDriveClienteFactory sigue apuntando al callback legacy todavía sin\nmigrar (ver docblock de conectar() para el detalle)."
         },
         {
             "name": "I1 - Malla Curricular",

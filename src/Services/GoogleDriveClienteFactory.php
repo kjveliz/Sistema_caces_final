@@ -13,13 +13,14 @@ use Google\Service\Drive as GoogleDrive;
  * plan de migración slim-legacy) -- misma configuración exacta, ahora como
  * método estático en vez de script que arma una variable global `$cliente`.
  *
- * Consumidores tras esta Parte: `api/google_drive/conectar.php` y
- * `api/google_drive/callback.php` (ambos todavía legacy, sin migrar --
- * Partes 22/23), y `App\Services\GoogleDriveClienteAutorizado::obtener()`
- * (Parte 19, ya migrada), que a su vez es la base de
+ * Consumidores: `App\Controllers\GoogleDriveController::conectar()` (Parte
+ * 22, ya migrada -- reemplazó a `api/google_drive/conectar.php`),
+ * `api/google_drive/callback.php` (todavía legacy, sin migrar -- Parte 23,
+ * la última del plan), y `App\Services\GoogleDriveClienteAutorizado::
+ * obtener()` (Parte 19, ya migrada), que a su vez es la base de
  * `App\Services\GoogleDriveService` (en producción, I2/I3) y de
  * `scripts/diagnostico_evidencia_drive.php`.
- * `config.php` queda borrado del repo con esta Parte.
+ * `config.php` quedó borrado del repo desde la Parte 17.
  */
 final class GoogleDriveClienteFactory
 {

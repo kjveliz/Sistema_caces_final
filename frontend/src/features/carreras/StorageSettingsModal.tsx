@@ -4,13 +4,14 @@ import type { FormEvent } from 'react';
 import type { ModoAlmacenamiento } from '../../shared/services/carreras';
 import type { CarreraBD } from './hooks/useCareers';
 
-// GET /api/google_drive/conectar.php — redirige (302) al consentimiento
-// OAuth de Google. Es navegación top-level real (el propio script hace
-// header("Location: ...") hacia Google), no un endpoint JSON, así que se
+// GET /google-drive/conectar (GoogleDriveController::conectar(), Parte 22
+// del plan de migración slim-legacy — reemplaza a
+// api/google_drive/conectar.php) — redirige (302) al consentimiento OAuth
+// de Google. Es navegación top-level real, no un endpoint JSON, así que se
 // abre con window.open() en vez de llamarse con fetch() -- mismo criterio
 // que urlVisorEvidenciaLegacy/urlVisorEvidenciaAsignatura para las URLs de
 // google_drive/*.php que tampoco son JSON.
-const URL_CONECTAR_DRIVE = 'http://localhost/sistemacaces/api/google_drive/conectar.php';
+const URL_CONECTAR_DRIVE = 'http://localhost/sistemacaces/public/google-drive/conectar';
 
 /**
  * Interruptor de almacenamiento (Drive/local) por carrera. Visible desde un

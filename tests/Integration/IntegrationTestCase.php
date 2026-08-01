@@ -217,7 +217,7 @@ abstract class IntegrationTestCase extends TestCase
 
     /**
      * @param array{json?: array, multipart?: array} $opciones
-     * @return array{status: int, body: string, json: mixed}
+     * @return array{status: int, body: string, json: mixed, headers: array<string, string>}
      */
     protected function peticion(string $metodo, string $ruta, array $opciones = []): array
     {
@@ -227,9 +227,20 @@ abstract class IntegrationTestCase extends TestCase
         curl_setopt_array($ch, [
             CURLOPT_CUSTOMREQUEST => $metodo,
             CURLOPT_RETURNTRANSFER => true,
+            // CURLOPT_HEADER (Parte 22, GoogleDriveController::conectar()):
+            // hasta esta Parte ningún test de integración necesitaba leer
+            // headers de la respuesta (solo status/body/json) -- conectar()
+            // es el primer endpoint no-JSON del proyecto cuyo resultado
+            // real es un header (Location de un 302), no el body. Cambio
+            // retrocompatible: los tests existentes solo leen
+            // status/body/json, que se siguen devolviendo igual.
+            CURLOPT_HEADER => true,
             CURLOPT_COOKIEJAR => self::$cookieJar,
             CURLOPT_COOKIEFILE => self::$cookieJar,
             CURLOPT_TIMEOUT => 10,
+            // No seguir redirects: para conectar() el 302 en sí (con su
+            // Location) es lo que el test necesita inspeccionar.
+            CURLOPT_FOLLOWLOCATION => false,
         ]);
 
         if (isset($opciones['json'])) {
@@ -245,16 +256,28 @@ abstract class IntegrationTestCase extends TestCase
             curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         }
 
-        $body = curl_exec($ch);
-        if ($body === false) {
+        $respuestaCompleta = curl_exec($ch);
+        if ($respuestaCompleta === false) {
             $error = curl_error($ch);
             curl_close($ch);
             throw new RuntimeException("Petición HTTP falló: {$error}");
         }
         $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $tamanoHeaders = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
         curl_close($ch);
 
-        return ['status' => $status, 'body' => $body, 'json' => json_decode($body, true)];
+        $headersCrudo = substr($respuestaCompleta, 0, $tamanoHeaders);
+        $body = substr($respuestaCompleta, $tamanoHeaders);
+
+        $headersRespuesta = [];
+        foreach (explode("\r\n", trim($headersCrudo)) as $linea) {
+            if (str_contains($linea, ':')) {
+                [$nombre, $valor] = explode(':', $linea, 2);
+                $headersRespuesta[strtolower(trim($nombre))] = trim($valor);
+            }
+        }
+
+        return ['status' => $status, 'body' => $body, 'json' => json_decode($body, true), 'headers' => $headersRespuesta];
     }
 
     /**
