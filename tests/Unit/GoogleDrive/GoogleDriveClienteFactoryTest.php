@@ -65,4 +65,27 @@ final class GoogleDriveClienteFactoryTest extends TestCase
 
         GoogleDriveClienteFactory::crear('/ruta/que/no/existe/credenciales.json');
     }
+
+    /**
+     * Punto 20 pendiente de la memoria: GOOGLE_DRIVE_CREDENTIALS_PATH estaba
+     * en .env.example pero nada la leía. Este test confirma que, si está
+     * definida en el entorno (ruta absoluta, mismo caso que produccion), se
+     * usa en vez de la ruta hardcodeada por defecto -- sin pasar el
+     * parámetro explícito de crear(), que es el camino real de producción.
+     */
+    public function testCrearUsaLaRutaDeEntornoSiEstaDefinida(): void
+    {
+        $_ENV['GOOGLE_DRIVE_CREDENTIALS_PATH'] = $this->rutaCredencialesPrueba;
+
+        try {
+            // No debe lanzar InvalidArgumentException: si tomara la ruta
+            // hardcodeada por defecto (que no existe en este entorno de
+            // test), setAuthConfig() fallaría.
+            $cliente = GoogleDriveClienteFactory::crear();
+
+            $this->assertSame([Drive::DRIVE_FILE], $cliente->getScopes());
+        } finally {
+            unset($_ENV['GOOGLE_DRIVE_CREDENTIALS_PATH']);
+        }
+    }
 }
