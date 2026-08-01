@@ -19,6 +19,10 @@ use mysqli;
  * guardarEvidencia() (reemplaza a api/evidencias/guardar_evidencia.php).
  * Parte 8 agrega obtenerCatalogoParaPreparar() (reemplaza a
  * api/evidencias/preparar_pdf.php), quinta y última Parte del Grupo B.
+ * Parte 9 agrega obtenerCatalogoPorIndicador() (Grupo C). Parte 20 agrega
+ * obtenerPorId() (reemplaza a api/google_drive/ver_archivo.php, Grupo D),
+ * reutilizado en vez de crear un repository nuevo para el Grupo D porque
+ * ese endpoint también lee de `evidencias`.
  */
 final class EvidenciasRepository
 {
@@ -363,6 +367,44 @@ final class EvidenciasRepository
         $catalogo['orden'] = (int) $catalogo['orden'];
 
         return $catalogo;
+    }
+
+    /**
+     * Misma consulta exacta (mismas 3 columnas, mismo WHERE por
+     * id_evidencia, mismo LIMIT 1) que el SELECT original de
+     * api/google_drive/ver_archivo.php. Reutilizado acá en vez de crear un
+     * repository nuevo para el Grupo D porque este endpoint solo lee de
+     * `evidencias` -- misma tabla que ya cubre este repository (ver
+     * criterio del plan §2.2, mismo ya aplicado con
+     * obtenerCatalogoPorIndicador() para el Grupo C). Parte 20 del plan de
+     * migración de PHP suelto a Slim (Grupo D, primera de las 4 Partes de
+     * endpoints reales).
+     *
+     * @return array{nombre_archivo: string, tipo: ?string, url_archivo: string}|null
+     */
+    public function obtenerPorId(int $idEvidencia): ?array
+    {
+        $stmt = $this->conexion->prepare(
+            'SELECT
+                nombre_archivo,
+                tipo,
+                url_archivo
+            FROM evidencias
+            WHERE id_evidencia = ?
+            LIMIT 1'
+        );
+
+        if (!$stmt) {
+            throw new \RuntimeException('No se pudo preparar la consulta.');
+        }
+
+        $stmt->bind_param('i', $idEvidencia);
+        $stmt->execute();
+
+        $resultado = $stmt->get_result();
+        $evidencia = $resultado->fetch_assoc();
+
+        return $evidencia ?: null;
     }
 
     /**

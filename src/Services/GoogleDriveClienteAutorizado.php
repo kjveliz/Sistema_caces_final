@@ -18,10 +18,12 @@ use RuntimeException;
  *
  * Consumidores tras esta Parte: `App\Services\GoogleDriveService`
  * (`subirArchivo()`, `descargarContenidoDrive()`, `eliminarArchivo()`),
- * `scripts/diagnostico_evidencia_drive.php`, y los dos endpoints legacy
- * que todavía sirven bytes/JSON de Drive directamente --
- * `api/google_drive/ver_archivo.php` (Parte 20, pendiente) y
- * `api/google_drive/subir_archivo.php` (Parte 21, pendiente).
+ * `scripts/diagnostico_evidencia_drive.php`, y
+ * `App\Controllers\GoogleDriveController::verArchivo()` (Parte 20, vía
+ * `GoogleDriveService::descargarContenidoDrive()` -- ver
+ * EvidenciaStorageResolver). El endpoint legacy que todavía sirve bytes
+ * de Drive directamente -- `api/google_drive/subir_archivo.php` (Parte
+ * 21, pendiente) -- sigue usando este método directo.
  * `cliente_autorizado.php` queda borrado del repo con esta Parte.
  */
 final class GoogleDriveClienteAutorizado

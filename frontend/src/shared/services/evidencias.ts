@@ -307,7 +307,7 @@ export async function obtenerEvidenciasCompartidas(
   return datos.datos;
 }
 
-// GET /api/google_drive/ver_archivo.php?id_evidencia= — visor real para
+// GET /google-drive/ver-archivo?id_evidencia= — visor real para
 // I1/I4/I5 (tabla `evidencias`, evaluation-wide). El backend ya ramifica
 // Drive/local desde el paso 5 del plan de interruptor de almacenamiento,
 // pero hasta ahora nada en el frontend lo llamaba: estos slots seguían
@@ -318,8 +318,11 @@ export async function obtenerEvidenciasCompartidas(
 // Mismo criterio que urlVisorEvidenciaAsignatura (evidenciaAsignaturaVisor.ts):
 // no devuelve JSON, así que solo se necesita la URL para usarla como `src`
 // de un <iframe>, destino de window.open(), o fetch() de CsvPreviewTable.
+// Actualizado en la Parte 20 del plan de migración de PHP suelto a Slim
+// (plan_migracion_slim_legacy_v3.txt §3): reemplaza a
+// api/google_drive/ver_archivo.php, ya borrado del repo.
 export function urlVisorEvidenciaLegacy(idEvidencia: number): string {
-  return `http://localhost/sistemacaces/api/google_drive/ver_archivo.php?id_evidencia=${idEvidencia}`;
+  return `http://localhost/sistemacaces/public/google-drive/ver-archivo?id_evidencia=${idEvidencia}`;
 }
 
 export interface SubirDriveResponse {

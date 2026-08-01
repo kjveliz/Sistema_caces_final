@@ -1562,6 +1562,49 @@
                 }
             }
         },
+        "/google-drive/ver-archivo": {
+            "get": {
+                "tags": [
+                    "Google Drive"
+                ],
+                "summary": "Sirve el contenido de una evidencia (I1/I4/I5), sin importar si está en Drive o en almacenamiento local.",
+                "description": "GET /google-drive/ver-archivo?id_evidencia= — requiere sesión\n(SessionAuthMiddleware, 401, mismo mensaje exacto que el original).\nSirve el contenido real de una evidencia de `evidencias` (I1/I4/I5),\nsin importar si terminó en Google Drive o en almacenamiento local\n(interruptor de almacenamiento, ver\nEvidenciaStorageResolver::resolverParaDescarga()).\n\nMismo criterio de Content-Type que el original: 'text/csv' para\nevidencias .csv (a diferencia de EvidenciaAsignaturaVisorController,\nque usa 'text/plain' para el mismo caso -- ese es un fix posterior\nde un bug de I2/I3 que no aplica acá, fuera de alcance de esta\nParte: no se toca lógica de negocio más allá de mover de\narquitectura, ver plan §4).\n\nDos matices heredados de reusar el contrato común\n(EvidenciaStorageInterface) en vez de la llamada cruda a Drive que\ntenía el original -- mismo precedente ya aceptado por\nEvidenciaAsignaturaVisorController, documentado acá aparte en vez de\n\"arreglarlo\" en esta Parte (plan §4: no mezclar deuda con el cambio\nde arquitectura):\n  1. Un url_archivo con forma de link de Drive pero sin el patrón\n     \"/d/{id}/\" ya no distingue 400 (\"URL de Drive inválida\") de un\n     archivo simplemente no encontrado -- ambos caen acá en el mismo\n     404 genérico.\n  2. El chequeo explícito de \"Drive devolvió un archivo vacío\" del\n     original no está en GoogleDriveService::descargarContenidoDrive()\n     -- un archivo vacío real en Drive se serviría como 200 con\n     Content-Length: 0 en vez de 500.",
+                "operationId": "27cfedbd036f4daf8733a3de237a404a",
+                "parameters": [
+                    {
+                        "name": "id_evidencia",
+                        "in": "query",
+                        "description": "ID de la fila en evidencias.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Contenido del archivo (Content-Type según la extensión real: PDF, CSV, imagen, Office, etc.)."
+                    },
+                    "400": {
+                        "description": "Identificador de evidencia inválido."
+                    },
+                    "401": {
+                        "description": "La sesión no está activa."
+                    },
+                    "404": {
+                        "description": "La evidencia no existe, o el archivo ya no se pudo encontrar en su origen."
+                    },
+                    "500": {
+                        "description": "No se pudo leer el archivo desde su origen."
+                    }
+                },
+                "security": [
+                    {
+                        "sesionPhp": []
+                    }
+                ]
+            }
+        },
         "/malla-curricular/obtener": {
             "get": {
                 "tags": [
@@ -3209,6 +3252,10 @@
         {
             "name": "Evidencias (I1/I4/I5)",
             "description": "Parte 5 agrega compartidas() (reemplaza a\napi/evidencias/obtener_compartidas.php). Parte 6 agrega\nleerMatriculados() (reemplaza a api/evidencias/leer_matriculados.php) --\na diferencia de las dos anteriores, no usa EvidenciasRepository (no toca\nBD, es puramente lectura de PDF -> datos), por eso el constructor sigue\npidiendo el repositorio aunque este método no lo use. Parte 7 agrega\nguardar() (reemplaza a api/evidencias/guardar_evidencia.php), cuarta\nParte del Grupo B -- vuelve a usar EvidenciasRepository. Parte 8 agrega\nprepararPdf() (reemplaza a api/evidencias/preparar_pdf.php), quinta y\núltima Parte del Grupo B."
+        },
+        {
+            "name": "Google Drive",
+            "description": "verArchivo() reutiliza EvidenciaStorageResolver::resolverParaDescarga()\n+ EvidenciaStorageInterface::descargarContenido() en vez de duplicar la\nllamada cruda a la API de Drive que tenía el original -- mismo patrón\nque EvidenciaAsignaturaVisorController::ver() (paso 6 del plan de\ninterruptor de almacenamiento), que ya resuelve exactamente esta misma\nbifurcación (Drive vs almacenamiento local) para evidencia_asignatura.\nA diferencia de ese controller, el formato de respuesta de éxito no es\nJSON (mismo criterio del plan, §2 punto 3): sirve los bytes reales del\narchivo con su Content-Type propio."
         },
         {
             "name": "I1 - Malla Curricular",

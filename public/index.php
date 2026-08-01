@@ -8,6 +8,7 @@ use App\Controllers\CarrerasAlmacenamientoController;
 use App\Controllers\CarrerasController;
 use App\Controllers\EvidenciaAsignaturaVisorController;
 use App\Controllers\EvidenciasController;
+use App\Controllers\GoogleDriveController;
 use App\Controllers\MallaCurricularController;
 use App\Controllers\MiscelaneosController;
 use App\Controllers\SeguimientoSyllabusController;
@@ -395,6 +396,26 @@ $carrerasAlmacenamientoController = new CarrerasAlmacenamientoController($eviden
 // que el resto de endpoints protegidos de este archivo.
 $app->put('/carreras/{id}/almacenamiento', [$carrerasAlmacenamientoController, 'almacenamiento'])
     ->add(new SessionAuthMiddleware());
+
+// --- Grupo D del plan de migración de PHP suelto a Slim (Google Drive / --
+// OAuth) -- endpoints reales -------------------------------------------
+// Fase 4 (plan_migracion_slim_legacy_v3.txt §3). Partes 17-19 (soporte
+// interno: GoogleDriveClienteFactory, GoogleDriveCarpetas,
+// GoogleDriveClienteAutorizado) ya migraron sin ruta propia. Arranca acá,
+// en la Parte 20, con GET /google-drive/ver-archivo (reemplaza a
+// api/google_drive/ver_archivo.php) -- reusa $evidenciasRepositorio (ya
+// abierto arriba para el Grupo B, misma tabla `evidencias`) y
+// $storageResolver (ya abierto arriba para I2/I3) en vez de crear un
+// repository o un resolver nuevos. El grupo '/google-drive' se crea acá,
+// en esta primera Parte del bloque, y se le van agregando rutas en las
+// Partes 21-23 (subir_archivo.php, conectar.php, callback.php).
+$googleDriveController = new GoogleDriveController($evidenciasRepositorio, $storageResolver);
+
+// GET /google-drive/ver-archivo?id_evidencia= — 401 vía SessionAuthMiddleware
+// (mismo requisito que ver_archivo.php, que exige sesión activa).
+$app->group('/google-drive', function ($grupo) use ($googleDriveController) {
+    $grupo->get('/ver-archivo', [$googleDriveController, 'verArchivo'])->add(new SessionAuthMiddleware());
+});
 
 // --- Visor de evidencia_asignatura (I2/I3) -- parte 1 del paso 6 de -----
 // plan_interruptor_almacenamiento.txt (ver MEMORIA §68.2/§68.5): el paso 5

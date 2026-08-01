@@ -288,7 +288,7 @@ export function useEvidenciasIndicador({
   // plan_interruptor_almacenamiento.txt §4.5/§4.6). El resto de los slots
   // (malla curricular / normativa institucional compartidas, I1/I4/I5)
   // traen idEvidencia (tabla `evidencias`) y usan el visor equivalente
-  // (GET /api/google_drive/ver_archivo.php), ya ramificado Drive/local
+  // (GET /google-drive/ver-archivo), ya ramificado Drive/local
   // desde el paso 5 pero nunca antes consumido desde acá -- ver MEMORIA,
   // bug reportado al migrar una carrera a local (evidencia de I1/I4/I5
   // se veía "subida" pero no abría ni previsualizaba).
