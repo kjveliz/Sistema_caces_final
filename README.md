@@ -162,6 +162,12 @@ carrera y aplica de inmediato a las evidencias nuevas que se suban.
 
 ---
 
+## Uso de la aplicación
+
+Para una guía funcional de cómo usar el sistema una vez instalado (login, gestión de carreras,
+cohortes, usuarios, almacenamiento, dashboard de indicadores y carga de evidencias), ver
+[`USAGE.md`](./USAGE.md).
+
 ## Roles del sistema
 
 Definidos en la tabla `usuarios.rol`:
