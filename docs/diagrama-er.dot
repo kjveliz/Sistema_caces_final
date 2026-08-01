@@ -12,6 +12,8 @@ digraph EsquemaCACES {
       <tr><td align="left">PK id_carrera</td></tr>
       <tr><td align="left">codigo (unique)</td></tr>
       <tr><td align="left">nombre</td></tr>
+      <tr><td align="left">modo_almacenamiento (drive/local)</td></tr>
+      <tr><td align="left">ruta_almacenamiento_local</td></tr>
     </table>>];
 
   indicadores [label=<
@@ -62,6 +64,7 @@ digraph EsquemaCACES {
       <tr><td bgcolor="#a16207"><font color="white"><b>asignatura</b></font></td></tr>
       <tr><td align="left">PK id_asignatura</td></tr>
       <tr><td align="left">FK id_periodoacademico</td></tr>
+      <tr><td align="left">modulo (A/B/C)</td></tr>
     </table>>];
 
   evaluaciones [label=<

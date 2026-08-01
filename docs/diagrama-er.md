@@ -5,6 +5,14 @@
 Mejora), que a su vez viene del dump de referencia `evaluacion_caces (12).sql`
 (24-07-2026, MariaDB 10.4.32).
 
+**Actualizado:** 1 agosto 2026, para incorporar 3 migraciones posteriores que
+el diagrama no reflejaba: `carreras.modo_almacenamiento` /
+`ruta_almacenamiento_local` (`20260727010000_modo_almacenamiento_carreras.php`
+y `20260728120000_default_local_almacenamiento_carreras.php`, el interruptor
+de almacenamiento Drive/local por carrera) y `asignatura.modulo`
+(`20260728130000_agregar_modulo_asignatura.php`, el módulo A/B/C tomado de la
+malla curricular en Excel).
+
 Archivo versionado: [`diagrama-er.png`](./diagrama-er.png).
 
 Colores:
