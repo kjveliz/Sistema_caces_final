@@ -107,4 +107,21 @@ final class UsuariosRepository
             'activo' => $activo,
         ];
     }
+
+    /**
+     * Cambia el estado activo/inactivo de un usuario. Reemplaza al UPDATE de
+     * api/administracion/usuarios/cambiar_estado.php (Parte 16 del plan de
+     * migración slim-legacy, ver plan_migracion_slim_legacy_v3.txt §3 Grupo
+     * E, última Parte del subgrupo de usuarios). Mismo criterio que
+     * SeguimientoSyllabusRepository::cambiarEstadoEvaluacion(): no verifica
+     * antes si $idUsuario existe -- si no existe, el UPDATE afecta 0 filas y
+     * mysqli lo sigue tratando como éxito, no error (comportamiento
+     * preservado a propósito, igual que el original).
+     */
+    public function cambiarEstado(int $idUsuario, int $activo): void
+    {
+        $stmt = $this->conexion->prepare('UPDATE usuarios SET activo = ? WHERE id_usuario = ?');
+        $stmt->bind_param('ii', $activo, $idUsuario);
+        $stmt->execute();
+    }
 }

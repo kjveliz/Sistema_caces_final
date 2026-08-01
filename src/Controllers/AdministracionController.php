@@ -455,4 +455,91 @@ final class AdministracionController
 
         return $this->json($response, true, 'Usuario creado correctamente.', ['datos' => $resultado]);
     }
+
+    /**
+     * POST /administracion/usuarios/cambiar-estado (JSON: id_usuario,
+     * activo) — requiere sesión + rol administrador. Parte 16 del plan de
+     * migración slim-legacy (ver plan_migracion_slim_legacy_v3.txt §3 Grupo
+     * E, última Parte del subgrupo de usuarios y del Grupo E completo):
+     * reemplaza a api/administracion/usuarios/cambiar_estado.php. Mismas
+     * validaciones y mensajes que el original: `id_usuario` > 0, `activo`
+     * limitado a [0, 1], y la regla de negocio de no poder desactivar la
+     * propia cuenta (400) -- chequeada ANTES de tocar la BD, igual que el
+     * original. Convención kebab-case en la ruta (igual que
+     * cohortesCambiarEstado(), Parte 13), aunque el archivo legacy usaba
+     * `cambiar_estado.php` con guion bajo. Marcada por el plan con
+     * "cuidado extra" (§3 Fase 3b): un bug acá podría bloquear a un usuario
+     * real del sistema.
+     */
+    #[OA\Post(
+        path: '/administracion/usuarios/cambiar-estado',
+        summary: 'Activa o desactiva un usuario del sistema.',
+        security: [['sesionPhp' => []]],
+        tags: ['Administración (Usuarios)'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['id_usuario', 'activo'],
+                properties: [
+                    new OA\Property(property: 'id_usuario', type: 'integer'),
+                    new OA\Property(property: 'activo', type: 'integer', enum: [0, 1]),
+                ],
+            ),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Usuario activado o desactivado correctamente.',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'mensaje', type: 'string'),
+                ]),
+            ),
+            new OA\Response(response: 400, description: 'Los datos recibidos no son válidos, o intenta desactivar su propia cuenta.'),
+            new OA\Response(response: 401, description: 'La sesión no está activa.'),
+            new OA\Response(response: 403, description: 'No tiene permisos para modificar usuarios.'),
+            new OA\Response(response: 500, description: 'No se pudo actualizar el usuario.'),
+        ],
+    )]
+    public function usuariosCambiarEstado(Request $request, Response $response): Response
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+
+        if (($_SESSION['rol'] ?? '') !== 'administrador') {
+            return $this->json($response, false, 'No tiene permisos para modificar usuarios.', [], 403);
+        }
+
+        $datos = $request->getParsedBody();
+
+        if (!is_array($datos)) {
+            $datos = [];
+        }
+
+        $idUsuario = (int) ($datos['id_usuario'] ?? 0);
+        $activo = (int) ($datos['activo'] ?? -1);
+
+        if ($idUsuario <= 0 || !in_array($activo, [0, 1], true)) {
+            return $this->json($response, false, 'Los datos recibidos no son válidos.', [], 400);
+        }
+
+        $idUsuarioSesion = (int) ($_SESSION['id_usuario'] ?? 0);
+
+        if ($idUsuario === $idUsuarioSesion && $activo === 0) {
+            return $this->json($response, false, 'No puede desactivar su propia cuenta.', [], 400);
+        }
+
+        try {
+            $this->usuariosRepositorio->cambiarEstado($idUsuario, $activo);
+        } catch (Throwable $e) {
+            return $this->json($response, false, 'No se pudo actualizar el usuario.', ['detalle' => $e->getMessage()], 500);
+        }
+
+        return $this->json(
+            $response,
+            true,
+            $activo === 1 ? 'Usuario activado correctamente.' : 'Usuario desactivado correctamente.',
+        );
+    }
 }

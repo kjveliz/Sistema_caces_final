@@ -283,7 +283,10 @@ $administracionController = new AdministracionController($seguimientoRepositorio
 // sesión activa -- mismo comportamiento que el original, preservado tal cual
 // (ver AdministracionController::usuariosListar()). La Parte 15 agrega POST
 // /administracion/usuarios/crear, mismo chequeo de rol a mano que
-// cohortesCrear() (ver AdministracionController::usuariosCrear()).
+// cohortesCrear() (ver AdministracionController::usuariosCrear()). La
+// Parte 16 -- última del subgrupo de usuarios y del Grupo E completo --
+// agrega POST /administracion/usuarios/cambiar-estado (ver
+// AdministracionController::usuariosCambiarEstado()).
 $app->group('/administracion', function ($grupo) use ($administracionController) {
     $grupo->group('/cohortes', function ($sub) use ($administracionController) {
         $sub->get('/listar', [$administracionController, 'cohortesListar'])->add(new SessionAuthMiddleware());
@@ -293,8 +296,10 @@ $app->group('/administracion', function ($grupo) use ($administracionController)
     $grupo->group('/usuarios', function ($sub) use ($administracionController) {
         $sub->get('/listar', [$administracionController, 'usuariosListar'])->add(new SessionAuthMiddleware());
         $sub->post('/crear', [$administracionController, 'usuariosCrear'])->add(new SessionAuthMiddleware());
+        $sub->post('/cambiar-estado', [$administracionController, 'usuariosCambiarEstado'])->add(new SessionAuthMiddleware());
     });
 });
+
 
 // --- Composición de dependencias de I5 (Tasa de Titulación) ------------
 // Reusa la misma conexión mysqli ya abierta arriba para I3 (una sola

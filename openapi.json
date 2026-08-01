@@ -368,6 +368,79 @@
                 ]
             }
         },
+        "/administracion/usuarios/cambiar-estado": {
+            "post": {
+                "tags": [
+                    "Administración (Usuarios)"
+                ],
+                "summary": "Activa o desactiva un usuario del sistema.",
+                "description": "POST /administracion/usuarios/cambiar-estado (JSON: id_usuario,\nactivo) — requiere sesión + rol administrador. Parte 16 del plan de\nmigración slim-legacy (ver plan_migracion_slim_legacy_v3.txt §3 Grupo\nE, última Parte del subgrupo de usuarios y del Grupo E completo):\nreemplaza a api/administracion/usuarios/cambiar_estado.php. Mismas\nvalidaciones y mensajes que el original: `id_usuario` > 0, `activo`\nlimitado a [0, 1], y la regla de negocio de no poder desactivar la\npropia cuenta (400) -- chequeada ANTES de tocar la BD, igual que el\noriginal. Convención kebab-case en la ruta (igual que\ncohortesCambiarEstado(), Parte 13), aunque el archivo legacy usaba\n`cambiar_estado.php` con guion bajo. Marcada por el plan con\n\"cuidado extra\" (§3 Fase 3b): un bug acá podría bloquear a un usuario\nreal del sistema.",
+                "operationId": "3c76fa70324fa9047f1433ecb6479bcc",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id_usuario",
+                                    "activo"
+                                ],
+                                "properties": {
+                                    "id_usuario": {
+                                        "type": "integer"
+                                    },
+                                    "activo": {
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Usuario activado o desactivado correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "mensaje": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Los datos recibidos no son válidos, o intenta desactivar su propia cuenta."
+                    },
+                    "401": {
+                        "description": "La sesión no está activa."
+                    },
+                    "403": {
+                        "description": "No tiene permisos para modificar usuarios."
+                    },
+                    "500": {
+                        "description": "No se pudo actualizar el usuario."
+                    }
+                },
+                "security": [
+                    {
+                        "sesionPhp": []
+                    }
+                ]
+            }
+        },
         "/auth/login": {
             "post": {
                 "tags": [

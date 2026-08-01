@@ -74,7 +74,7 @@ export async function crearUsuario(parametros: CrearUsuarioParams): Promise<Usua
 
 export async function cambiarEstadoUsuario(idUsuario: number, activo: number): Promise<void> {
   const respuesta = await fetch(
-    'http://localhost/sistemacaces/api/administracion/usuarios/cambiar_estado.php',
+    'http://localhost/sistemacaces/public/administracion/usuarios/cambiar-estado',
     {
       method: 'POST',
       credentials: 'include',
