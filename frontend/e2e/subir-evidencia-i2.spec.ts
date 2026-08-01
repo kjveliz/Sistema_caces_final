@@ -18,7 +18,7 @@ const PDF_FIXTURE = path.join(__dirname, 'fixtures', 'normativa-institucional.pd
  *
  * Nota: esto sube de verdad a Google Drive y a la BD real de desarrollo
  * (correo/contraseña de E2E_EMAIL/E2E_PASSWORD) — no es una BD de prueba
- * aislada. Ver INSTRUCCIONES_fase5_playwright.md.
+ * aislada. Ver docs/INSTRUCCIONES_fase5_playwright.md (en la raíz del repo).
  */
 test('subir evidencia de I2 (Normativa Institucional)', async ({ page }) => {
   await login(page);

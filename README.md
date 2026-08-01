@@ -101,7 +101,8 @@ proyecto (ver comentarios en ese archivo).
 ├── tests/
 │   ├── Unit/                 Tests unitarios por indicador (PHPUnit)
 │   └── Integration/          Tests de integración contra una base de datos real de prueba
-├── docs/                     Diagrama entidad-relación de la base de datos
+├── docs/                     Diagrama entidad-relación y notas de entrega de fases anteriores
+│                             (INSTRUCCIONES_fase*.md: qué cambió y cómo verificar cada fase)
 ├── bin/generate-openapi.php  Genera openapi.json a partir de las anotaciones en src/
 ├── openapi.json              Documentación de la API generada (Swagger/OpenAPI)
 ├── phinx.php                 Configuración de Phinx (entornos local/testing)

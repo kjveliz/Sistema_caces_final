@@ -226,7 +226,7 @@ $seguimientoController = new SeguimientoSyllabusController($seguimientoRepositor
 
 // --- Rutas de I3 (Tutorías Académicas) ---------------------------------
 // Mismos 4 endpoints que consumía frontend/src/services/tutoriasAcademicas.ts
-// contra los archivos sueltos originales; ver INSTRUCCIONES_fase3_i3.md
+// contra los archivos sueltos originales; ver docs/INSTRUCCIONES_fase3_i3.md
 // para el cambio de URL base que requiere el frontend.
 $app->group('/tutorias-academicas', function ($grupo) use ($tutoriasController) {
     $grupo->get('/evidencia-listar', [$tutoriasController, 'evidenciaListar']);
@@ -239,7 +239,7 @@ $app->group('/tutorias-academicas', function ($grupo) use ($tutoriasController) 
 // Los 7 endpoints reales que consumía frontend/src/services/seguimientoSyllabus.ts
 // contra los 8 archivos sueltos originales (el 8vo, materias_encuesta.php,
 // era un endpoint deprecado sin llamadores reales -- ver MEMORIA e
-// INSTRUCCIONES_fase3_i2.md), más POST /cohortes, POST /periodos y el
+// docs/INSTRUCCIONES_fase3_i2.md), más POST /cohortes, POST /periodos y el
 // modulo opcional de POST /asignaturas (ver plan_malla_curricular_xlsx.txt
 // §7 Partes 2/3/4). SessionAuthMiddleware agregado a los 3 POST de
 // creación que quedaron sin auth al cerrar esas partes (hallazgo de la

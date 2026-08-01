@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 /*
  * Fase 5 del Plan de Mejora — end-to-end con Playwright (ver MEMORIA §34.8 /
- * INSTRUCCIONES_fase5_playwright.md).
+ * docs/INSTRUCCIONES_fase5_playwright.md, en la raíz del repo).
  *
  * Corre contra el entorno real de desarrollo, no contra una BD aislada:
  *   - Backend: XAMPP/Apache sirviendo el repo en `htdocs/sistemacaces`, en
@@ -46,7 +46,8 @@ export default defineConfig({
   ],
 
   // Solo levanta el frontend. El backend (XAMPP) es responsabilidad del
-  // usuario, igual que en desarrollo normal — ver INSTRUCCIONES_fase5_playwright.md.
+  // usuario, igual que en desarrollo normal — ver docs/INSTRUCCIONES_fase5_playwright.md
+  // (en la raíz del repo).
   webServer: {
     command: 'npm run dev',
     url: FRONTEND_URL,

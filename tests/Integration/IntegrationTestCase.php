@@ -117,7 +117,7 @@ abstract class IntegrationTestCase extends TestCase
 
     private static function prepararBaseDeDatos(): void
     {
-        // Phinx no crea la base si no existe (ver INSTRUCCIONES_fase2.md,
+        // Phinx no crea la base si no existe (ver docs/INSTRUCCIONES_fase2.md,
         // que pide crearla a mano antes de la primera corrida) -- se crea
         // acá para que los tests de integración no requieran ese paso
         // manual previo.

@@ -71,5 +71,5 @@ Los tests de Playwright asumen un usuario demo (`db/seeds/UsuariosSeeder.php`) y
 ejemplo para la carrera "Desarrollo de Software" / cohorte "B 2025". Si tu base de datos local no
 tiene esos datos, o el backend/frontend no corren en las URLs por defecto, copiar
 `e2e/.env.e2e.example` a `e2e/.env.e2e` y ajustar las variables (`E2E_EMAIL`, `E2E_PASSWORD`,
-`E2E_CAREER`, `E2E_BASE_URL`). Ver `INSTRUCCIONES_fase5_playwright.md` en la raíz del repo para
-más detalle.
+`E2E_CAREER`, `E2E_BASE_URL`). Ver `docs/INSTRUCCIONES_fase5_playwright.md` (en la raíz del repo)
+para más detalle.

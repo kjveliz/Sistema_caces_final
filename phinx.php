@@ -35,7 +35,7 @@ return [
         // Usa un nombre de base fijo (nunca "evaluacion_caces") para que la
         // prueba inicial de la Fase 2 no pueda tocar la base real por
         // accidente, sin depender de editar el .env a mano. Se corre con
-        // "vendor/bin/phinx migrate -e testing" (ver INSTRUCCIONES_fase2.md).
+        // "vendor/bin/phinx migrate -e testing" (ver docs/INSTRUCCIONES_fase2.md).
         'testing' => [
             'adapter' => 'mysql',
             'host' => $_ENV['DB_HOST'] ?? 'localhost',
