@@ -37,6 +37,12 @@ src/
 e2e/                      Tests end-to-end (Playwright) contra backend + frontend corriendo
 ```
 
+## Uso de la aplicación
+
+Para el flujo de pantallas (login, carreras, dashboard de indicadores, carga de evidencias, etc.)
+y qué puede hacer cada rol, ver [`USAGE.md`](../USAGE.md) en la raíz del repo — no se duplica acá
+para no mantener el mismo contenido en dos lugares.
+
 ## Requisitos previos
 
 El backend debe estar corriendo (ver instalación en `../README.md`), incluida la base de datos
