@@ -25,9 +25,12 @@ require_once __DIR__ . '/../IntegrationTestCase.php';
  * Backup/restore de un token.json real preexistente: estos tests escriben
  * sobre la ruta real de GoogleDriveClienteAutorizado::RUTA_TOKEN (mismo
  * archivo que usaría una conexión real del usuario en su XAMPP) -- si
- * hubiera un token.json real ahí antes de correr la clase, se respalda y
- * se restaura al terminar, para no pisar una conexión real del usuario que
- * corra estos tests en su propia máquina.
+ * hubiera un token.json real ahí antes de correr la clase, se respalda Y SE
+ * BORRA en setUpBeforeClass() (no solo se respalda -- ver hallazgo #41 de
+ * la memoria: sin el borrado, el primer test de la clase arrancaba con el
+ * archivo real todavía puesto y fallaba), y se restaura al terminar la
+ * clase, para no pisar una conexión real del usuario que corra estos tests
+ * en su propia máquina.
  */
 final class CallbackTest extends IntegrationTestCase
 {
@@ -41,6 +44,16 @@ final class CallbackTest extends IntegrationTestCase
 
         if (file_exists(GoogleDriveClienteAutorizado::RUTA_TOKEN)) {
             self::$tokenOriginal = file_get_contents(GoogleDriveClienteAutorizado::RUTA_TOKEN);
+
+            // Ya respaldado arriba (tearDownAfterClass lo restaura al
+            // terminar la clase) -- se borra acá para que el primer test
+            // arranque en el mismo estado limpio que el resto (tearDown()
+            // ya hace esto MISMO entre tests, pero no corre antes del
+            // primero). Sin este borrado, un token.json real preexistente
+            // (ej. una conexión real ya hecha en la máquina del usuario)
+            // hacía fallar testConParametroErrorDevuelve400SinTocarTokenJson,
+            // que corre primero y espera no encontrar el archivo.
+            unlink(GoogleDriveClienteAutorizado::RUTA_TOKEN);
         }
     }
 
