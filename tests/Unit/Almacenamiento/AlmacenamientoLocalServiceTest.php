@@ -165,4 +165,53 @@ final class AlmacenamientoLocalServiceTest extends TestCase
         $this->assertNull($servicio->validarArchivoSubido($archivo));
         unlink($tmp);
     }
+
+    // ── validarXlsx() (Parte 21 del plan de migración slim-legacy) ──
+
+    public function testValidarXlsxRechazaExtensionDistinta(): void
+    {
+        $servicio = new AlmacenamientoLocalService($this->raizPrueba);
+        $tmp = $this->archivoTemporalConContenido('PK contenido de prueba');
+
+        $archivo = ['error' => UPLOAD_ERR_OK, 'size' => 10, 'name' => 'informe.csv', 'tmp_name' => $tmp];
+
+        $this->assertNotNull($servicio->validarXlsx($archivo));
+        unlink($tmp);
+    }
+
+    public function testValidarXlsxRechazaUnMimeNoPermitido(): void
+    {
+        $servicio = new AlmacenamientoLocalService($this->raizPrueba);
+        $tmp = $this->archivoTemporalConContenido('contenido de texto plano, no un xlsx real');
+
+        $archivo = ['error' => UPLOAD_ERR_OK, 'size' => filesize($tmp), 'name' => 'malla.xlsx', 'tmp_name' => $tmp];
+
+        $this->assertNotNull($servicio->validarXlsx($archivo));
+        unlink($tmp);
+    }
+
+    public function testValidarXlsxAceptaUnZipConExtensionXlsx(): void
+    {
+        // Un .xlsx real es un zip por dentro -- finfo en muchos entornos
+        // (sobre todo Windows/XAMPP) lo detecta como application/zip en
+        // vez del mime real de Office. Cabecera mínima real de zip ("PK").
+        $servicio = new AlmacenamientoLocalService($this->raizPrueba);
+        $tmp = $this->archivoTemporalConContenido("PK\x03\x04" . str_repeat("\0", 20));
+
+        $archivo = ['error' => UPLOAD_ERR_OK, 'size' => filesize($tmp), 'name' => 'malla.xlsx', 'tmp_name' => $tmp];
+
+        $this->assertNull($servicio->validarXlsx($archivo));
+        unlink($tmp);
+    }
+
+    public function testValidarXlsxRechazaTamanoMayorA25Mb(): void
+    {
+        $servicio = new AlmacenamientoLocalService($this->raizPrueba);
+        $tmp = $this->archivoTemporalConContenido('PK contenido');
+
+        $archivo = ['error' => UPLOAD_ERR_OK, 'size' => 26 * 1024 * 1024, 'name' => 'malla.xlsx', 'tmp_name' => $tmp];
+
+        $this->assertNotNull($servicio->validarXlsx($archivo));
+        unlink($tmp);
+    }
 }

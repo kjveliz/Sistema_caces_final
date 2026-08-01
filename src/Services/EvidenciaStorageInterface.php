@@ -48,6 +48,9 @@ interface EvidenciaStorageInterface
     /** Validación de CSV (extensión + MIME real + tamaño máximo). */
     public function validarCsv(array $archivo): ?string;
 
+    /** Validación de Excel .xlsx (extensión + MIME real + tamaño máximo). */
+    public function validarXlsx(array $archivo): ?string;
+
     /**
      * Elimina un archivo ya subido a este destino, dado su url_archivo.
      * Usado exclusivamente por EvidenciaMigradorService para revertir una

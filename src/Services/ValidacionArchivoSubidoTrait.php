@@ -67,4 +67,45 @@ trait ValidacionArchivoSubidoTrait
 
         return null;
     }
+
+    /**
+     * Validación de Excel (.xlsx) para el `tipo_esperado=xlsx` de
+     * `api/google_drive/subir_archivo.php` (Parte 21 del plan de migración
+     * slim-legacy — endpoint genérico compartido por I1/I4/I5, no
+     * exclusivo de la generación de PAO/Asignaturas del plan de malla
+     * curricular). Puerto 1:1 de la validación inline del original: mismo
+     * límite de tamaño que validarPdf/validarCsv, exige extensión .xlsx +
+     * MIME real dentro del set aceptado.
+     *
+     * El set de MIME acepta el real de Office
+     * (`application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`)
+     * y también `application/zip`/`application/octet-stream`: un .xlsx es
+     * un zip por dentro y algunos entornos (sobre todo finfo en
+     * Windows/XAMPP) lo detectan así según la versión de libmagic — se
+     * valida siempre junto con la extensión .xlsx para no depender solo
+     * del mime (mismo comentario que ya traía el original).
+     */
+    public function validarXlsx(array $archivo): ?string
+    {
+        if ($archivo['error'] !== UPLOAD_ERR_OK) {
+            return 'Ocurrió un error al recibir el archivo.';
+        }
+        $tamanoMaximo = 25 * 1024 * 1024;
+        if ($archivo['size'] > $tamanoMaximo) {
+            return 'El archivo no debe superar los 25 MB.';
+        }
+        $extension = strtolower(pathinfo($archivo['name'], PATHINFO_EXTENSION));
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->file($archivo['tmp_name']);
+        $mimesValidos = [
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/zip',
+            'application/octet-stream',
+        ];
+        if ($extension !== 'xlsx' || !in_array($mime, $mimesValidos, true)) {
+            return 'Solo se aceptan archivos Excel (.xlsx) válidos.';
+        }
+
+        return null;
+    }
 }

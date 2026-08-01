@@ -148,6 +148,112 @@ final class GoogleDriveService implements EvidenciaStorageInterface
     }
 
     /**
+     * Sube (o reemplaza si ya existe) un archivo dentro de:
+     *   Sistema CACES / <carrera> / <cohorte> / archivo.*
+     *
+     * Puerto 1:1 del branch de Drive de `api/google_drive/subir_archivo.php`
+     * (Parte 21 del plan de migración slim-legacy) -- endpoint genérico
+     * compartido por I1/I4/I5 (y 3 slots evaluation-wide de I2). A
+     * diferencia de `subirArchivo()` (usado por I2/I3, 5 niveles:
+     * Carrera/Cohorte/PAO/Asignatura), este método NO agrega los niveles
+     * de PAO/Asignatura -- el original de este endpoint nunca los tuvo
+     * (confirmado en MEMORIA §16.3: I5/I4 siempre fueron 3 niveles en
+     * Drive, aun cuando el modo local del mismo endpoint sí usa el árbol
+     * de 5 niveles vía `AlmacenamientoLocalService::subirArchivo()` con
+     * segmentos fijos "Evaluacion"/"I{indicador}"). Es una discrepancia ya
+     * existente entre ambos modos de almacenamiento para este mismo
+     * endpoint, no introducida por esta migración -- se documenta acá en
+     * vez de "corregirla" de paso (plan §4: no mezclar deuda con el cambio
+     * de arquitectura).
+     *
+     * @return array{nombre_archivo: string, url_archivo: string, id_archivo: string}
+     */
+    public function subirArchivoCatalogo(
+        string $rutaTemporal,
+        string $nombreArchivo,
+        string $nombreCarrera,
+        string $cohorte,
+        string $mimeType = 'application/pdf',
+    ): array {
+        // Mismo seam de testing que subirArchivo() (Fase 5): en
+        // APP_ENV=testing se evita el llamado real a Google Drive.
+        if ((getenv('APP_ENV') ?: '') === 'testing') {
+            return [
+                'id_archivo' => 'fake-drive-id-' . bin2hex(random_bytes(4)),
+                'nombre_archivo' => $nombreArchivo,
+                'url_archivo' => 'https://drive.google.com/fake-test-double/' . rawurlencode($nombreArchivo),
+            ];
+        }
+
+        $cliente = GoogleDriveClienteAutorizado::obtener();
+        $drive = new Drive($cliente);
+
+        $estructura = GoogleDriveCarpetas::obtenerEstructuraCaces($drive, $nombreCarrera, $cohorte);
+        $idCarpetaDestino = $estructura['cohorte'];
+
+        $nombreSeguro = GoogleDriveCarpetas::escaparConsultaDrive($nombreArchivo);
+        $idCarpetaSeguro = GoogleDriveCarpetas::escaparConsultaDrive($idCarpetaDestino);
+
+        $consulta = sprintf(
+            "name = '%s' and '%s' in parents and trashed = false",
+            $nombreSeguro,
+            $idCarpetaSeguro,
+        );
+
+        $existentes = $drive->files->listFiles([
+            'q' => $consulta,
+            'spaces' => 'drive',
+            'fields' => 'files(id,name)',
+            'pageSize' => 10,
+        ])->getFiles();
+
+        $contenido = file_get_contents($rutaTemporal);
+        if ($contenido === false) {
+            throw new RuntimeException('No se pudo leer el archivo temporal.');
+        }
+
+        if (count($existentes) > 0) {
+            $idArchivo = $existentes[0]->getId();
+            $archivoDrive = $drive->files->update(
+                $idArchivo,
+                new GoogleDriveFile(['name' => $nombreArchivo]),
+                ['data' => $contenido, 'mimeType' => $mimeType, 'uploadType' => 'multipart', 'fields' => 'id,name,webViewLink,webContentLink'],
+            );
+        } else {
+            $metadata = new GoogleDriveFile([
+                'name' => $nombreArchivo,
+                'parents' => [$idCarpetaDestino],
+            ]);
+            $archivoDrive = $drive->files->create(
+                $metadata,
+                ['data' => $contenido, 'mimeType' => $mimeType, 'uploadType' => 'multipart', 'fields' => 'id,name,webViewLink,webContentLink'],
+            );
+        }
+
+        $idArchivoDrive = $archivoDrive->getId();
+
+        try {
+            $drive->permissions->create(
+                $idArchivoDrive,
+                new GoogleDrivePermission(['type' => 'anyone', 'role' => 'reader']),
+                ['fields' => 'id'],
+            );
+        } catch (GoogleServiceException $errorPermiso) {
+            if (intval($errorPermiso->getCode()) !== 409) {
+                throw $errorPermiso;
+            }
+        }
+
+        $archivoDrive = $drive->files->get($idArchivoDrive, ['fields' => 'id,name,webViewLink,webContentLink']);
+
+        return [
+            'id_archivo' => $archivoDrive->getId(),
+            'nombre_archivo' => $archivoDrive->getName(),
+            'url_archivo' => $archivoDrive->getWebViewLink(),
+        ];
+    }
+
+    /**
      * Descarga el contenido de un archivo de Drive dado su webViewLink
      * (https://drive.google.com/file/d/{ID}/view...). Puerto 1:1 de
      * `_descargarContenidoDrive()` (api/seguimiento_syllabus/_encuesta.php).
