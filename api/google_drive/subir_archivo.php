@@ -22,8 +22,6 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     exit;
 }
 
-require_once __DIR__ . "/drive_helpers.php";
-
 // Interruptor de almacenamiento (plan_interruptor_almacenamiento.txt): hasta
 // ahora esta ruta subía SIEMPRE a Google Drive sin mirar
 // carreras.modo_almacenamiento -- gap real documentado en MEMORIA v89/§67 y
@@ -295,7 +293,7 @@ try {
      *     └── B2025
      *         └── archivo.pdf
      */
-    $estructura = obtenerEstructuraCaces(
+    $estructura = \App\Services\GoogleDriveCarpetas::obtenerEstructuraCaces(
         $drive,
         $nombreCarrera,
         $cohorte
@@ -309,10 +307,10 @@ try {
      * dentro de la carpeta de la cohorte.
      */
     $nombreSeguro =
-        escaparConsultaDrive($nombreArchivo);
+        \App\Services\GoogleDriveCarpetas::escaparConsultaDrive($nombreArchivo);
 
     $idCarpetaSeguro =
-        escaparConsultaDrive($idCarpetaDestino);
+        \App\Services\GoogleDriveCarpetas::escaparConsultaDrive($idCarpetaDestino);
 
     $consulta = sprintf(
         "name = '%s' and " .

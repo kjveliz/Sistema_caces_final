@@ -22,11 +22,17 @@ use Throwable;
  * del alcance de la sesión de I3. Ahora que I2 SÍ se migra, la lógica de
  * ese archivo se trae 1:1 (mismas queries, mismo seam de testing, mismo
  * criterio de validación) directamente a esta clase, y `_google_drive.php`
- * se elimina. `api/google_drive/drive_helpers.php` (obtenerEstructuraCaces,
- * obtenerOCrearCarpeta, escaparConsultaDrive) y
- * `api/google_drive/cliente_autorizado.php` NO se tocan -- son la
- * integración base de Drive, compartida con más de estos dos indicadores,
- * y quedan fuera de alcance de esta migración.
+ * se elimina.
+ *
+ * Nota histórica (ya no vigente): en su momento `api/google_drive/
+ * drive_helpers.php` y `api/google_drive/cliente_autorizado.php` quedaban
+ * fuera de alcance de la migración de I2/I3, por ser integración base
+ * compartida con más indicadores. Ahora sí se migran, como parte del plan
+ * de migración slim-legacy (Fase 4, Grupo D): `drive_helpers.php` ya se
+ * migró a `GoogleDriveCarpetas` (Parte 18); `cliente_autorizado.php` sigue
+ * como script legacy por ahora (Parte 19, pendiente) -- esta clase todavía
+ * lo `require`-ea por ruta directa (ver `subirArchivo()`,
+ * `descargarContenidoDrive()`, `eliminarArchivo()`).
  *
  * Métodos nuevos respecto a la versión usada solo por I3:
  * `validarCsv()` (I2 sube el CSV de la encuesta, tipo 'encuesta_csv') y
@@ -46,11 +52,6 @@ use Throwable;
 final class GoogleDriveService implements EvidenciaStorageInterface
 {
     use ValidacionArchivoSubidoTrait;
-
-    public function __construct()
-    {
-        require_once __DIR__ . '/../../api/google_drive/drive_helpers.php';
-    }
 
     /**
      * Sube (o reemplaza si ya existe) un archivo dentro de:
@@ -80,12 +81,12 @@ final class GoogleDriveService implements EvidenciaStorageInterface
         $cliente = require __DIR__ . '/../../api/google_drive/cliente_autorizado.php';
         $drive = new Drive($cliente);
 
-        $estructura = obtenerEstructuraCaces($drive, $nombreCarrera, $cohorte);
-        $idCarpetaPao = obtenerOCrearCarpeta($drive, $pao, $estructura['cohorte']);
-        $idCarpetaAsignatura = obtenerOCrearCarpeta($drive, $asignatura, $idCarpetaPao);
+        $estructura = GoogleDriveCarpetas::obtenerEstructuraCaces($drive, $nombreCarrera, $cohorte);
+        $idCarpetaPao = GoogleDriveCarpetas::obtenerOCrearCarpeta($drive, $pao, $estructura['cohorte']);
+        $idCarpetaAsignatura = GoogleDriveCarpetas::obtenerOCrearCarpeta($drive, $asignatura, $idCarpetaPao);
 
-        $nombreSeguro = escaparConsultaDrive($nombreArchivo);
-        $idCarpetaSeguro = escaparConsultaDrive($idCarpetaAsignatura);
+        $nombreSeguro = GoogleDriveCarpetas::escaparConsultaDrive($nombreArchivo);
+        $idCarpetaSeguro = GoogleDriveCarpetas::escaparConsultaDrive($idCarpetaAsignatura);
 
         $consulta = sprintf(
             "name = '%s' and '%s' in parents and trashed = false",
