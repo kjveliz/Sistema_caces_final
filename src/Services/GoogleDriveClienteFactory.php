@@ -15,9 +15,10 @@ use Google\Service\Drive as GoogleDrive;
  *
  * Consumidores tras esta Parte: `api/google_drive/conectar.php` y
  * `api/google_drive/callback.php` (ambos todavía legacy, sin migrar --
- * Partes 22/23), y `api/google_drive/cliente_autorizado.php` (Parte 19,
- * pendiente), que a su vez es la base de `App\Services\GoogleDriveService`
- * (en producción, I2/I3) y de `scripts/diagnostico_evidencia_drive.php`.
+ * Partes 22/23), y `App\Services\GoogleDriveClienteAutorizado::obtener()`
+ * (Parte 19, ya migrada), que a su vez es la base de
+ * `App\Services\GoogleDriveService` (en producción, I2/I3) y de
+ * `scripts/diagnostico_evidencia_drive.php`.
  * `config.php` queda borrado del repo con esta Parte.
  */
 final class GoogleDriveClienteFactory
@@ -27,8 +28,9 @@ final class GoogleDriveClienteFactory
     /**
      * @param string|null $rutaCredenciales Seam de testing: permite inyectar
      *   un archivo de credenciales de prueba. Los 3 llamadores reales
-     *   (conectar.php, callback.php, cliente_autorizado.php) siempre lo
-     *   invocan sin argumentos, usando la ruta real de RUTA_CREDENCIALES.
+     *   (conectar.php, callback.php, GoogleDriveClienteAutorizado::obtener())
+     *   siempre lo invocan sin argumentos, usando la ruta real de
+     *   RUTA_CREDENCIALES.
      */
     public static function crear(?string $rutaCredenciales = null): GoogleClient
     {

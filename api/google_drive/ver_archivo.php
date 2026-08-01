@@ -126,8 +126,7 @@ if (
 $idArchivoDrive = $coincidencias[1];
 
 try {
-    $cliente = require __DIR__ .
-        "/cliente_autorizado.php";
+    $cliente = \App\Services\GoogleDriveClienteAutorizado::obtener();
 
     $drive = new Google\Service\Drive(
         $cliente

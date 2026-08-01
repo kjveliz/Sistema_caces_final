@@ -16,7 +16,7 @@ declare(strict_types=1);
  * `evidencias` e `evidencia_asignatura`) y, para cada una, intenta un
  * `files->get()` liviano (solo pide el campo `id`, no descarga contenido)
  * contra la API real de Drive, usando el mismo cliente ya autorizado que
- * usa el resto del sistema (api/google_drive/cliente_autorizado.php). Al
+ * usa el resto del sistema (App\Services\GoogleDriveClienteAutorizado). Al
  * final imprime un resumen: cuántos archivos están OK y cuáles fallaron,
  * con el id de Drive y el error real de cada uno.
  *
@@ -32,6 +32,7 @@ declare(strict_types=1);
 require __DIR__ . '/../vendor/autoload.php';
 
 use App\Infra\Database;
+use App\Services\GoogleDriveClienteAutorizado;
 use Google\Service\Drive;
 use Google\Service\Exception as GoogleServiceException;
 
@@ -49,7 +50,7 @@ $conexion = Database::conectar();
 
 // Mismo cliente autorizado que usa el resto del sistema para subir/leer
 // de Drive (respeta token.json + refresh automático si venció).
-$cliente = require __DIR__ . '/../api/google_drive/cliente_autorizado.php';
+$cliente = GoogleDriveClienteAutorizado::obtener();
 $drive = new Drive($cliente);
 
 /**

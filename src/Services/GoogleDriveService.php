@@ -29,9 +29,9 @@ use Throwable;
  * fuera de alcance de la migración de I2/I3, por ser integración base
  * compartida con más indicadores. Ahora sí se migran, como parte del plan
  * de migración slim-legacy (Fase 4, Grupo D): `drive_helpers.php` ya se
- * migró a `GoogleDriveCarpetas` (Parte 18); `cliente_autorizado.php` sigue
- * como script legacy por ahora (Parte 19, pendiente) -- esta clase todavía
- * lo `require`-ea por ruta directa (ver `subirArchivo()`,
+ * migró a `GoogleDriveCarpetas` (Parte 18) y `cliente_autorizado.php` a
+ * `GoogleDriveClienteAutorizado::obtener()` (Parte 19) -- esta clase usa
+ * ese método en vez de `require`-ear el script (ver `subirArchivo()`,
  * `descargarContenidoDrive()`, `eliminarArchivo()`).
  *
  * Métodos nuevos respecto a la versión usada solo por I3:
@@ -78,7 +78,7 @@ final class GoogleDriveService implements EvidenciaStorageInterface
             ];
         }
 
-        $cliente = require __DIR__ . '/../../api/google_drive/cliente_autorizado.php';
+        $cliente = GoogleDriveClienteAutorizado::obtener();
         $drive = new Drive($cliente);
 
         $estructura = GoogleDriveCarpetas::obtenerEstructuraCaces($drive, $nombreCarrera, $cohorte);
@@ -175,7 +175,7 @@ final class GoogleDriveService implements EvidenciaStorageInterface
             return "contenido-fake-de-prueba-drive:{$idArchivo}";
         }
 
-        $cliente = require __DIR__ . '/../../api/google_drive/cliente_autorizado.php';
+        $cliente = GoogleDriveClienteAutorizado::obtener();
         $drive = new Drive($cliente);
 
         $respuesta = $drive->files->get($idArchivo, ['alt' => 'media']);
@@ -210,7 +210,7 @@ final class GoogleDriveService implements EvidenciaStorageInterface
         }
 
         try {
-            $cliente = require __DIR__ . '/../../api/google_drive/cliente_autorizado.php';
+            $cliente = GoogleDriveClienteAutorizado::obtener();
             $drive = new Drive($cliente);
             $drive->files->delete($m[1]);
 

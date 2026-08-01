@@ -35,8 +35,9 @@ require_once __DIR__ . "/../conexion.php";
 
 // Se lee ANTES del try (con default seguro) para que el catch siempre tenga
 // un valor, incluso si la excepción ocurre antes de llegar a la lectura
-// original del $_POST más abajo (p. ej. al fallar cliente_autorizado.php,
-// como cuando el cliente OAuth está deshabilitado del lado de Google).
+// original del $_POST más abajo (p. ej. al fallar
+// GoogleDriveClienteAutorizado::obtener(), como cuando el cliente OAuth
+// está deshabilitado del lado de Google).
 $tipoEsperado = trim(
     $_POST["tipo_esperado"] ?? "pdf"
 );
@@ -227,8 +228,9 @@ try {
 
     /*
      * Se resuelve el destino ANTES de tocar Drive para nada -- ni siquiera
-     * cliente_autorizado.php se llega a requerir si la carrera está en modo
-     * 'local'. Mismo criterio que EvidenciaStorageResolver::resolver() ya
+     * se llega a llamar GoogleDriveClienteAutorizado::obtener() si la
+     * carrera está en modo 'local'. Mismo criterio que
+     * EvidenciaStorageResolver::resolver() ya
      * usa para I2/I3: default local, Drive solo si la carrera lo tiene
      * guardado explícito.
      */
@@ -282,7 +284,7 @@ try {
     // exactamente igual que antes (misma estructura de carpetas
     // Carrera/Cohorte, mismo manejo de duplicados y permisos). ----
 
-    $cliente = require __DIR__ . "/cliente_autorizado.php";
+    $cliente = \App\Services\GoogleDriveClienteAutorizado::obtener();
     $drive = new Google\Service\Drive($cliente);
 
     /*
