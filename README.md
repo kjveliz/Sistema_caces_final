@@ -52,27 +52,24 @@ evidencias cargadas, agregando resultados por asignatura y por cohorte/período 
 
 ## Arquitectura
 
-El backend está en una **migración progresiva** de scripts PHP sueltos hacia una arquitectura
-en capas sobre Slim. Conviven dos partes:
-
-- **`src/`** — la parte ya migrada (Controllers/Repositories/Services/DTOs), montada como una
-  sola app Slim en `public/index.php`. Cubre los indicadores I1–I5 y la administración de
-  Carreras.
-- **`api/`** — endpoints PHP sueltos que todavía no se migraron: autenticación
-  (`api/auth/`), administración de usuarios y cohortes (`api/administracion/`), integración con
-  Google Drive (`api/google_drive/`), y algunos endpoints de evidencias/catálogo/evaluaciones
-  compartidos entre indicadores.
+Todo el backend vive en una única app Slim (arquitectura en capas: Controllers / Repositories /
+Services / DTOs), montada en `public/index.php`. Cubre los 5 indicadores (I1–I5), la
+administración de Carreras, autenticación, administración de usuarios/cohortes y la integración
+con Google Drive.
 
 ```
 Frontend (React)
       │
-      ├── fetch → api/*.php            (endpoints legacy: auth, admin, Google Drive)
-      │
-      └── fetch → public/index.php     (Slim: I1–I5 + Carreras)
+      └── fetch → public/index.php     (Slim: rutas + middleware CORS/sesión)
                         │
                         ▼
                    MySQL / MariaDB
 ```
+
+`api/` ya no contiene endpoints propios: solo queda `api/conexion.php` (conexión mysqli legacy,
+reemplazada internamente por `App\Infra\Database::conectar()` a medida que cada llamador se
+migró) y una carpeta vacía `api/google_drive/` usada como destino de archivos que no se
+versionan (credenciales OAuth, `token.json`).
 
 No hay contenedor de inyección de dependencias: la composición de Controllers/Repositories se
 arma a mano en `public/index.php`. Es una decisión deliberada para el tamaño actual del
@@ -84,13 +81,15 @@ proyecto (ver comentarios en ese archivo).
 
 ```
 .
-├── api/                      Endpoints PHP sueltos, sin migrar (auth, administración, Google Drive, evidencias compartidas)
+├── api/
+│   ├── conexion.php          Conexión mysqli legacy (reemplazada por App\Infra\Database::conectar())
+│   └── google_drive/         Vacía en git; destino local de credenciales.json y token.json (no versionados)
 ├── public/
-│   └── index.php             App Slim: rutas y composición de dependencias de I1–I5 y Carreras
+│   └── index.php             App Slim: rutas y composición de dependencias de todo el backend
 ├── src/
-│   ├── Controllers/          Un controller por indicador/entidad migrada
-│   ├── Repositories/         Acceso a datos (SQL) de la parte migrada
-│   ├── Services/             Lógica de cálculo y validación de evidencias (CSV/PDF)
+│   ├── Controllers/          Auth, Administración (usuarios/cohortes), Carreras, indicadores I1–I5, Google Drive
+│   ├── Repositories/         Acceso a datos (SQL) de cada dominio
+│   ├── Services/             Lógica de cálculo y validación de evidencias (CSV/PDF), integración Google Drive
 │   ├── DTOs/                 Objetos tipados de entrada/salida
 │   ├── Middleware/           CORS y autenticación por sesión
 │   ├── Infra/                Conexión a base de datos
@@ -234,8 +233,7 @@ npm run dev
 | | URL |
 |---|---|
 | Frontend | http://localhost:5173 |
-| API (Slim — I1 a I5, Carreras) | http://localhost/sistemacaces/public/... |
-| API (endpoints legacy — auth, administración, Google Drive) | http://localhost/sistemacaces/api/... |
+| API (Slim — todo el backend) | http://localhost/sistemacaces/public/... |
 
 ---
 
@@ -263,9 +261,9 @@ npm run build        # build de producción
 
 ## Documentación de la API
 
-`openapi.json`, en la raíz del repo, documenta los endpoints de la parte migrada a Slim
-(I1–I5 y Carreras), generado a partir de anotaciones OpenAPI en `src/Controllers/`. Para
-regenerarlo tras modificar un controller:
+`openapi.json`, en la raíz del repo, documenta todos los endpoints del backend (autenticación,
+administración, Google Drive, Carreras e indicadores I1–I5), generado a partir de anotaciones
+OpenAPI en `src/Controllers/`. Para regenerarlo tras modificar un controller:
 
 ```bash
 composer generate-openapi
@@ -291,11 +289,12 @@ malla curricular en Excel), `indicadores`, `indicador_evidencia`, `evidencias`,
 
 ## Estado del proyecto
 
-Este repositorio se entrega como proyecto final (sin continuidad de despliegue/CI). El backend
-está en migración progresiva de `api/` (scripts PHP sueltos) hacia `src/` (arquitectura en
-capas sobre Slim); a la fecha de esta entrega, los 5 indicadores (I1–I5) y la administración de
-Carreras ya están migrados. Los endpoints de autenticación, administración de usuarios/cohortes
-y la integración con Google Drive siguen como scripts sueltos en `api/`.
+Este repositorio se entrega como proyecto final (sin continuidad de despliegue/CI). La
+migración del backend de scripts PHP sueltos hacia la arquitectura en capas sobre Slim está
+**completa**: los 5 indicadores (I1–I5), la administración de Carreras, autenticación,
+administración de usuarios/cohortes y la integración con Google Drive (incluido el flujo OAuth
+de conexión/callback) viven todos en `src/`, montados en una sola app Slim
+(`public/index.php`). `api/` ya no expone endpoints propios.
 
 Funcionalidad multi-carrera cerrada y probada end-to-end: creación/edición de carreras con
 generación automática de cohorte + PAOs + asignaturas desde una malla curricular en Excel,
