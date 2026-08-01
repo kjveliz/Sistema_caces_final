@@ -413,8 +413,16 @@ $googleDriveController = new GoogleDriveController($evidenciasRepositorio, $stor
 
 // GET /google-drive/ver-archivo?id_evidencia= — 401 vía SessionAuthMiddleware
 // (mismo requisito que ver_archivo.php, que exige sesión activa).
+//
+// POST /google-drive/subir-archivo — sin SessionAuthMiddleware (Parte 21,
+// sesión 2 del plan de migración slim-legacy): igual que
+// POST /evidencias/{leer-matriculados,preparar-pdf}, el original
+// (api/google_drive/subir_archivo.php) tampoco validaba
+// $_SESSION['id_usuario'] -- ver docblock de
+// GoogleDriveController::subirArchivo().
 $app->group('/google-drive', function ($grupo) use ($googleDriveController) {
     $grupo->get('/ver-archivo', [$googleDriveController, 'verArchivo'])->add(new SessionAuthMiddleware());
+    $grupo->post('/subir-archivo', [$googleDriveController, 'subirArchivo']);
 });
 
 // --- Visor de evidencia_asignatura (I2/I3) -- parte 1 del paso 6 de -----

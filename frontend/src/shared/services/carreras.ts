@@ -253,8 +253,6 @@ interface SubirMallaDriveResponse {
     id_archivo: string;
     nombre_archivo: string;
     url_archivo: string;
-    url_descarga?: string | null;
-    id_carpeta: string;
   };
   detalle?: string;
 }
@@ -313,8 +311,11 @@ export async function subirMallaCurricular({
   formulario.append('nombre_archivo', nombreArchivo);
   formulario.append('tipo_esperado', 'xlsx');
 
+  // Parte 21 del plan de migración de PHP suelto a Slim
+  // (plan_migracion_slim_legacy_v3.txt §3): reemplaza a
+  // api/google_drive/subir_archivo.php, ya borrado del repo.
   const respuestaDrive = await fetch(
-    'http://localhost/sistemacaces/api/google_drive/subir_archivo.php',
+    'http://localhost/sistemacaces/public/google-drive/subir-archivo',
     {
       method: 'POST',
       credentials: 'include',

@@ -1605,6 +1605,121 @@
                 ]
             }
         },
+        "/google-drive/subir-archivo": {
+            "post": {
+                "tags": [
+                    "Google Drive"
+                ],
+                "summary": "Sube (o reemplaza) un archivo de evidencia genérico (I1/I4/I5) a Drive o almacenamiento local, según el interruptor de la carrera.",
+                "description": "POST /google-drive/subir-archivo (multipart) — sin sesión, mismo\ncriterio que api/evidencias/{leer-matriculados,preparar-pdf} (POST\nmigrados sin SessionAuthMiddleware): el original tampoco validaba\n$_SESSION['id_usuario'] (a diferencia de POST /evidencias/guardar,\nque sí lo hacía y sí lleva el middleware) — ver plan §2 punto 4.\n\nSube (o reemplaza) el archivo genérico de evidencia de I1/I4/I5 (y 3\nslots evaluation-wide de I2), resolviendo el interruptor de\nalmacenamiento por carrera igual que evidenciaSubir() de I2/I3\n(EvidenciaStorageResolver::resolver()). A diferencia de ese método\n(5 niveles: Carrera/Cohorte/PAO/Asignatura), preserva el árbol\npropio de este endpoint: 3 niveles en Drive (Carrera/Cohorte, vía\nGoogleDriveService::subirArchivoCatalogo()) y 5 niveles en local con\nlos 2 segmentos fijos \"Evaluacion\"/\"I{indicador}\" (vía\nAlmacenamientoLocalService::subirArchivo(), mismo método que ya usa\nevidenciaSubir() — el árbol de 5 niveles SÍ es común a ambas rutas\ndel lado local; solo Drive difiere entre este endpoint y I2/I3, ver\nGoogleDriveService::subirArchivoCatalogo() para el detalle completo\nde esa discrepancia ya existente).\n\nDos simplificaciones respecto a la respuesta del original,\ndocumentadas acá en vez de \"corregirlas\" (plan §4) porque no son un\nbug: son el mismo criterio de forma ya usado por\nGoogleDriveService::subirArchivo()/subirArchivoCatalogo() y por\nevidenciaSubir() (I2/I3) — confirmado con el usuario que el frontend\n(subirPdfGoogleDrive() y subirMallaCurricular(), ver\nfrontend/src/shared/services/{evidencias,carreras}.ts) solo lee\n`url_archivo`/`nombre_archivo`/`id_archivo` de la respuesta; el resto\nde los campos venían tipados pero sin uso real:\n  1. `datos` ya no trae `url_descarga`/`id_carpeta` (el original los\n     calculaba a partir de webContentLink y de la carpeta destino).\n  2. El mensaje de éxito en Drive ya no distingue \"creado\" de\n     \"actualizado\" (subirArchivoCatalogo() no expone esa\n     información, igual que subirArchivo() para I2/I3).",
+                "operationId": "ae8a9f1c0f6e9972ce801c12c752ce54",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "id_carrera",
+                                    "codigo_carrera",
+                                    "nombre_carrera",
+                                    "cohorte",
+                                    "indicador",
+                                    "nombre_archivo",
+                                    "archivo"
+                                ],
+                                "properties": {
+                                    "id_carrera": {
+                                        "type": "integer"
+                                    },
+                                    "codigo_carrera": {
+                                        "type": "string",
+                                        "example": "SOFT"
+                                    },
+                                    "nombre_carrera": {
+                                        "type": "string",
+                                        "example": "Desarrollo de Software"
+                                    },
+                                    "cohorte": {
+                                        "type": "string",
+                                        "example": "B2025"
+                                    },
+                                    "indicador": {
+                                        "type": "integer",
+                                        "example": 4
+                                    },
+                                    "nombre_archivo": {
+                                        "type": "string"
+                                    },
+                                    "tipo_esperado": {
+                                        "type": "string",
+                                        "example": "pdf",
+                                        "enum": [
+                                            "pdf",
+                                            "csv",
+                                            "xlsx"
+                                        ]
+                                    },
+                                    "archivo": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Archivo guardado (en Drive o en almacenamiento local, según la carrera).",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "datos": {
+                                            "properties": {
+                                                "id_archivo": {
+                                                    "type": "string"
+                                                },
+                                                "nombre_archivo": {
+                                                    "type": "string"
+                                                },
+                                                "url_archivo": {
+                                                    "type": "string"
+                                                },
+                                                "codigo_carrera": {
+                                                    "type": "string"
+                                                },
+                                                "nombre_carrera": {
+                                                    "type": "string"
+                                                },
+                                                "cohorte": {
+                                                    "type": "string"
+                                                },
+                                                "indicador": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Faltan datos, no se recibió archivo, o el archivo no pasó la validación."
+                    },
+                    "500": {
+                        "description": "No se pudo subir el archivo de evidencia."
+                    }
+                }
+            }
+        },
         "/malla-curricular/obtener": {
             "get": {
                 "tags": [
@@ -3255,7 +3370,7 @@
         },
         {
             "name": "Google Drive",
-            "description": "verArchivo() reutiliza EvidenciaStorageResolver::resolverParaDescarga()\n+ EvidenciaStorageInterface::descargarContenido() en vez de duplicar la\nllamada cruda a la API de Drive que tenía el original -- mismo patrón\nque EvidenciaAsignaturaVisorController::ver() (paso 6 del plan de\ninterruptor de almacenamiento), que ya resuelve exactamente esta misma\nbifurcación (Drive vs almacenamiento local) para evidencia_asignatura.\nA diferencia de ese controller, el formato de respuesta de éxito no es\nJSON (mismo criterio del plan, §2 punto 3): sirve los bytes reales del\narchivo con su Content-Type propio."
+            "description": "verArchivo() reutiliza EvidenciaStorageResolver::resolverParaDescarga()\n+ EvidenciaStorageInterface::descargarContenido() en vez de duplicar la\nllamada cruda a la API de Drive que tenía el original -- mismo patrón\nque EvidenciaAsignaturaVisorController::ver() (paso 6 del plan de\ninterruptor de almacenamiento), que ya resuelve exactamente esta misma\nbifurcación (Drive vs almacenamiento local) para evidencia_asignatura.\nA diferencia de ese controller, el formato de respuesta de éxito no es\nJSON (mismo criterio del plan, §2 punto 3): sirve los bytes reales del\narchivo con su Content-Type propio.\n\nsubirArchivo() (Parte 21, sesión 2) suma el segundo método del grupo:\nreemplaza a api/google_drive/subir_archivo.php, el endpoint genérico de\nsubida compartido por I1/I4/I5 (y 3 slots evaluation-wide de I2). Wiring\ncon GoogleDriveService::subirArchivoCatalogo() y\nAlmacenamientoLocalService::subirArchivo() (sesión 1, ver MEMORIA §143.2)\nvía $storageResolver, ya inyectado para verArchivo()."
         },
         {
             "name": "I1 - Malla Curricular",

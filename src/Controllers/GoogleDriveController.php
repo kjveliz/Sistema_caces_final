@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Repositories\EvidenciasRepository;
+use App\Services\AlmacenamientoLocalService;
 use App\Services\EvidenciaStorageResolver;
 use App\Services\MimeTypePorExtension;
 use OpenApi\Attributes as OA;
@@ -31,6 +32,13 @@ use Throwable;
  * A diferencia de ese controller, el formato de respuesta de éxito no es
  * JSON (mismo criterio del plan, §2 punto 3): sirve los bytes reales del
  * archivo con su Content-Type propio.
+ *
+ * subirArchivo() (Parte 21, sesión 2) suma el segundo método del grupo:
+ * reemplaza a api/google_drive/subir_archivo.php, el endpoint genérico de
+ * subida compartido por I1/I4/I5 (y 3 slots evaluation-wide de I2). Wiring
+ * con GoogleDriveService::subirArchivoCatalogo() y
+ * AlmacenamientoLocalService::subirArchivo() (sesión 1, ver MEMORIA §143.2)
+ * vía $storageResolver, ya inyectado para verArchivo().
  */
 #[OA\Tag(name: 'Google Drive')]
 final class GoogleDriveController
@@ -143,5 +151,181 @@ final class GoogleDriveController
             ->withHeader('Content-Length', (string) strlen($contenido))
             ->withHeader('Cache-Control', 'private, max-age=0, must-revalidate')
             ->withStatus(200);
+    }
+
+    /**
+     * POST /google-drive/subir-archivo (multipart) — sin sesión, mismo
+     * criterio que api/evidencias/{leer-matriculados,preparar-pdf} (POST
+     * migrados sin SessionAuthMiddleware): el original tampoco validaba
+     * $_SESSION['id_usuario'] (a diferencia de POST /evidencias/guardar,
+     * que sí lo hacía y sí lleva el middleware) — ver plan §2 punto 4.
+     *
+     * Sube (o reemplaza) el archivo genérico de evidencia de I1/I4/I5 (y 3
+     * slots evaluation-wide de I2), resolviendo el interruptor de
+     * almacenamiento por carrera igual que evidenciaSubir() de I2/I3
+     * (EvidenciaStorageResolver::resolver()). A diferencia de ese método
+     * (5 niveles: Carrera/Cohorte/PAO/Asignatura), preserva el árbol
+     * propio de este endpoint: 3 niveles en Drive (Carrera/Cohorte, vía
+     * GoogleDriveService::subirArchivoCatalogo()) y 5 niveles en local con
+     * los 2 segmentos fijos "Evaluacion"/"I{indicador}" (vía
+     * AlmacenamientoLocalService::subirArchivo(), mismo método que ya usa
+     * evidenciaSubir() — el árbol de 5 niveles SÍ es común a ambas rutas
+     * del lado local; solo Drive difiere entre este endpoint y I2/I3, ver
+     * GoogleDriveService::subirArchivoCatalogo() para el detalle completo
+     * de esa discrepancia ya existente).
+     *
+     * Dos simplificaciones respecto a la respuesta del original,
+     * documentadas acá en vez de "corregirlas" (plan §4) porque no son un
+     * bug: son el mismo criterio de forma ya usado por
+     * GoogleDriveService::subirArchivo()/subirArchivoCatalogo() y por
+     * evidenciaSubir() (I2/I3) — confirmado con el usuario que el frontend
+     * (subirPdfGoogleDrive() y subirMallaCurricular(), ver
+     * frontend/src/shared/services/{evidencias,carreras}.ts) solo lee
+     * `url_archivo`/`nombre_archivo`/`id_archivo` de la respuesta; el resto
+     * de los campos venían tipados pero sin uso real:
+     *   1. `datos` ya no trae `url_descarga`/`id_carpeta` (el original los
+     *      calculaba a partir de webContentLink y de la carpeta destino).
+     *   2. El mensaje de éxito en Drive ya no distingue "creado" de
+     *      "actualizado" (subirArchivoCatalogo() no expone esa
+     *      información, igual que subirArchivo() para I2/I3).
+     */
+    #[OA\Post(
+        path: '/google-drive/subir-archivo',
+        summary: 'Sube (o reemplaza) un archivo de evidencia genérico (I1/I4/I5) a Drive o almacenamiento local, según el interruptor de la carrera.',
+        tags: ['Google Drive'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: 'multipart/form-data',
+                schema: new OA\Schema(
+                    required: ['id_carrera', 'codigo_carrera', 'nombre_carrera', 'cohorte', 'indicador', 'nombre_archivo', 'archivo'],
+                    properties: [
+                        new OA\Property(property: 'id_carrera', type: 'integer'),
+                        new OA\Property(property: 'codigo_carrera', type: 'string', example: 'SOFT'),
+                        new OA\Property(property: 'nombre_carrera', type: 'string', example: 'Desarrollo de Software'),
+                        new OA\Property(property: 'cohorte', type: 'string', example: 'B2025'),
+                        new OA\Property(property: 'indicador', type: 'integer', example: 4),
+                        new OA\Property(property: 'nombre_archivo', type: 'string'),
+                        new OA\Property(property: 'tipo_esperado', type: 'string', enum: ['pdf', 'csv', 'xlsx'], example: 'pdf'),
+                        new OA\Property(property: 'archivo', type: 'string', format: 'binary'),
+                    ],
+                ),
+            ),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Archivo guardado (en Drive o en almacenamiento local, según la carrera).',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'ok', type: 'boolean'),
+                    new OA\Property(property: 'datos', properties: [
+                        new OA\Property(property: 'id_archivo', type: 'string'),
+                        new OA\Property(property: 'nombre_archivo', type: 'string'),
+                        new OA\Property(property: 'url_archivo', type: 'string'),
+                        new OA\Property(property: 'codigo_carrera', type: 'string'),
+                        new OA\Property(property: 'nombre_carrera', type: 'string'),
+                        new OA\Property(property: 'cohorte', type: 'string'),
+                        new OA\Property(property: 'indicador', type: 'integer'),
+                    ], type: 'object'),
+                ]),
+            ),
+            new OA\Response(response: 400, description: 'Faltan datos, no se recibió archivo, o el archivo no pasó la validación.'),
+            new OA\Response(response: 500, description: 'No se pudo subir el archivo de evidencia.'),
+        ],
+    )]
+    public function subirArchivo(Request $request, Response $response): Response
+    {
+        $body = $request->getParsedBody();
+        $body = is_array($body) ? $body : [];
+
+        $tipoEsperado = trim((string) ($body['tipo_esperado'] ?? 'pdf'));
+        if (!in_array($tipoEsperado, ['pdf', 'csv', 'xlsx'], true)) {
+            $tipoEsperado = 'pdf';
+        }
+        $etiquetaTipo = match ($tipoEsperado) {
+            'csv' => 'CSV',
+            'xlsx' => 'Excel',
+            default => 'PDF',
+        };
+
+        $idCarrera = (int) ($body['id_carrera'] ?? 0);
+        $codigoCarrera = strtoupper((string) preg_replace('/[^A-Z0-9]/', '', trim((string) ($body['codigo_carrera'] ?? ''))));
+        $nombreCarrera = trim((string) ($body['nombre_carrera'] ?? ''));
+        $cohorte = strtoupper((string) preg_replace('/[^A-Z0-9]/', '', trim((string) ($body['cohorte'] ?? ''))));
+        $indicador = (int) ($body['indicador'] ?? 0);
+        $nombreArchivo = trim((string) ($body['nombre_archivo'] ?? ''));
+
+        if ($idCarrera <= 0 || $codigoCarrera === '' || $nombreCarrera === '' || $cohorte === '' || $indicador <= 0 || $nombreArchivo === '') {
+            return $this->json($response, false, 'Faltan datos para subir el archivo.', [], 400);
+        }
+
+        $archivosSubidos = $request->getUploadedFiles();
+        if (!isset($archivosSubidos['archivo'])) {
+            return $this->json($response, false, 'No se recibió ningún archivo.', [], 400);
+        }
+        $archivoSubido = $archivosSubidos['archivo'];
+
+        $archivoLegacy = [
+            'name' => $archivoSubido->getClientFilename() ?? '',
+            'type' => $archivoSubido->getClientMediaType() ?? '',
+            'tmp_name' => $archivoSubido->getStream()->getMetadata('uri') ?? '',
+            'error' => $archivoSubido->getError(),
+            'size' => $archivoSubido->getSize() ?? 0,
+        ];
+
+        $storage = $this->storageResolver->resolver($idCarrera);
+
+        $errorValidacion = match ($tipoEsperado) {
+            'csv' => $storage->validarCsv($archivoLegacy),
+            'xlsx' => $storage->validarXlsx($archivoLegacy),
+            default => $storage->validarArchivoSubido($archivoLegacy),
+        };
+        if ($errorValidacion !== null) {
+            return $this->json($response, false, $errorValidacion, [], 400);
+        }
+
+        $mimeSubida = match ($tipoEsperado) {
+            'csv' => 'text/csv',
+            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            default => 'application/pdf',
+        };
+
+        try {
+            if ($storage instanceof AlmacenamientoLocalService) {
+                $subida = $storage->subirArchivo(
+                    $archivoLegacy['tmp_name'],
+                    $nombreArchivo,
+                    $nombreCarrera,
+                    $cohorte,
+                    'Evaluacion',
+                    "I{$indicador}",
+                    $mimeSubida,
+                );
+                $mensaje = "{$etiquetaTipo} guardado correctamente en almacenamiento local.";
+            } else {
+                $subida = $storage->subirArchivoCatalogo(
+                    $archivoLegacy['tmp_name'],
+                    $nombreArchivo,
+                    $nombreCarrera,
+                    $cohorte,
+                    $mimeSubida,
+                );
+                $mensaje = "{$etiquetaTipo} guardado correctamente en Google Drive.";
+            }
+        } catch (Throwable $e) {
+            return $this->json($response, false, 'No se pudo subir el ' . $etiquetaTipo . ' de evidencia.', ['detalle' => $e->getMessage()], 500);
+        }
+
+        return $this->json($response, true, $mensaje, [
+            'datos' => [
+                'id_archivo' => $subida['id_archivo'],
+                'nombre_archivo' => $subida['nombre_archivo'],
+                'url_archivo' => $subida['url_archivo'],
+                'codigo_carrera' => $codigoCarrera,
+                'nombre_carrera' => $nombreCarrera,
+                'cohorte' => $cohorte,
+                'indicador' => $indicador,
+            ],
+        ]);
     }
 }

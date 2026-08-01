@@ -332,8 +332,6 @@ export interface SubirDriveResponse {
     id_archivo: string;
     nombre_archivo: string;
     url_archivo: string;
-    url_descarga?: string | null;
-    id_carpeta: string;
     codigo_carrera: string;
     nombre_carrera: string;
     cohorte: string;
@@ -378,8 +376,11 @@ export async function subirPdfGoogleDrive({
   formulario.append('nombre_archivo', nombreArchivo);
   formulario.append('tipo_esperado', tipoEsperado);
 
+  // Parte 21 del plan de migración de PHP suelto a Slim
+  // (plan_migracion_slim_legacy_v3.txt §3): reemplaza a
+  // api/google_drive/subir_archivo.php, ya borrado del repo.
   const respuesta = await fetch(
-    'http://localhost/sistemacaces/api/google_drive/subir_archivo.php',
+    'http://localhost/sistemacaces/public/google-drive/subir-archivo',
     {
       method: 'POST',
       credentials: 'include',
