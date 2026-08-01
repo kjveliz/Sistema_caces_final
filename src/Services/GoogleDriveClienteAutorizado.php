@@ -25,10 +25,17 @@ use RuntimeException;
  * de Drive directamente -- `api/google_drive/subir_archivo.php` (Parte
  * 21, pendiente) -- sigue usando este método directo.
  * `cliente_autorizado.php` queda borrado del repo con esta Parte.
+ *
+ * RUTA_TOKEN es pública desde la Parte 23 (migración de callback.php):
+ * `GoogleDriveController::callback()` es quien ahora escribe el token por
+ * primera vez tras el consentimiento de Google, y reutiliza esta misma
+ * constante en vez de duplicar el path -- mismo archivo real
+ * (`api/google_drive/token.json`) que este método ya leía/renovaba antes
+ * de que existiera un escritor inicial migrado a Slim.
  */
 final class GoogleDriveClienteAutorizado
 {
-    private const RUTA_TOKEN = __DIR__ . '/../../api/google_drive/token.json';
+    public const RUTA_TOKEN = __DIR__ . '/../../api/google_drive/token.json';
 
     /**
      * @param GoogleClient|null $cliente Seam de testing: permite inyectar un

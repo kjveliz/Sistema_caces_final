@@ -425,10 +425,21 @@ $googleDriveController = new GoogleDriveController($evidenciasRepositorio, $stor
 // original (api/google_drive/conectar.php) tampoco validaba sesión -- lo
 // abre manualmente el administrador desde su navegador, no el SPA vía
 // fetch() -- ver docblock de GoogleDriveController::conectar().
+//
+// GET /google-drive/callback — sin SessionAuthMiddleware (Parte 23, última
+// del plan de migración slim-legacy, 23/23): el original
+// (api/google_drive/callback.php) tampoco validaba sesión -- lo dispara el
+// navegador del administrador siguiendo el redirect de Google, no el SPA.
+// El redirect_uri real registrado en Google Cloud Console debe incluir
+// esta URL nueva (ver docblock de GoogleDriveClienteFactory) -- el legacy
+// callback.php TODAVÍA NO se borra del repo (a diferencia del resto del
+// plan) hasta confirmar en vivo que el flujo completo funciona con la URL
+// nueva -- ver docblock de GoogleDriveController::callback().
 $app->group('/google-drive', function ($grupo) use ($googleDriveController) {
     $grupo->get('/ver-archivo', [$googleDriveController, 'verArchivo'])->add(new SessionAuthMiddleware());
     $grupo->post('/subir-archivo', [$googleDriveController, 'subirArchivo']);
     $grupo->get('/conectar', [$googleDriveController, 'conectar']);
+    $grupo->get('/callback', [$googleDriveController, 'callback']);
 });
 
 // --- Visor de evidencia_asignatura (I2/I3) -- parte 1 del paso 6 de -----

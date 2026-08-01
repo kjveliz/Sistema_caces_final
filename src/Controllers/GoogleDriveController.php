@@ -7,6 +7,7 @@ namespace App\Controllers;
 use App\Repositories\EvidenciasRepository;
 use App\Services\AlmacenamientoLocalService;
 use App\Services\EvidenciaStorageResolver;
+use App\Services\GoogleDriveClienteAutorizado;
 use App\Services\GoogleDriveClienteFactory;
 use App\Services\MimeTypePorExtension;
 use OpenApi\Attributes as OA;
@@ -44,10 +45,17 @@ use Throwable;
  * conectar() (Parte 22) suma el tercer método del grupo: reemplaza a
  * api/google_drive/conectar.php, el disparador manual (desde el navegador
  * del administrador, no desde fetch()) del flujo de autorización OAuth de
- * Google. Es la Parte previa a la última del plan (callback.php, Parte 23)
- * -- se prueba aislada primero porque el redirect_uri que arma
- * GoogleDriveClienteFactory sigue apuntando al callback legacy todavía sin
- * migrar (ver docblock de conectar() para el detalle).
+ * Google. Se probó aislada primero porque el redirect_uri que arma
+ * GoogleDriveClienteFactory apuntaba al callback legacy, todavía sin
+ * migrar en ese momento (ver docblock de conectar() para el detalle).
+ *
+ * callback() (Parte 23) suma el cuarto y último método del grupo, y cierra
+ * el plan de migración slim-legacy entero (23/23 Partes): reemplaza a
+ * api/google_drive/callback.php, el receptor real del callback de OAuth de
+ * Google (recibe `code`/`error` por querystring, intercambia el código por
+ * un token, y persiste `api/google_drive/token.json`). Ver su propio
+ * docblock para el detalle de la decisión de no borrar el legacy todavía
+ * en esta Parte, a diferencia del resto del plan.
  */
 
 #[OA\Tag(name: 'Google Drive')]
@@ -67,6 +75,18 @@ final class GoogleDriveController
         ], $extra), JSON_UNESCAPED_UNICODE));
 
         return $response->withHeader('Content-Type', 'application/json; charset=utf-8')->withStatus($httpCode);
+    }
+
+    /**
+     * Respuesta HTML simple (mismo criterio que el `echo` + `exit()` del
+     * `callback.php` legacy): usada por callback() en vez de json(), porque
+     * el original no devuelve JSON (ver plan §2 punto 3).
+     */
+    private function html(Response $response, string $cuerpo, int $httpCode = 200): Response
+    {
+        $response->getBody()->write($cuerpo);
+
+        return $response->withHeader('Content-Type', 'text/html; charset=utf-8')->withStatus($httpCode);
     }
 
     /**
@@ -390,5 +410,217 @@ final class GoogleDriveController
         return $response
             ->withHeader('Location', $authUrl)
             ->withStatus(302);
+    }
+
+    /**
+     * GET /google-drive/callback — recibe el callback real de OAuth de
+     * Google (redirect del navegador tras el consentimiento, no un
+     * fetch()). Puerto 1:1 de api/google_drive/callback.php (Parte 23, la
+     * última del plan de migración slim-legacy — ver
+     * plan_migracion_slim_legacy_v3.txt §3): mismas 4 ramas del original
+     * (error de Google, código de autorización faltante, error al
+     * intercambiar el token, éxito), y la misma lógica de conservar el
+     * `refresh_token` anterior cuando Google no lo repite (pasa cuando la
+     * cuenta ya había autorizado la app antes — comentario textual del
+     * original, preservado). Respuesta HTML, no JSON (mismo criterio que
+     * conectar(), plan §2 punto 3).
+     *
+     * Reusa GoogleDriveClienteAutorizado::RUTA_TOKEN en vez de duplicar el
+     * path de token.json (ver docblock de esa clase, actualizado esta
+     * Parte) — mismo archivo real que ese método ya lee/renueva.
+     *
+     * Sin SessionAuthMiddleware: el original tampoco validaba sesión (lo
+     * dispara el navegador del administrador siguiendo el redirect de
+     * Google, no el SPA).
+     *
+     * Decisión de esta Parte, no tomada en silencio: a diferencia del
+     * resto del plan (que borra el legacy en el mismo commit que agrega la
+     * ruta nueva, plan §2 punto 11), api/google_drive/callback.php NO se
+     * borra todavía. Motivo: el redirect_uri que arma
+     * GoogleDriveClienteFactory (compartido con conectar(), ya en
+     * producción) cambió en esta misma Parte de la URL legacy a esta ruta
+     * nueva — un cambio real de configuración externa a Google Cloud
+     * Console (ver docblock de GoogleDriveClienteFactory), que el usuario
+     * todavía no confirmó en vivo al momento de escribir este patch. Si el
+     * flujo real fallara por algún desajuste de Console, el legacy
+     * callback.php sigue en el repo como red de contención mientras se
+     * diagnostica — se borra recién en un commit de cierre aparte, después
+     * de que el usuario confirme el flujo completo end-to-end contra su
+     * XAMPP (mismo criterio del plan §2 punto 10/11, aplicado con más
+     * cuidado acá por el riesgo real: un error en esta Parte bloquea la
+     * conexión de Google Drive para todos los usuarios hasta que se
+     * arregle).
+     *
+     * Seam de testing (mismo criterio que conectar()): bajo
+     * APP_ENV=testing, GoogleDriveClienteFactory::crear() sigue devolviendo
+     * un cliente real (setAuthConfig exige un archivo de credenciales
+     * válido), así que el seam acá es más fino, con dos variantes según el
+     * valor de `code`, para no necesitar credenciales.json de prueba:
+     *   - `codigo-de-prueba-seam-testing`: simula un token completo (con
+     *     refresh_token), para probar la rama de éxito normal.
+     *   - `codigo-de-prueba-seam-testing-sin-refresh`: simula el caso real
+     *     de Google omitiendo refresh_token (cuenta ya autorizada antes),
+     *     para probar la rama de "conservar el refresh_token anterior".
+     */
+    #[OA\Get(
+        path: '/google-drive/callback',
+        summary: 'Recibe el callback de OAuth de Google, intercambia el código por un token y lo persiste en token.json.',
+        tags: ['Google Drive'],
+        parameters: [
+            new OA\QueryParameter(
+                name: 'code',
+                description: 'Código de autorización devuelto por Google.',
+                required: false,
+                schema: new OA\Schema(type: 'string'),
+            ),
+            new OA\QueryParameter(
+                name: 'error',
+                description: 'Presente si el usuario negó el consentimiento, o Google reportó un error.',
+                required: false,
+                schema: new OA\Schema(type: 'string'),
+            ),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Página HTML confirmando que Google Drive quedó conectado.'),
+            new OA\Response(response: 400, description: 'Página HTML: Google reportó un error, falta el código, o el intercambio de token falló.'),
+            new OA\Response(response: 500, description: 'Página HTML: no se pudo escribir token.json (permisos de la carpeta google_drive).'),
+        ],
+    )]
+    public function callback(Request $request, Response $response): Response
+    {
+        $params = $request->getQueryParams();
+
+        if (isset($params['error'])) {
+            return $this->html(
+                $response,
+                '<h2>Google Drive no fue autorizado.</h2><p>' . htmlspecialchars((string) $params['error']) . '</p>',
+                400,
+            );
+        }
+
+        $codigo = trim((string) ($params['code'] ?? ''));
+
+        if ($codigo === '') {
+            return $this->html(
+                $response,
+                '<h2>No se recibió el código de autorización.</h2><p>Vuelva a iniciar la conexión con Google Drive.</p>',
+                400,
+            );
+        }
+
+        $esSeamTesting = (getenv('APP_ENV') ?: '') === 'testing'
+            && in_array($codigo, ['codigo-de-prueba-seam-testing', 'codigo-de-prueba-seam-testing-sin-refresh'], true);
+
+        if ($esSeamTesting) {
+            $token = ['access_token' => 'token-de-prueba-seam-testing', 'expires_in' => 3600];
+
+            // Variante que simula el caso real de Google (la cuenta ya
+            // había autorizado la app antes, así que no repite
+            // refresh_token) -- permite probar la rama de "conservar el
+            // refresh_token anterior" sin credenciales reales.
+            if ($codigo === 'codigo-de-prueba-seam-testing') {
+                $token['refresh_token'] = 'refresh-de-prueba-seam-testing';
+            }
+        } else {
+            $cliente = GoogleDriveClienteFactory::crear();
+            $token = $cliente->fetchAccessTokenWithAuthCode($codigo);
+
+            if (isset($token['error'])) {
+                $detalle = $token['error_description'] ?? $token['error'];
+
+                return $this->html(
+                    $response,
+                    '<h2>No se pudo obtener el token.</h2><p>' . htmlspecialchars((string) $detalle) . '</p>',
+                    400,
+                );
+            }
+        }
+
+        // Google puede omitir el refresh_token cuando la cuenta ya
+        // autorizó anteriormente la aplicación. En ese caso conservamos
+        // el refresh_token anterior (mismo comentario textual que el
+        // original).
+        $rutaToken = GoogleDriveClienteAutorizado::RUTA_TOKEN;
+
+        if (file_exists($rutaToken)) {
+            $tokenAnterior = json_decode((string) file_get_contents($rutaToken), true);
+
+            if (!isset($token['refresh_token']) && isset($tokenAnterior['refresh_token'])) {
+                $token['refresh_token'] = $tokenAnterior['refresh_token'];
+            }
+        }
+
+        $contenidoToken = json_encode($token, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
+        if (file_put_contents($rutaToken, $contenidoToken, LOCK_EX) === false) {
+            return $this->html(
+                $response,
+                '<h2>No se pudo guardar token.json.</h2><p>Revise los permisos de la carpeta google_drive.</p>',
+                500,
+            );
+        }
+
+        return $this->html($response, <<<HTML
+            <!DOCTYPE html>
+            <html lang='es'>
+            <head>
+                <meta charset='UTF-8'>
+                <title>Google Drive conectado</title>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        background: #eef2f7;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        min-height: 100vh;
+                        margin: 0;
+                    }
+
+                    .card {
+                        width: 420px;
+                        background: white;
+                        border-radius: 16px;
+                        padding: 32px;
+                        text-align: center;
+                        box-shadow: 0 12px 35px rgba(0,0,0,.10);
+                    }
+
+                    h1 {
+                        color: #1b3a6b;
+                        font-size: 24px;
+                    }
+
+                    p {
+                        color: #5a7295;
+                        line-height: 1.5;
+                    }
+
+                    a {
+                        display: inline-block;
+                        margin-top: 16px;
+                        background: #1b3a6b;
+                        color: white;
+                        text-decoration: none;
+                        padding: 11px 20px;
+                        border-radius: 10px;
+                        font-weight: bold;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class='card'>
+                    <h1>Google Drive conectado</h1>
+                    <p>
+                        La cuenta autorizó correctamente al Sistema CACES.
+                        El token quedó almacenado de forma local.
+                    </p>
+                    <a href='http://localhost:5173'>
+                        Volver al sistema
+                    </a>
+                </div>
+            </body>
+            </html>
+            HTML);
     }
 }

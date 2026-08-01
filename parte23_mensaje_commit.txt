@@ -1,0 +1,42 @@
+feat(google-drive): migra callback.php a GoogleDriveController::callback() (Parte 23 del plan de migracion slim-legacy)
+
+Agrega GET /google-drive/callback, puerto 1:1 de api/google_drive/callback.php
+(4 ramas: error de Google, codigo faltante, error al intercambiar el token,
+exito), sin SessionAuthMiddleware (el original tampoco validaba sesion --
+lo dispara el navegador del administrador siguiendo el redirect de Google,
+no el SPA). Respuesta HTML, no JSON (mismo criterio que conectar()).
+Preserva la logica de conservar el refresh_token anterior cuando Google no
+lo repite. Reusa GoogleDriveClienteAutorizado::RUTA_TOKEN (ahora publica)
+en vez de duplicar el path de token.json.
+
+Cambio de redirect_uri en GoogleDriveClienteFactory: de la URL legacy
+(fuera de public/, api/google_drive/callback.php) a la ruta nueva de Slim
+(public/google-drive/callback). Este cambio es compartido con conectar()
+(ya en produccion desde la Parte 22): en cuanto se aplique este commit,
+las auth-URLs que arma conectar() van a apuntar a la ruta nueva -- Google
+Cloud Console necesita tener AMBAS URIs de redirect autorizadas (la vieja
+y la nueva) antes de aplicar este commit en el entorno real, no despues.
+Google permite varias URIs autorizadas simultaneas, no hace falta borrar
+la vieja de Console todavia.
+
+Decision de esta Parte, distinta al resto del plan: api/google_drive/
+callback.php NO se borra en este commit (a diferencia de las Partes
+anteriores, que borran el legacy en el mismo commit). Motivo: el cambio
+de redirect_uri depende de configuracion externa a Google Cloud Console
+que el usuario debe confirmar en vivo primero. Se borra en un commit de
+cierre aparte, solo despues de confirmar el flujo completo end-to-end.
+
+Seam de testing (APP_ENV=testing, mismo criterio que conectar()): dos
+variantes segun el valor de `code` (con y sin refresh_token), para no
+necesitar credenciales.json de prueba. tests/Integration/GoogleDrive/
+CallbackTest.php nuevo (6 casos: error, sin codigo, exito con token.json
+verificado en disco, conservacion de refresh_token, sin sesion, 405 en
+POST). Test unitario de GoogleDriveClienteFactory actualizado al nuevo
+redirect_uri. composer generate-openapi agrega el endpoint (+42/-1,
+sin arrastrar deuda vieja del spec).
+
+Verificado en dos rondas (copia de trabajo + clon fresco): php -l limpio
+en los 6 archivos tocados, 42/42 tests de Google Drive OK en ambas
+rondas. Suite completa: 293 tests, 6 fallas -- confirmado contra el HEAD
+original (203bfefd) que esas 6 fallas ya existian antes de este commit,
+sin relacion con Google Drive.

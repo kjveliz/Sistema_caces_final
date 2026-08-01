@@ -1735,6 +1735,47 @@
                 }
             }
         },
+        "/google-drive/callback": {
+            "get": {
+                "tags": [
+                    "Google Drive"
+                ],
+                "summary": "Recibe el callback de OAuth de Google, intercambia el código por un token y lo persiste en token.json.",
+                "description": "GET /google-drive/callback — recibe el callback real de OAuth de\nGoogle (redirect del navegador tras el consentimiento, no un\nfetch()). Puerto 1:1 de api/google_drive/callback.php (Parte 23, la\núltima del plan de migración slim-legacy — ver\nplan_migracion_slim_legacy_v3.txt §3): mismas 4 ramas del original\n(error de Google, código de autorización faltante, error al\nintercambiar el token, éxito), y la misma lógica de conservar el\n`refresh_token` anterior cuando Google no lo repite (pasa cuando la\ncuenta ya había autorizado la app antes — comentario textual del\noriginal, preservado). Respuesta HTML, no JSON (mismo criterio que\nconectar(), plan §2 punto 3).\n\nReusa GoogleDriveClienteAutorizado::RUTA_TOKEN en vez de duplicar el\npath de token.json (ver docblock de esa clase, actualizado esta\nParte) — mismo archivo real que ese método ya lee/renueva.\n\nSin SessionAuthMiddleware: el original tampoco validaba sesión (lo\ndispara el navegador del administrador siguiendo el redirect de\nGoogle, no el SPA).\n\nDecisión de esta Parte, no tomada en silencio: a diferencia del\nresto del plan (que borra el legacy en el mismo commit que agrega la\nruta nueva, plan §2 punto 11), api/google_drive/callback.php NO se\nborra todavía. Motivo: el redirect_uri que arma\nGoogleDriveClienteFactory (compartido con conectar(), ya en\nproducción) cambió en esta misma Parte de la URL legacy a esta ruta\nnueva — un cambio real de configuración externa a Google Cloud\nConsole (ver docblock de GoogleDriveClienteFactory), que el usuario\ntodavía no confirmó en vivo al momento de escribir este patch. Si el\nflujo real fallara por algún desajuste de Console, el legacy\ncallback.php sigue en el repo como red de contención mientras se\ndiagnostica — se borra recién en un commit de cierre aparte, después\nde que el usuario confirme el flujo completo end-to-end contra su\nXAMPP (mismo criterio del plan §2 punto 10/11, aplicado con más\ncuidado acá por el riesgo real: un error en esta Parte bloquea la\nconexión de Google Drive para todos los usuarios hasta que se\narregle).\n\nSeam de testing (mismo criterio que conectar()): bajo\nAPP_ENV=testing, GoogleDriveClienteFactory::crear() sigue devolviendo\nun cliente real (setAuthConfig exige un archivo de credenciales\nválido), así que el seam acá es más fino, con dos variantes según el\nvalor de `code`, para no necesitar credenciales.json de prueba:\n  - `codigo-de-prueba-seam-testing`: simula un token completo (con\n    refresh_token), para probar la rama de éxito normal.\n  - `codigo-de-prueba-seam-testing-sin-refresh`: simula el caso real\n    de Google omitiendo refresh_token (cuenta ya autorizada antes),\n    para probar la rama de \"conservar el refresh_token anterior\".",
+                "operationId": "1d032cd45f4eb9c68b99d07bc710ddd1",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "query",
+                        "description": "Código de autorización devuelto por Google.",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "error",
+                        "in": "query",
+                        "description": "Presente si el usuario negó el consentimiento, o Google reportó un error.",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Página HTML confirmando que Google Drive quedó conectado."
+                    },
+                    "400": {
+                        "description": "Página HTML: Google reportó un error, falta el código, o el intercambio de token falló."
+                    },
+                    "500": {
+                        "description": "Página HTML: no se pudo escribir token.json (permisos de la carpeta google_drive)."
+                    }
+                }
+            }
+        },
         "/malla-curricular/obtener": {
             "get": {
                 "tags": [
@@ -3385,7 +3426,7 @@
         },
         {
             "name": "Google Drive",
-            "description": "verArchivo() reutiliza EvidenciaStorageResolver::resolverParaDescarga()\n+ EvidenciaStorageInterface::descargarContenido() en vez de duplicar la\nllamada cruda a la API de Drive que tenía el original -- mismo patrón\nque EvidenciaAsignaturaVisorController::ver() (paso 6 del plan de\ninterruptor de almacenamiento), que ya resuelve exactamente esta misma\nbifurcación (Drive vs almacenamiento local) para evidencia_asignatura.\nA diferencia de ese controller, el formato de respuesta de éxito no es\nJSON (mismo criterio del plan, §2 punto 3): sirve los bytes reales del\narchivo con su Content-Type propio.\n\nsubirArchivo() (Parte 21, sesión 2) suma el segundo método del grupo:\nreemplaza a api/google_drive/subir_archivo.php, el endpoint genérico de\nsubida compartido por I1/I4/I5 (y 3 slots evaluation-wide de I2). Wiring\ncon GoogleDriveService::subirArchivoCatalogo() y\nAlmacenamientoLocalService::subirArchivo() (sesión 1, ver MEMORIA §143.2)\nvía $storageResolver, ya inyectado para verArchivo().\n\nconectar() (Parte 22) suma el tercer método del grupo: reemplaza a\napi/google_drive/conectar.php, el disparador manual (desde el navegador\ndel administrador, no desde fetch()) del flujo de autorización OAuth de\nGoogle. Es la Parte previa a la última del plan (callback.php, Parte 23)\n-- se prueba aislada primero porque el redirect_uri que arma\nGoogleDriveClienteFactory sigue apuntando al callback legacy todavía sin\nmigrar (ver docblock de conectar() para el detalle)."
+            "description": "verArchivo() reutiliza EvidenciaStorageResolver::resolverParaDescarga()\n+ EvidenciaStorageInterface::descargarContenido() en vez de duplicar la\nllamada cruda a la API de Drive que tenía el original -- mismo patrón\nque EvidenciaAsignaturaVisorController::ver() (paso 6 del plan de\ninterruptor de almacenamiento), que ya resuelve exactamente esta misma\nbifurcación (Drive vs almacenamiento local) para evidencia_asignatura.\nA diferencia de ese controller, el formato de respuesta de éxito no es\nJSON (mismo criterio del plan, §2 punto 3): sirve los bytes reales del\narchivo con su Content-Type propio.\n\nsubirArchivo() (Parte 21, sesión 2) suma el segundo método del grupo:\nreemplaza a api/google_drive/subir_archivo.php, el endpoint genérico de\nsubida compartido por I1/I4/I5 (y 3 slots evaluation-wide de I2). Wiring\ncon GoogleDriveService::subirArchivoCatalogo() y\nAlmacenamientoLocalService::subirArchivo() (sesión 1, ver MEMORIA §143.2)\nvía $storageResolver, ya inyectado para verArchivo().\n\nconectar() (Parte 22) suma el tercer método del grupo: reemplaza a\napi/google_drive/conectar.php, el disparador manual (desde el navegador\ndel administrador, no desde fetch()) del flujo de autorización OAuth de\nGoogle. Se probó aislada primero porque el redirect_uri que arma\nGoogleDriveClienteFactory apuntaba al callback legacy, todavía sin\nmigrar en ese momento (ver docblock de conectar() para el detalle).\n\ncallback() (Parte 23) suma el cuarto y último método del grupo, y cierra\nel plan de migración slim-legacy entero (23/23 Partes): reemplaza a\napi/google_drive/callback.php, el receptor real del callback de OAuth de\nGoogle (recibe `code`/`error` por querystring, intercambia el código por\nun token, y persiste `api/google_drive/token.json`). Ver su propio\ndocblock para el detalle de la decisión de no borrar el legacy todavía\nen esta Parte, a diferencia del resto del plan."
         },
         {
             "name": "I1 - Malla Curricular",

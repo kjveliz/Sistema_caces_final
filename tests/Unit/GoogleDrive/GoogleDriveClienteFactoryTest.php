@@ -50,9 +50,11 @@ final class GoogleDriveClienteFactoryTest extends TestCase
 
         // El redirect URI explícito debe prevalecer sobre el que trae el
         // archivo de credenciales (ver orden de llamadas en la clase: el
-        // setRedirectUri propio va después de setAuthConfig).
+        // setRedirectUri propio va después de setAuthConfig). Cambió en la
+        // Parte 23 de la URL legacy (fuera de public/) a la ruta nueva de
+        // Slim -- ver docblock de GoogleDriveClienteFactory.
         $this->assertSame(
-            'http://localhost/sistemacaces/api/google_drive/callback.php',
+            'http://localhost/sistemacaces/public/google-drive/callback',
             $cliente->getRedirectUri(),
         );
     }
