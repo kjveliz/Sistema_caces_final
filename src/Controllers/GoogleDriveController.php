@@ -373,15 +373,14 @@ final class GoogleDriveController
      * window.open() en StorageSettingsModal.tsx -- no es un fetch() del
      * SPA, ver frontend actualizado).
      *
-     * El redirect_uri que arma GoogleDriveClienteFactory::crear() sigue
-     * apuntando a la URL legacy de callback.php
-     * (api/google_drive/callback.php), todavía sin migrar (Parte 23, la
-     * última del plan). No se cambia acá: Google Cloud Console tiene
-     * registrado ese redirect_uri exacto, y apuntar ya al futuro
-     * /google-drive/callback antes de migrar (y probar) callback.php
-     * dejaría el flujo de conexión real roto a mitad de camino -- por eso
-     * el plan (Fase 4, §3) prueba conectar.php aislado primero, con el
-     * callback legacy todavía sirviendo.
+     * El redirect_uri que arma GoogleDriveClienteFactory::crear() apuntaba
+     * originalmente a la URL legacy de callback.php
+     * (api/google_drive/callback.php) -- cambió en la Parte 23 (la última
+     * del plan, ya migrada y cerrada formalmente) a la ruta nueva de Slim
+     * (/google-drive/callback), una vez confirmado en vivo que Google
+     * Cloud Console tenía ambas URIs de redirect autorizadas durante la
+     * transición. Ver docblock de GoogleDriveClienteFactory para el
+     * detalle completo del cambio.
      *
      * Seam de testing (mismo criterio que GoogleDriveService::
      * subirArchivo() y demás métodos del grupo): bajo APP_ENV=testing se
@@ -433,23 +432,20 @@ final class GoogleDriveController
      * dispara el navegador del administrador siguiendo el redirect de
      * Google, no el SPA).
      *
-     * Decisión de esta Parte, no tomada en silencio: a diferencia del
-     * resto del plan (que borra el legacy en el mismo commit que agrega la
-     * ruta nueva, plan §2 punto 11), api/google_drive/callback.php NO se
-     * borra todavía. Motivo: el redirect_uri que arma
-     * GoogleDriveClienteFactory (compartido con conectar(), ya en
-     * producción) cambió en esta misma Parte de la URL legacy a esta ruta
-     * nueva — un cambio real de configuración externa a Google Cloud
-     * Console (ver docblock de GoogleDriveClienteFactory), que el usuario
-     * todavía no confirmó en vivo al momento de escribir este patch. Si el
-     * flujo real fallara por algún desajuste de Console, el legacy
-     * callback.php sigue en el repo como red de contención mientras se
-     * diagnostica — se borra recién en un commit de cierre aparte, después
-     * de que el usuario confirme el flujo completo end-to-end contra su
-     * XAMPP (mismo criterio del plan §2 punto 10/11, aplicado con más
-     * cuidado acá por el riesgo real: un error en esta Parte bloquea la
-     * conexión de Google Drive para todos los usuarios hasta que se
-     * arregle).
+     * Historial de esta Parte (documentado acá en vez de solo en el
+     * mensaje de commit, mismo criterio de siempre): el redirect_uri que
+     * arma GoogleDriveClienteFactory (compartido con conectar(), ya en
+     * producción desde la Parte 22) cambió en el commit original de esta
+     * Parte de la URL legacy a esta ruta nueva -- un cambio real de
+     * configuración externa a Google Cloud Console (ver docblock de
+     * GoogleDriveClienteFactory). Por eso, a diferencia del resto del plan
+     * (que borra el legacy en el mismo commit que agrega la ruta nueva,
+     * plan §2 punto 11), api/google_drive/callback.php NO se borró en ese
+     * primer commit: se dejó como red de contención hasta confirmar en
+     * vivo que el flujo funcionaba con la URL nueva. Una vez confirmado
+     * (prueba en vivo exitosa del usuario), se borró en un commit de
+     * cierre aparte -- con eso, esta Parte (y el plan de migración
+     * slim-legacy entero, 23/23) queda cerrada formalmente.
      *
      * Seam de testing (mismo criterio que conectar()): bajo
      * APP_ENV=testing, GoogleDriveClienteFactory::crear() sigue devolviendo
@@ -541,6 +537,24 @@ final class GoogleDriveController
         // el refresh_token anterior (mismo comentario textual que el
         // original).
         $rutaToken = GoogleDriveClienteAutorizado::RUTA_TOKEN;
+        $carpetaToken = dirname($rutaToken);
+
+        // api/google_drive/credenciales.json y token.json están gitignored
+        // -- git no trackea carpetas vacías, así que un clon fresco del
+        // repo (sin esos 2 archivos todavía) puede no tener ni la carpeta
+        // creada (hallazgo real de esta Parte: al borrar callback.php, el
+        // último archivo trackeado ahí, la carpeta dejó de existir en git
+        // -- ver api/google_drive/.gitkeep, agregado en este mismo commit
+        // para que un clon nuevo la traiga siempre). mkdir acá es una
+        // segunda red de seguridad, mismo patrón ya usado por
+        // AlmacenamientoLocalService::subirArchivo().
+        if (!is_dir($carpetaToken) && !mkdir($carpetaToken, 0775, true) && !is_dir($carpetaToken)) {
+            return $this->html(
+                $response,
+                '<h2>No se pudo guardar token.json.</h2><p>Revise los permisos de la carpeta google_drive.</p>',
+                500,
+            );
+        }
 
         if (file_exists($rutaToken)) {
             $tokenAnterior = json_decode((string) file_get_contents($rutaToken), true);

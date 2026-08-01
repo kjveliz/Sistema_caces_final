@@ -427,14 +427,13 @@ $googleDriveController = new GoogleDriveController($evidenciasRepositorio, $stor
 // fetch() -- ver docblock de GoogleDriveController::conectar().
 //
 // GET /google-drive/callback — sin SessionAuthMiddleware (Parte 23, última
-// del plan de migración slim-legacy, 23/23): el original
-// (api/google_drive/callback.php) tampoco validaba sesión -- lo dispara el
-// navegador del administrador siguiendo el redirect de Google, no el SPA.
-// El redirect_uri real registrado en Google Cloud Console debe incluir
-// esta URL nueva (ver docblock de GoogleDriveClienteFactory) -- el legacy
-// callback.php TODAVÍA NO se borra del repo (a diferencia del resto del
-// plan) hasta confirmar en vivo que el flujo completo funciona con la URL
-// nueva -- ver docblock de GoogleDriveController::callback().
+// del plan de migración slim-legacy, ya cerrada formalmente, 23/23): el
+// original (api/google_drive/callback.php, borrado del repo) tampoco
+// validaba sesión -- lo dispara el navegador del administrador siguiendo
+// el redirect de Google, no el SPA. El redirect_uri real registrado en
+// Google Cloud Console apunta a esta URL nueva, confirmado en vivo por el
+// usuario -- ver docblock de GoogleDriveClienteFactory y de
+// GoogleDriveController::callback() para el detalle de la transición.
 $app->group('/google-drive', function ($grupo) use ($googleDriveController) {
     $grupo->get('/ver-archivo', [$googleDriveController, 'verArchivo'])->add(new SessionAuthMiddleware());
     $grupo->post('/subir-archivo', [$googleDriveController, 'subirArchivo']);

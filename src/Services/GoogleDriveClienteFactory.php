@@ -25,17 +25,16 @@ use Google\Service\Drive as GoogleDrive;
  * redirect_uri (Parte 23): cambió de la URL legacy
  * (`http://localhost/sistemacaces/api/google_drive/callback.php`, fuera de
  * `public/`) a la ruta nueva de Slim
- * (`http://localhost/sistemacaces/public/google-drive/callback`). Este
+ * (`http://localhost/sistemacaces/public/google-drive/callback`). Ese
  * cambio es compartido con `conectar()` (ya en producción desde la Parte
- * 22): en cuanto este archivo se aplique, las auth-URLs que arma
- * `conectar()` van a apuntar a la ruta nueva -- por eso Google Cloud
- * Console necesita tener AMBAS URIs de redirect autorizadas (la vieja y la
- * nueva) antes de aplicar este cambio en el entorno real del usuario, no
- * después. Google permite varias URIs autorizadas simultáneas, así que no
- * hace falta borrar la vieja de Console todavía -- ver docblock de
- * `GoogleDriveController::callback()` para el resto de la secuencia seguida
- * esta Parte (por qué el legacy `api/google_drive/callback.php` no se
- * borra todavía del repo, a diferencia de las Partes anteriores).
+ * 22), así que Google Cloud Console necesitó tener AMBAS URIs de redirect
+ * autorizadas (Google permite varias simultáneas) durante la transición --
+ * confirmado en vivo por el usuario que el flujo de conexión real funciona
+ * con la URL nueva. Con eso confirmado, `api/google_drive/callback.php` ya
+ * se borró del repo (commit de cierre aparte, después del commit que
+ * agregó la ruta nueva -- ver docblock de `GoogleDriveController::
+ * callback()` para el detalle completo de la secuencia). Con esta Parte
+ * cerrada, el plan de migración slim-legacy queda completo (23/23).
  */
 final class GoogleDriveClienteFactory
 {
@@ -44,9 +43,9 @@ final class GoogleDriveClienteFactory
     /**
      * @param string|null $rutaCredenciales Seam de testing: permite inyectar
      *   un archivo de credenciales de prueba. Los 3 llamadores reales
-     *   (conectar.php, callback.php, GoogleDriveClienteAutorizado::obtener())
-     *   siempre lo invocan sin argumentos, usando la ruta real de
-     *   RUTA_CREDENCIALES.
+     *   (GoogleDriveController::conectar(), GoogleDriveController::callback(),
+     *   GoogleDriveClienteAutorizado::obtener()) siempre lo invocan sin
+     *   argumentos, usando la ruta real de RUTA_CREDENCIALES.
      */
     public static function crear(?string $rutaCredenciales = null): GoogleClient
     {
