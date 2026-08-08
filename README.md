@@ -246,6 +246,9 @@ npm run dev
 
 ## Tests
 
+Ver [`docs/TESTING.md`](docs/TESTING.md) para el detalle de qué cubre cada suite (qué archivos,
+qué casos, y para qué sirve cada una).
+
 **Backend** (desde la raíz del repo, con la base de datos `evaluacion_caces_test` disponible
 para los de integración — Phinx la crea con `-e testing`):
 
