@@ -24,6 +24,29 @@ final class AlmacenamientoTest extends IntegrationTestCase
 {
     private const RUTA = '/carreras/1/almacenamiento';
 
+    /**
+     * Restaura id_carrera=1 a 'local' (su estado de reposo real desde el
+     * commit 657ad29c, 28 jul -- "entrega sin Drive") después de CADA test,
+     * sin importar si algún assert de arriba falló. Mismo criterio ya
+     * establecido en tests/Integration/GoogleDrive/SubirArchivoTest.php
+     * (ver su docblock): los tests de esta clase que necesitan 'drive' como
+     * precondición lo piden explícitamente al inicio de su propio método
+     * (arrange), en vez de asumirlo del seed -- este archivo de test es un
+     * día más viejo que ese commit y varios de sus asserts dependían de
+     * arrancar en 'drive'. Sin este tearDown, un test que fallara a mitad
+     * de camino podía dejar la carrera varada en 'local' O 'drive' para la
+     * próxima corrida, o filtrar 'drive' hacia otros archivos de test que sí
+     * asumen el default real ('local'), como
+     * SeguimientoSyllabus/EvidenciaAsignaturaSubirTest.php. Ver MEMORIA --
+     * diagnóstico completo de las 6 fallas preexistentes de la suite.
+     */
+    protected function tearDown(): void
+    {
+        self::conexionBd()->query(
+            "UPDATE carreras SET modo_almacenamiento = 'local', ruta_almacenamiento_local = NULL WHERE id_carrera = 1"
+        );
+    }
+
     private function insertarEvidenciaDePrueba(int $idAsignatura, string $tipo, string $urlArchivo): int
     {
         $conexion = self::conexionBd();
@@ -75,6 +98,13 @@ final class AlmacenamientoTest extends IntegrationTestCase
     {
         $this->loguearComo('administrador@demo.local');
 
+        // Arrange: fuerza id_carrera=1 a 'drive' -- ya no es el default real
+        // de una carrera nueva (ver tearDown() arriba), y este test verifica
+        // justamente la migración drive -> local.
+        self::conexionBd()->query(
+            "UPDATE carreras SET modo_almacenamiento = 'drive', ruta_almacenamiento_local = NULL WHERE id_carrera = 1"
+        );
+
         $idEvidencia = $this->insertarEvidenciaDePrueba(
             1,
             'plan_tutorias',
@@ -107,17 +137,22 @@ final class AlmacenamientoTest extends IntegrationTestCase
         $this->assertStringStartsWith($rutaLocal, $filaEvidencia['url_archivo']);
         $this->assertFileExists($filaEvidencia['url_archivo']);
 
-        // Deja la carrera como estaba para no afectar otros tests de la
-        // suite que asumen id_carrera=1 en modo 'drive' por defecto.
-        $conexion->query("UPDATE carreras SET modo_almacenamiento = 'drive', ruta_almacenamiento_local = NULL WHERE id_carrera = 1");
+        // La restauración de id_carrera=1 a 'local' (su estado de reposo)
+        // vive en tearDown() -- corre siempre, incluso si un assert de
+        // arriba falla.
     }
 
     public function testMigrarAlMismoModoSinCambiosDevuelve422(): void
     {
         $this->loguearComo('administrador@demo.local');
 
-        // id_carrera=1 arranca en 'drive' (default de la migración de
-        // esquema) y no se le pasó ruta_local -- no hay nada que migrar.
+        // Arrange: id_carrera=1 forzada a 'drive' (ya no es el default real
+        // -- ver tearDown() arriba) y sin ruta_local -- no hay nada que
+        // migrar.
+        self::conexionBd()->query(
+            "UPDATE carreras SET modo_almacenamiento = 'drive', ruta_almacenamiento_local = NULL WHERE id_carrera = 1"
+        );
+
         $respuesta = $this->peticion('PUT', self::RUTA, [
             'json' => ['modo_almacenamiento' => 'drive'],
         ]);
@@ -129,6 +164,12 @@ final class AlmacenamientoTest extends IntegrationTestCase
     public function testMigracionConArchivoDeOrigenInexistenteSeRevierteYDevuelve422(): void
     {
         $this->loguearComo('administrador@demo.local');
+
+        // Arrange: id_carrera=1 forzada a 'drive' -- este test verifica que
+        // una migración drive -> local fallida revierte a 'drive'.
+        self::conexionBd()->query(
+            "UPDATE carreras SET modo_almacenamiento = 'drive', ruta_almacenamiento_local = NULL WHERE id_carrera = 1"
+        );
 
         $idEvidenciaOk = $this->insertarEvidenciaDePrueba(
             2,

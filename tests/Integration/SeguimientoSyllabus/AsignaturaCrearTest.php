@@ -24,8 +24,18 @@ final class AsignaturaCrearTest extends IntegrationTestCase
 {
     private const RUTA = '/seguimiento-syllabus/asignaturas';
 
+    public function testSinSesionDevuelve401(): void
+    {
+        $respuesta = $this->peticion('POST', self::RUTA, ['json' => []]);
+
+        $this->assertSame(401, $respuesta['status']);
+        $this->assertFalse($respuesta['json']['ok']);
+    }
+
     public function testSinParametrosDevuelve400(): void
     {
+        $this->loguearComo('evaluador@demo.local');
+
         $respuesta = $this->peticion('POST', self::RUTA, ['json' => []]);
 
         $this->assertSame(400, $respuesta['status']);
@@ -34,6 +44,8 @@ final class AsignaturaCrearTest extends IntegrationTestCase
 
     public function testCreaAsignaturaNuevaEnPeriodoSinAsignaturas(): void
     {
+        $this->loguearComo('evaluador@demo.local');
+
         $respuesta = $this->peticion('POST', self::RUTA, [
             'json' => ['id_periodo' => 2, 'nombre' => 'Asignatura de prueba de integración', 'docente' => 'Prof. Prueba'],
         ]);
@@ -61,6 +73,8 @@ final class AsignaturaCrearTest extends IntegrationTestCase
 
     public function testNombreYaExistenteEnElMismoPeriodoDevuelveLaAsignaturaExistente(): void
     {
+        $this->loguearComo('evaluador@demo.local');
+
         // id_asignatura=3 ('Humanismo y Persona') ya existe en id_periodo=1
         // (ver AsignaturaSeeder) -- no debe crear una fila nueva.
         $respuesta = $this->peticion('POST', self::RUTA, [

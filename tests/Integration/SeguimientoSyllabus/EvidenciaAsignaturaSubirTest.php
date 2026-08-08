@@ -26,6 +26,20 @@ final class EvidenciaAsignaturaSubirTest extends IntegrationTestCase
 {
     private const RUTA = '/seguimiento-syllabus/evidencia-subir';
 
+    /**
+     * Restaura id_carrera=1 a 'local' (su estado de reposo real, ver
+     * Carreras/AlmacenamientoTest.php) después de cada test, por si
+     * testSubidaExitosaGuardaEvidenciaVigenteYUsaElSeamDeDrive() la forzó a
+     * 'drive'. Mismo criterio que tests/Integration/GoogleDrive/
+     * SubirArchivoTest.php.
+     */
+    protected function tearDown(): void
+    {
+        self::conexionBd()->query(
+            "UPDATE carreras SET modo_almacenamiento = 'local', ruta_almacenamiento_local = NULL WHERE id_carrera = 1"
+        );
+    }
+
     private function crearPdfDePrueba(): string
     {
         $ruta = tempnam(sys_get_temp_dir(), 'caces_pdf_') . '.pdf';
@@ -78,7 +92,22 @@ final class EvidenciaAsignaturaSubirTest extends IntegrationTestCase
     {
         $this->loguearComo('evaluador@demo.local');
 
-        $idAsignatura = 3; // Humanismo y Persona
+        $idAsignatura = 3; // Humanismo y Persona, id_periodoacademico=1 -> id_carrera=1
+
+        // Precondición explícita: este test verifica el seam de Drive, así
+        // que necesita que la carrera dueña de la asignatura esté en modo
+        // 'drive'. No se puede asumir eso del seed -- desde el commit
+        // 657ad29c (28 jul) el DEFAULT real de una carrera nueva es 'local'
+        // ("entrega sin Drive"), un día más nuevo que este archivo de test.
+        // Sin este UPDATE explícito, el resultado dependía de si
+        // Carreras/AlmacenamientoTest ya había corrido antes en la misma
+        // suite (y dejado la carrera en 'drive' de rebote) -- ver MEMORIA,
+        // diagnóstico de las 6 fallas preexistentes de la suite de
+        // integración.
+        self::conexionBd()->query(
+            "UPDATE carreras SET modo_almacenamiento = 'drive', ruta_almacenamiento_local = NULL WHERE id_carrera = 1"
+        );
+
         $rutaPdf = $this->crearPdfDePrueba();
 
         $respuesta = $this->peticion('POST', self::RUTA, [
