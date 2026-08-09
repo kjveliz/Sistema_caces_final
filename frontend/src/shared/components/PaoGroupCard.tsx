@@ -96,7 +96,7 @@ export default function PaoGroupCard({
               key={pao.pao}
               type="button"
               onClick={() => onClick(ind.id, index + 1)}
-              className="flex-1 flex flex-col items-center justify-center gap-1.5 px-2 py-3 transition-all hover:bg-blue-50 active:scale-[0.97] group"
+              className="relative flex-1 flex flex-col items-center justify-center gap-1.5 px-2 py-3 transition-all duration-200 hover:bg-blue-50 hover:-translate-y-0.5 hover:shadow-xl hover:z-10 active:scale-[0.97] group"
               style={{
                 borderRight: index < paos.length - 1 ? '1px solid rgba(27,58,107,0.07)' : 'none',
                 background: index % 2 === 0 ? 'rgba(27,58,107,0.015)' : 'transparent',
